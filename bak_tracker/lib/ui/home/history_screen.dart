@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 
-class HomeScreen extends StatelessWidget {
-  // Updated from StatsScreen
-  const HomeScreen({Key? key}) : super(key: key);
+class HistoryScreen extends StatelessWidget {
+  const HistoryScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'), // Updated title
+        title: const Text('Transaction History'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Your Association Overview'),
-            // Add your stats widgets here
+            const Text('Bakken Transaction History'),
+            // Add history list logic here
           ],
         ),
       ),

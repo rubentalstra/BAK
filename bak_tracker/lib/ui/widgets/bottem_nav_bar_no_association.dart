@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
-class BottomNavBar extends StatelessWidget {
+class BottomNavBarNoAssociation extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onTap;
 
-  const BottomNavBar({
+  const BottomNavBarNoAssociation({
     super.key,
     required this.selectedIndex,
     required this.onTap,
@@ -22,20 +22,8 @@ class BottomNavBar extends StatelessWidget {
             onTap: onTap,
             items: const [
               BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.home), // Home Tab
+                icon: Icon(CupertinoIcons.home), // Home Tab (No association)
                 label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.add), // Add Bak Tab
-                label: 'Add Bak',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.time), // Pending Approvals Tab
-                label: 'Approvals',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.book), // History Tab
-                label: 'History',
               ),
               BottomNavigationBarItem(
                 icon: Icon(CupertinoIcons.settings), // Settings Tab
@@ -49,20 +37,8 @@ class BottomNavBar extends StatelessWidget {
             onTap: onTap,
             items: const [
               BottomNavigationBarItem(
-                icon: Icon(Icons.home), // Home Tab
+                icon: Icon(Icons.home), // Home Tab (No association)
                 label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.add_circle_outline), // Add Bak Tab
-                label: 'Add Bak',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.hourglass_bottom), // Pending Approvals Tab
-                label: 'Approvals',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.history), // History Tab
-                label: 'History',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.settings), // Settings Tab

@@ -1,5 +1,6 @@
-import 'package:bak_tracker/ui/home/home_screen.dart';
+import 'package:bak_tracker/ui/home/main_screen.dart';
 import 'package:bak_tracker/ui/no_association/no_association_screen.dart';
+import 'package:bak_tracker/ui/login/login_screen.dart'; // Import the LoginScreen
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -33,7 +34,8 @@ class _SplashScreenState extends State<SplashScreen> {
         _navigateToNoAssociationScreen();
       }
     } else {
-      _navigateToNoAssociationScreen();
+      // User is not logged in, navigate to the LoginScreen
+      _navigateToLoginScreen();
     }
   }
 
@@ -51,7 +53,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void _navigateToHomeScreen() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
+      MaterialPageRoute(builder: (context) => const MainScreen()),
     );
   }
 
@@ -61,9 +63,14 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 
+  void _navigateToLoginScreen() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // No need for a visible Flutter-based splash screen now
-    return Container(); // Empty screen as native splash screen handles this
+    return Container(); // No UI needed as splash is handled natively
   }
 }
