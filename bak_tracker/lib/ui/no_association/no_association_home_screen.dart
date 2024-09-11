@@ -1,3 +1,4 @@
+import 'package:bak_tracker/ui/widgets/invite_code_input_widget.dart';
 import 'package:flutter/material.dart';
 
 class NoAssociationHomeScreen extends StatelessWidget {
@@ -17,13 +18,40 @@ class NoAssociationHomeScreen extends StatelessWidget {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // Logic for joining an association
+                _showInviteCodeInput(context); // Show modal bottom sheet
               },
               child: const Text('Join Association'),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // Function to show the InviteCodeInputWidget as a modal bottom sheet
+  void _showInviteCodeInput(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled:
+          true, // Makes the bottom sheet take full height if needed
+      builder: (BuildContext context) {
+        return InviteCodeInputWidget(
+          onCodeSubmitted: (String code) {
+            _joinAssociationWithCode(context, code);
+          },
+        );
+      },
+    );
+  }
+
+  // Handle the code submission logic
+  void _joinAssociationWithCode(BuildContext context, String code) {
+    // TODO: Add your logic to validate the code and join the association
+    print('Submitted Invite Code: $code');
+
+    // Example action after submitting a code
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Joining association with code: $code')),
     );
   }
 }

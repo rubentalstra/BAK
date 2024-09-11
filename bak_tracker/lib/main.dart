@@ -1,4 +1,5 @@
 import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
+import 'package:bak_tracker/bloc/notifications/notifications_bloc.dart';
 import 'package:bak_tracker/bloc/theme/theme_bloc.dart';
 import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
 import 'package:bak_tracker/ui/splash/splash_screen.dart';
@@ -41,6 +42,7 @@ class BakTrackerApp extends StatelessWidget {
         BlocProvider(create: (_) => AuthenticationBloc()),
         BlocProvider(create: (_) => ThemeBloc()),
         BlocProvider(create: (_) => LocaleBloc()),
+        BlocProvider(create: (_) => NotificationsBloc()),
       ],
       child: BlocBuilder<ThemeBloc, ThemeState>(
         builder: (context, themeState) {
