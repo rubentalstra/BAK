@@ -1,6 +1,5 @@
 import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/models/association_model.dart';
-import 'package:bak_tracker/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -12,7 +11,6 @@ class SendBakScreen extends StatefulWidget {
 class _SendBakScreenState extends State<SendBakScreen> {
   List<Map<String, dynamic>> _users = [];
   List<AssociationModel> _associations = [];
-  String? _selectedGiverId;
   String? _selectedReceiverId;
   String? _selectedAssociation;
   final _amountController = TextEditingController();
@@ -47,7 +45,6 @@ id,
   user_id ( id, name )
   ''').eq('association_id', _selectedAssociation!);
 
-    print(userResponse);
     if (userResponse.isNotEmpty) {
       setState(() {
         _users = userResponse.map((data) {
@@ -57,19 +54,12 @@ id,
             'name': userMap['name'],
           };
         }).toList();
-        // _selectedGiverId = userResponse.isNotEmpty
-        //     ? userResponse.first['user_id']['id']
-        //     : null;
-        // print(_selectedGiverId);
-        // _selectedReceiverId = userResponse.isNotEmpty
-        //     ? userResponse.first['user_id']['id']
-        //     : null;
+        _selectedReceiverId = _users.isNotEmpty ? _users.first['id'] : null;
       });
     }
   }
 
   Future<void> sendBak({
-    required String giverId,
     required String receiverId,
     required String associationId,
     required int amount,
@@ -79,9 +69,7 @@ id,
 
     try {
       await supabase.from('bak_send').insert({
-        'id': supabase
-            .auth.currentUser!.id, // You may want to generate a unique ID here
-        'giver_id': giverId,
+        'giver_id': Supabase.instance.client.auth.currentUser!.id,
         'receiver_id': receiverId,
         'association_id': associationId,
         'board_year_id': boardYearId,
@@ -97,18 +85,31 @@ id,
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Send Bak')),
+      appBar: AppBar(
+        title: Text('Send Bak'),
+        backgroundColor: Colors.deepPurple,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              'Select Association',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8.0),
             DropdownButton<String>(
               value: _selectedAssociation,
-              hint: Text('Select Association'),
+              hint: Text('Choose an Association'),
               onChanged: (value) {
                 setState(() {
                   _selectedAssociation = value;
                 });
+                _fetchData(); // Fetch users when the association changes
               },
               items: _associations.map((association) {
                 return DropdownMenuItem<String>(
@@ -117,25 +118,18 @@ id,
                 );
               }).toList(),
             ),
-            DropdownButton<String>(
-              value: _selectedGiverId,
-              hint: Text('Select Giver'),
-              onChanged: (value) {
-                setState(() {
-                  _selectedGiverId = value;
-                });
-              },
-              items: _users.map((user) {
-                print(user);
-                return DropdownMenuItem<String>(
-                  value: user['id'],
-                  child: Text(user['name']),
-                );
-              }).toList(),
+            SizedBox(height: 16.0),
+            Text(
+              'Select Receiver',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
+            SizedBox(height: 8.0),
             DropdownButton<String>(
               value: _selectedReceiverId,
-              hint: Text('Select Receiver'),
+              hint: Text('Choose a Receiver'),
               onChanged: (value) {
                 setState(() {
                   _selectedReceiverId = value;
@@ -148,16 +142,30 @@ id,
                 );
               }).toList(),
             ),
+            SizedBox(height: 16.0),
+            Text(
+              'Amount',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8.0),
             TextField(
               controller: _amountController,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Amount'),
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Enter amount',
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              ),
             ),
+            SizedBox(height: 24.0),
             ElevatedButton(
               onPressed: () async {
                 try {
                   await sendBak(
-                    giverId: _selectedGiverId!,
                     receiverId: _selectedReceiverId!,
                     associationId: _selectedAssociation!,
                     amount: int.parse(_amountController.text),
