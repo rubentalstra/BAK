@@ -9,13 +9,31 @@ import 'package:supabase_auth_ui/supabase_auth_ui.dart';
 class LoginScreen extends StatelessWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
+  // Function to get the user_id from users table based on auth_id
+  Future<String?> _getUserIdFromAuthId() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('users')
+          .select('id')
+          .eq('auth_id', Supabase.instance.client.auth.currentUser!.id)
+          .single();
+
+      if (response != null && response['id'] != null) {
+        return response['id']; // Return the user_id from users table
+      }
+    } catch (e) {
+      print('Error fetching user from users table: $e');
+    }
+    return null; // Return null if no user is found
+  }
+
   // Function to check if the user is part of any association
-  Future<bool> _checkUserAssociation() async {
+  Future<bool> _checkUserAssociation(String userId) async {
     try {
       final response = await Supabase.instance.client
           .from('association_members')
           .select()
-          .eq('user_id', Supabase.instance.client.auth.currentUser!.id);
+          .eq('user_id', userId); // Now using the user_id from the users table
 
       if (response.isNotEmpty) {
         return true; // User is part of at least one association
@@ -52,23 +70,35 @@ class LoginScreen extends StatelessWidget {
                 ? null
                 : 'https://iywlypvipqaibumbgsyf.supabase.co/auth/v1/callback',
             onSuccess: (Session session) async {
-              // After successful login, check if the user is part of an association
-              bool isPartOfAssociation = await _checkUserAssociation();
+              // Fetch the user_id using auth_id
+              String? userId = await _getUserIdFromAuthId();
 
-              if (isPartOfAssociation) {
-                // Navigate to the HomeScreen if part of an association
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const MainScreen()),
-                );
+              if (userId != null) {
+                // Check if the user is part of an association
+                bool isPartOfAssociation = await _checkUserAssociation(userId);
+
+                if (isPartOfAssociation) {
+                  // Navigate to the HomeScreen if part of an association
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => const MainScreen()),
+                  );
+                } else {
+                  // Navigate to NoAssociationScreen if not part of any association
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                        builder: (context) => const NoAssociationScreen()),
+                  );
+                }
               } else {
-                // Navigate to NoAssociationScreen if not part of any association
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                      builder: (context) => const NoAssociationScreen()),
+                // Handle case where user_id is not found in users table
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('User not found. Please contact support.')),
                 );
               }
             },
             onError: (error) {
+              print('Login error details: $error'); // Add detailed error logs
               // Show an error message if login fails
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Login Failed: $error')),

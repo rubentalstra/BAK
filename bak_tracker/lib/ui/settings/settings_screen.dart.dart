@@ -1,7 +1,6 @@
 import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
 import 'package:bak_tracker/bloc/theme/theme_bloc.dart';
 import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
-import 'package:bak_tracker/bloc/notifications/notifications_bloc.dart';
 import 'package:bak_tracker/ui/login/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -98,22 +97,22 @@ class SettingsScreen extends StatelessWidget {
         ),
 
         // Notifications Toggle
-        BlocBuilder<NotificationsBloc, NotificationsState>(
-          builder: (context, state) {
-            return ListTile(
-              title: const Text('Notifications'),
-              subtitle: const Text('Enable or disable notifications'),
-              trailing: Switch(
-                value: state.isEnabled,
-                onChanged: (value) {
-                  context.read<NotificationsBloc>().add(
-                        NotificationsToggled(isEnabled: value),
-                      );
-                },
-              ),
-            );
-          },
-        ),
+        // BlocBuilder<NotificationsBloc, NotificationsState>(
+        //   builder: (context, state) {
+        //     return ListTile(
+        //       title: const Text('Notifications'),
+        //       subtitle: const Text('Enable or disable notifications'),
+        //       trailing: Switch(
+        //         value: state.isEnabled,
+        //         onChanged: (value) {
+        //           context.read<NotificationsBloc>().add(
+        //                 NotificationsToggled(isEnabled: value),
+        //               );
+        //         },
+        //       ),
+        //     );
+        //   },
+        // ),
 
         // Logout Button
         ElevatedButton(
@@ -179,21 +178,21 @@ class SettingsScreen extends StatelessWidget {
             ),
 
             // Notifications Toggle
-            BlocBuilder<NotificationsBloc, NotificationsState>(
-              builder: (context, state) {
-                return CupertinoFormRow(
-                  prefix: const Text('Notifications'),
-                  child: CupertinoSwitch(
-                    value: state.isEnabled,
-                    onChanged: (value) {
-                      context.read<NotificationsBloc>().add(
-                            NotificationsToggled(isEnabled: value),
-                          );
-                    },
-                  ),
-                );
-              },
-            ),
+            // BlocBuilder<NotificationsBloc, NotificationsState>(
+            //   builder: (context, state) {
+            //     return CupertinoFormRow(
+            //       prefix: const Text('Notifications'),
+            //       child: CupertinoSwitch(
+            //         value: state.isEnabled,
+            //         onChanged: (value) {
+            //           context.read<NotificationsBloc>().add(
+            //                 NotificationsToggled(isEnabled: value),
+            //               );
+            //         },
+            //       ),
+            //     );
+            //   },
+            // ),
           ],
         ),
         CupertinoFormSection(

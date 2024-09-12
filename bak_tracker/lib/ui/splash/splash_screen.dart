@@ -1,6 +1,6 @@
 import 'package:bak_tracker/ui/home/main_screen.dart';
 import 'package:bak_tracker/ui/no_association/no_association_screen.dart';
-import 'package:bak_tracker/ui/login/login_screen.dart'; // Import the LoginScreen
+import 'package:bak_tracker/ui/login/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -15,36 +15,29 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-
-    // After the build phase, run authentication logic
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAuthentication();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAuthentication());
   }
 
   Future<void> _checkAuthentication() async {
     final session = Supabase.instance.client.auth.currentSession;
 
     if (session != null) {
-      // Fetch the associations the user is part of
+      // User is logged in
       final associations = await _getAssociations();
-      if (associations.isNotEmpty) {
-        _navigateToHomeScreen();
-      } else {
-        _navigateToNoAssociationScreen();
-      }
+      associations.isNotEmpty
+          ? _navigateToHomeScreen()
+          : _navigateToNoAssociationScreen();
     } else {
-      // User is not logged in, navigate to the LoginScreen
+      // User is not logged in
       _navigateToLoginScreen();
     }
   }
 
   Future<List<dynamic>> _getAssociations() async {
     try {
-      // Fetch the user's associations from 'association_members' table
-      final List<dynamic> response =
-          await Supabase.instance.client.from('association_members').select();
-      return response;
+      return await Supabase.instance.client
+          .from('association_members')
+          .select();
     } catch (e) {
       print('Error fetching associations: $e');
       return [];
@@ -71,6 +64,11 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(); // No UI needed as splash is handled natively
+    return const Scaffold(
+      body: Center(
+        child:
+            CircularProgressIndicator(), // Loading indicator while checking auth
+      ),
+    );
   }
 }

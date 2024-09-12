@@ -1,13 +1,13 @@
 class AssociationMemberModel {
   final String userId;
   final String associationId;
-  final String roleTitle;
+  final String role;
   final DateTime joinedAt;
 
   AssociationMemberModel({
     required this.userId,
     required this.associationId,
-    required this.roleTitle,
+    required this.role,
     required this.joinedAt,
   });
 
@@ -15,7 +15,7 @@ class AssociationMemberModel {
     return AssociationMemberModel(
       userId: map['user_id'],
       associationId: map['association_id'],
-      roleTitle: map['role_title'],
+      role: map['role'],
       joinedAt: DateTime.parse(map['joined_at']),
     );
   }
@@ -24,7 +24,7 @@ class AssociationMemberModel {
     return {
       'user_id': userId,
       'association_id': associationId,
-      'role_title': roleTitle,
+      'role': role,
       'joined_at': joinedAt.toIso8601String(),
     };
   }
