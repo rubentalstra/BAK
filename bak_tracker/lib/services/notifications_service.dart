@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NotificationsService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
@@ -70,7 +71,22 @@ class NotificationsService {
       String? token = await messaging.getToken();
       if (token != null) {
         print('FCM Token: $token');
-        // Update FCM token in your database if needed
+        // Get the current user's ID
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        if (userId != null) {
+          try {
+            // Update FCM token in the database
+            await Supabase.instance.client
+                .from('users')
+                .update({'fcm_token': token}).eq('id', userId);
+
+            print('FCM token updated successfully.');
+          } catch (e) {
+            print('Error updating FCM token: $e');
+          }
+        } else {
+          print('User not logged in. Cannot update FCM token.');
+        }
       }
     } catch (e) {
       print('Error getting FCM token: $e');

@@ -1,5 +1,6 @@
 import 'package:bak_tracker/ui/widgets/invite_code_input_widget.dart';
 import 'package:flutter/material.dart';
+import 'association_request_screen.dart';
 
 class NoAssociationHomeScreen extends StatelessWidget {
   const NoAssociationHomeScreen({Key? key}) : super(key: key);
@@ -16,6 +17,16 @@ class NoAssociationHomeScreen extends StatelessWidget {
           children: [
             const Text('You are not part of any association.'),
             const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => AssociationRequestScreen()),
+                );
+              },
+              child: const Text('Request Association'),
+            ),
             ElevatedButton(
               onPressed: () {
                 _showInviteCodeInput(context); // Show modal bottom sheet

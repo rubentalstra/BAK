@@ -27,7 +27,7 @@ class BottomNavBar extends StatelessWidget {
               ),
               BottomNavigationBarItem(
                 icon: Icon(CupertinoIcons.add), // Add Bak Tab
-                label: 'Add Bak',
+                label: 'Send Bak',
               ),
               BottomNavigationBarItem(
                 icon: Icon(CupertinoIcons.time), // Pending Approvals Tab

@@ -3,37 +3,21 @@ import 'package:bak_tracker/ui/no_association/no_association_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:supabase_auth_ui/supabase_auth_ui.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
-  // Function to get the user_id from users table based on auth_id
-  Future<String?> _getUserIdFromAuthId() async {
-    try {
-      final response = await Supabase.instance.client
-          .from('users')
-          .select('id')
-          .eq('auth_id', Supabase.instance.client.auth.currentUser!.id)
-          .single();
-
-      if (response != null && response['id'] != null) {
-        return response['id']; // Return the user_id from users table
-      }
-    } catch (e) {
-      print('Error fetching user from users table: $e');
-    }
-    return null; // Return null if no user is found
-  }
-
   // Function to check if the user is part of any association
-  Future<bool> _checkUserAssociation(String userId) async {
+  Future<bool> _checkUserAssociation() async {
     try {
       final response = await Supabase.instance.client
           .from('association_members')
           .select()
-          .eq('user_id', userId); // Now using the user_id from the users table
+          .eq(
+              'id',
+              Supabase.instance.client.auth.currentUser!
+                  .id); // Now using the user_id from the users table
 
       if (response.isNotEmpty) {
         return true; // User is part of at least one association
@@ -70,30 +54,19 @@ class LoginScreen extends StatelessWidget {
                 ? null
                 : 'https://iywlypvipqaibumbgsyf.supabase.co/auth/v1/callback',
             onSuccess: (Session session) async {
-              // Fetch the user_id using auth_id
-              String? userId = await _getUserIdFromAuthId();
+              // Check if the user is part of an association
+              bool isPartOfAssociation = await _checkUserAssociation();
 
-              if (userId != null) {
-                // Check if the user is part of an association
-                bool isPartOfAssociation = await _checkUserAssociation(userId);
-
-                if (isPartOfAssociation) {
-                  // Navigate to the HomeScreen if part of an association
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => const MainScreen()),
-                  );
-                } else {
-                  // Navigate to NoAssociationScreen if not part of any association
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                        builder: (context) => const NoAssociationScreen()),
-                  );
-                }
+              if (isPartOfAssociation) {
+                // Navigate to the HomeScreen if part of an association
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const MainScreen()),
+                );
               } else {
-                // Handle case where user_id is not found in users table
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('User not found. Please contact support.')),
+                // Navigate to NoAssociationScreen if not part of any association
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                      builder: (context) => const NoAssociationScreen()),
                 );
               }
             },

@@ -7,7 +7,6 @@ class BakConsumedModel {
   final String approvalStatus;
   final String? approvedBy;
   final DateTime createdAt;
-  final DateTime? consumedAt;
 
   BakConsumedModel({
     required this.id,
@@ -18,7 +17,6 @@ class BakConsumedModel {
     required this.approvalStatus,
     this.approvedBy,
     required this.createdAt,
-    this.consumedAt,
   });
 
   factory BakConsumedModel.fromMap(Map<String, dynamic> map) {
@@ -31,9 +29,6 @@ class BakConsumedModel {
       approvalStatus: map['approval_status'],
       approvedBy: map['approved_by'],
       createdAt: DateTime.parse(map['created_at']),
-      consumedAt: map['consumed_at'] != null
-          ? DateTime.parse(map['consumed_at'])
-          : null,
     );
   }
 
@@ -47,7 +42,6 @@ class BakConsumedModel {
       'approval_status': approvalStatus,
       'approved_by': approvedBy,
       'created_at': createdAt.toIso8601String(),
-      'consumed_at': consumedAt?.toIso8601String(),
     };
   }
 }

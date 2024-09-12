@@ -1,4 +1,4 @@
-import 'package:bak_tracker/ui/home/add_bak_screen.dart';
+import 'package:bak_tracker/ui/home/send_bak_screen.dart';
 import 'package:bak_tracker/ui/home/history_screen.dart';
 import 'package:bak_tracker/ui/home/home_screen.dart';
 import 'package:bak_tracker/ui/home/pending_approval_screen.dart';
@@ -19,7 +19,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [
     const HomeScreen(), // Updated: Main dashboard for stats & leaderboard
-    const AddBakScreen(), // Add Bak
+    SendBakScreen(), // Send Bak
     const PendingApprovalsScreen(), // Pending Approvals
     const HistoryScreen(), // History
     const SettingsScreen(), // Settings
