@@ -2,7 +2,6 @@ import 'dart:convert';
 
 class AssociationMemberModel {
   final String userId;
-  final String? name;
   final String associationId;
   final String role;
   final Map<String, dynamic> permissions;
@@ -10,7 +9,6 @@ class AssociationMemberModel {
 
   AssociationMemberModel({
     required this.userId,
-    required this.name,
     required this.associationId,
     required this.role,
     required this.permissions,
@@ -20,7 +18,6 @@ class AssociationMemberModel {
   factory AssociationMemberModel.fromMap(Map<String, dynamic> map) {
     return AssociationMemberModel(
       userId: map['user_id'],
-      name: map['name'],
       associationId: map['association_id'],
       role: map['role'],
       permissions: map['permissions'] != null
@@ -33,7 +30,6 @@ class AssociationMemberModel {
   Map<String, dynamic> toMap() {
     return {
       'user_id': userId,
-      'name': name,
       'association_id': associationId,
       'role': role,
       'permissions': jsonEncode(permissions),

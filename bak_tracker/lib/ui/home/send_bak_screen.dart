@@ -10,7 +10,7 @@ class SendBakScreen extends StatefulWidget {
 }
 
 class _SendBakScreenState extends State<SendBakScreen> {
-  List<AssociationMemberModel> _users = [];
+  List<Map<String, dynamic>> _users = [];
   List<AssociationModel> _associations = [];
   String? _selectedGiverId;
   String? _selectedReceiverId;
@@ -43,14 +43,27 @@ class _SendBakScreenState extends State<SendBakScreen> {
     // Fetch users
     final List<dynamic> userResponse =
         await supabase.from('association_members').select('''
+id,
   user_id ( id, name )
   ''').eq('association_id', _selectedAssociation!);
 
     print(userResponse);
     if (userResponse.isNotEmpty) {
       setState(() {
-        _selectedGiverId = _users.isNotEmpty ? _users.first.userId : null;
-        _selectedReceiverId = _users.isNotEmpty ? _users.first.userId : null;
+        _users = userResponse.map((data) {
+          final userMap = data['user_id'] as Map<String, dynamic>;
+          return {
+            'id': userMap['id'],
+            'name': userMap['name'],
+          };
+        }).toList();
+        // _selectedGiverId = userResponse.isNotEmpty
+        //     ? userResponse.first['user_id']['id']
+        //     : null;
+        // print(_selectedGiverId);
+        // _selectedReceiverId = userResponse.isNotEmpty
+        //     ? userResponse.first['user_id']['id']
+        //     : null;
       });
     }
   }
@@ -113,9 +126,10 @@ class _SendBakScreenState extends State<SendBakScreen> {
                 });
               },
               items: _users.map((user) {
+                print(user);
                 return DropdownMenuItem<String>(
-                  value: user.userId,
-                  child: Text(user.name!),
+                  value: user['id'],
+                  child: Text(user['name']),
                 );
               }).toList(),
             ),
@@ -129,8 +143,8 @@ class _SendBakScreenState extends State<SendBakScreen> {
               },
               items: _users.map((user) {
                 return DropdownMenuItem<String>(
-                  value: user.userId,
-                  child: Text(user.name!),
+                  value: user['id'],
+                  child: Text(user['name']),
                 );
               }).toList(),
             ),
