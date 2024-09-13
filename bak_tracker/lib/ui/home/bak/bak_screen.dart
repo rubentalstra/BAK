@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/models/association_model.dart';
 
-class SendBakScreen extends StatefulWidget {
+class BakScreen extends StatefulWidget {
   @override
-  _SendBakScreenState createState() => _SendBakScreenState();
+  _BakScreenState createState() => _BakScreenState();
 }
 
-class _SendBakScreenState extends State<SendBakScreen>
+class _BakScreenState extends State<BakScreen>
     with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _users = [];
   List<AssociationModel> _associations = [];
@@ -19,6 +19,7 @@ class _SendBakScreenState extends State<SendBakScreen>
 
   List<Map<String, dynamic>> _sentBakken = [];
   List<Map<String, dynamic>> _receivedBakken = [];
+  List<Map<String, dynamic>> _receivedBakkenTransaction = [];
   bool _isLoadingSent = false;
   bool _isLoadingReceived = false;
 
@@ -71,7 +72,8 @@ class _SendBakScreenState extends State<SendBakScreen>
 
     setState(() {
       _sentBakken = List<Map<String, dynamic>>.from(sentResponse);
-      _receivedBakken = List<Map<String, dynamic>>.from(receivedResponse);
+      _receivedBakkenTransaction =
+          List<Map<String, dynamic>>.from(receivedResponse);
       _isLoadingSent = false;
       _isLoadingReceived = false;
     });
@@ -85,6 +87,8 @@ class _SendBakScreenState extends State<SendBakScreen>
         .from('association_members')
         .select('user_id (id, name)')
         .eq('association_id', _selectedAssociation!);
+
+    print(userResponse);
 
     if (userResponse.isNotEmpty) {
       setState(() {
@@ -153,6 +157,7 @@ class _SendBakScreenState extends State<SendBakScreen>
         .select(
             'id, amount, status, created_at, receiver_id (id, name), giver_id (id, name)')
         .eq('receiver_id', Supabase.instance.client.auth.currentUser!.id)
+        .eq('status', 'pending') // Only fetch 'pending' baks
         .order('created_at', ascending: false);
 
     setState(() {
@@ -214,7 +219,7 @@ class _SendBakScreenState extends State<SendBakScreen>
           .eq('user_id', giverId)
           .single();
 
-      if (giverResponse != null && giverResponse['baks_consumed'] != null) {
+      if (giverResponse['baks_consumed'] != null) {
         // Increment the baks_consumed value
         final updatedBaksConsumed = giverResponse['baks_consumed'] + 1;
 
@@ -251,7 +256,7 @@ class _SendBakScreenState extends State<SendBakScreen>
         children: [
           _buildSendBakTab(context),
           _buildReceivedBakTab(),
-          _buildSentBakTab(),
+          _buildTransactionsBakTab(),
         ],
       ),
     );
@@ -384,13 +389,13 @@ class _SendBakScreenState extends State<SendBakScreen>
     );
   }
 
-  Widget _buildSentBakTab() {
+  Widget _buildTransactionsBakTab() {
     final currentUserId = Supabase.instance.client.auth.currentUser!.id;
 
     // Combine sent and received baks into a single list for transactions
     List<Map<String, dynamic>> transactions = [
       ..._sentBakken,
-      ..._receivedBakken
+      ..._receivedBakkenTransaction
     ];
     transactions.sort((a, b) => DateTime.parse(b['created_at'])
         .compareTo(DateTime.parse(a['created_at']))); // Sort by newest first
@@ -427,12 +432,11 @@ class _SendBakScreenState extends State<SendBakScreen>
     return _isLoadingReceived
         ? const Center(child: CircularProgressIndicator())
         : _receivedBakken.isEmpty
-            ? const Center(child: Text('No received baks found.'))
+            ? const Center(child: Text('No pending baks found.'))
             : ListView.builder(
                 itemCount: _receivedBakken.length,
                 itemBuilder: (context, index) {
                   final bak = _receivedBakken[index];
-                  final bakStatus = bak['status']; // Get the current status
                   final date = DateTime.parse(bak['created_at']).toLocal();
                   final formattedDate =
                       '${date.day}/${date.month}/${date.year}';
@@ -441,29 +445,21 @@ class _SendBakScreenState extends State<SendBakScreen>
                     title: Text('Received from: ${bak['giver_id']['name']}'),
                     subtitle:
                         Text('Amount: ${bak['amount']} | Date: $formattedDate'),
-                    trailing: bakStatus == 'pending'
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.check,
-                                    color: Colors.green),
-                                onPressed: () => approveBak(
-                                    bak['id'],
-                                    bak['receiver_id']['id'],
-                                    bak['giver_id']['id']),
-                              ),
-                              IconButton(
-                                icon:
-                                    const Icon(Icons.close, color: Colors.red),
-                                onPressed: () => declineBak(
-                                    bak['id'], bak['giver_id']['id']),
-                              ),
-                            ],
-                          )
-                        : Text(bakStatus == 'approved'
-                            ? 'Approved'
-                            : 'Declined'), // Display status if already processed
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.check, color: Colors.green),
+                          onPressed: () => approveBak(bak['id'],
+                              bak['receiver_id']['id'], bak['giver_id']['id']),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.red),
+                          onPressed: () =>
+                              declineBak(bak['id'], bak['giver_id']['id']),
+                        ),
+                      ],
+                    ),
                   );
                 },
               );

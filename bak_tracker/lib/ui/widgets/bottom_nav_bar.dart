@@ -29,12 +29,12 @@ class BottomNavBar extends StatelessWidget {
                 label: 'Home',
               ),
               BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.add),
-                label: 'Send Bak',
+                icon: Icon(Icons.local_drink),
+                label: 'Bak',
               ),
               BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.time),
-                label: 'Approvals',
+                icon: Icon(Icons.handshake_outlined),
+                label: 'Bets',
               ),
               BottomNavigationBarItem(
                 icon: Icon(CupertinoIcons.book),
@@ -58,12 +58,12 @@ class BottomNavBar extends StatelessWidget {
                 label: 'Home',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.add_circle_outline),
-                label: 'Add Bak',
+                icon: Icon(Icons.local_drink),
+                label: 'Bak',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.hourglass_bottom),
-                label: 'Approvals',
+                icon: Icon(Icons.handshake_outlined),
+                label: 'Bets',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.history),
