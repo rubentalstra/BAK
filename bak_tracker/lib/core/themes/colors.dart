@@ -1,24 +1,19 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Light theme colors with new palette
-  static const Color lightPrimary = Color(0xFFB3E5FC); // Light Blue
-  static const Color lightPrimaryVariant = Color(0xFF81D4FA); // Blue Variant
-  static const Color lightSecondary = Color(0xFFFFC107); // Amber
-  static const Color lightAccent = Color(0xFF4FC3F7); // Sky Blue
+  // Light theme colors
+  static const Color lightPrimary =
+      Color.fromARGB(255, 29, 40, 45); // Main color
+  static const Color lightPrimaryVariant =
+      Color(0xFF4A5A63); // Muted version of main color for variants
+  static const Color lightSecondary =
+      Color.fromARGB(255, 218, 164, 66); // Accent color from logo
+  static const Color lightAccent =
+      Color.fromARGB(255, 218, 164, 66); // Same accent
   static const Color lightBackground =
-      Color(0xFFE1F5FE); // Pale Blue Background
-  static const Color lightSurface = Color(0xFFF5F5F5); // Light Grey Surface
-  static const Color lightOnPrimary = Color(0xFF212121); // Dark Grey Text
-
-  // Dark theme colors with new palette
-  static const Color darkPrimary = Color(0xFF263238); // Blue Grey
-  static const Color darkPrimaryVariant = Color(0xFF37474F); // Darker Blue Grey
-  static const Color darkSecondary = Color(0xFF009688); // Teal
-  static const Color darkAccent = Color(0xFF80CBC4); // Light Teal
-  static const Color darkBackground = Color(0xFF121212); // Dark Background
-  static const Color darkSurface = Color(0xFF1D1D1D); // Dark Surface
-  static const Color darkOnPrimary = Color(0xFFEEEEEE); // Light Grey Text
-  static const Color darkOnSurface =
-      Color(0xFFB0BEC5); // Grey Text on Dark Surface
+      Color(0xFFF0F3F4); // Very light grey for backgrounds
+  static const Color lightSurface =
+      Color(0xFFFFFFFF); // White for surfaces like cards
+  static const Color lightOnPrimary =
+      Color(0xFF1D1D1D); // Dark color for text on primary surfaces
 }

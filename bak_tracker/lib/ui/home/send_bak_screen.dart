@@ -1,7 +1,6 @@
-import 'package:bak_tracker/models/association_member_model.dart';
-import 'package:bak_tracker/models/association_model.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bak_tracker/models/association_model.dart';
 
 class SendBakScreen extends StatefulWidget {
   @override
@@ -85,101 +84,124 @@ id,
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Send Bak'),
-        backgroundColor: Colors.deepPurple,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Select Association',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8.0),
-            DropdownButton<String>(
-              value: _selectedAssociation,
-              hint: Text('Choose an Association'),
-              onChanged: (value) {
-                setState(() {
-                  _selectedAssociation = value;
-                });
-                _fetchData(); // Fetch users when the association changes
-              },
-              items: _associations.map((association) {
-                return DropdownMenuItem<String>(
-                  value: association.id,
-                  child: Text(association.name),
-                );
-              }).toList(),
-            ),
-            SizedBox(height: 16.0),
-            Text(
-              'Select Receiver',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8.0),
-            DropdownButton<String>(
-              value: _selectedReceiverId,
-              hint: Text('Choose a Receiver'),
-              onChanged: (value) {
-                setState(() {
-                  _selectedReceiverId = value;
-                });
-              },
-              items: _users.map((user) {
-                return DropdownMenuItem<String>(
-                  value: user['id'],
-                  child: Text(user['name']),
-                );
-              }).toList(),
-            ),
-            SizedBox(height: 16.0),
-            Text(
-              'Amount',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8.0),
-            TextField(
-              controller: _amountController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Enter amount',
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      appBar: AppBar(title: const Text('Send Bak')),
+      body: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus(); // Dismiss the keyboard
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Select Association',
               ),
-            ),
-            SizedBox(height: 24.0),
-            ElevatedButton(
-              onPressed: () async {
-                try {
-                  await sendBak(
-                    receiverId: _selectedReceiverId!,
-                    associationId: _selectedAssociation!,
-                    amount: int.parse(_amountController.text),
+              const SizedBox(height: 8.0),
+              DropdownButton<String>(
+                value: _selectedAssociation,
+                hint: const Text('Choose an Association'),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedAssociation = value;
+                    _fetchData(); // Fetch users when the association changes
+                  });
+                },
+                items: _associations.map((association) {
+                  return DropdownMenuItem<String>(
+                    value: association.id,
+                    child: Text(association.name),
                   );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Bak sent successfully!')));
-                } catch (e) {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Error: $e')));
-                }
-              },
-              child: Text('Send Bak'),
-            ),
-          ],
+                }).toList(),
+                isExpanded: true,
+                underline: Container(
+                  height: 2,
+                  color: Colors.deepPurpleAccent,
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              Text(
+                'Select Receiver',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
+                    ),
+              ),
+              const SizedBox(height: 8.0),
+              DropdownButton<String>(
+                value: _selectedReceiverId,
+                hint: const Text('Choose a Receiver'),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedReceiverId = value;
+                  });
+                },
+                items: _users.map((user) {
+                  return DropdownMenuItem<String>(
+                    value: user['id'],
+                    child: Text(user['name']),
+                  );
+                }).toList(),
+                isExpanded: true,
+                underline: Container(
+                  height: 2,
+                  color: Colors.deepPurpleAccent,
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              Text(
+                'Amount',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
+                    ),
+              ),
+              const SizedBox(height: 8.0),
+              TextField(
+                controller: _amountController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: Colors.deepPurpleAccent),
+                  ),
+                  labelText: 'Enter amount',
+                  labelStyle: const TextStyle(color: Colors.deepPurple),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 12.0),
+                ),
+                textInputAction: TextInputAction.done,
+              ),
+              const SizedBox(height: 24.0),
+              ElevatedButton(
+                onPressed: () async {
+                  try {
+                    await sendBak(
+                      receiverId: _selectedReceiverId!,
+                      associationId: _selectedAssociation!,
+                      amount: int.parse(_amountController.text),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Bak sent successfully!')));
+                  } catch (e) {
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text('Error: $e')));
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  textStyle: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Send Bak',
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

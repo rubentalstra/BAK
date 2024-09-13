@@ -1,6 +1,6 @@
 import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
-import 'package:bak_tracker/bloc/theme/theme_bloc.dart';
 import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
+import 'package:bak_tracker/core/themes/themes.dart';
 import 'package:bak_tracker/services/notifications_service.dart';
 import 'package:bak_tracker/ui/splash/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -55,30 +55,24 @@ class BakTrackerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => AuthenticationBloc()),
-        BlocProvider(create: (_) => ThemeBloc()),
-        BlocProvider(create: (_) => LocaleBloc()),
+        BlocProvider<AuthenticationBloc>(create: (_) => AuthenticationBloc()),
+        BlocProvider<LocaleBloc>(create: (_) => LocaleBloc()),
       ],
-      child: BlocBuilder<ThemeBloc, ThemeState>(
-        builder: (context, themeState) {
-          return BlocBuilder<LocaleBloc, LocaleState>(
-            builder: (context, localeState) {
-              return MaterialApp(
-                title: 'Bak Tracker',
-                theme: ThemeData.light(),
-                darkTheme: ThemeData.dark(),
-                themeMode: themeState.themeMode,
-                locale: localeState.locale,
-                supportedLocales: AppLocalizations.supportedLocales,
-                localizationsDelegates: const [
-                  AppLocalizations.delegate,
-                  GlobalMaterialLocalizations.delegate,
-                  GlobalWidgetsLocalizations.delegate,
-                  GlobalCupertinoLocalizations.delegate,
-                ],
-                home: const SplashScreen(),
-              );
-            },
+      child: BlocBuilder<LocaleBloc, LocaleState>(
+        builder: (context, localeState) {
+          return MaterialApp(
+            title: 'Bak Tracker',
+            theme: AppThemes.darkTheme,
+            locale: localeState.locale,
+            debugShowCheckedModeBanner: false,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: const SplashScreen(),
           );
         },
       ),

@@ -22,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _fetchData();
+    _fetchDemoLeaderboardData();
   }
 
   Future<void> _fetchData() async {
@@ -56,39 +57,77 @@ class _HomeScreenState extends State<HomeScreen> {
           });
 
           // Fetch leaderboard entries
-          _fetchLeaderboard();
+          _fetchDemoLeaderboardData();
         }
       }
     }
   }
 
-  Future<void> _fetchLeaderboard() async {
-    final supabase = Supabase.instance.client;
+  void _fetchDemoLeaderboardData() {
+    // Creating some demo leaderboard data
+    _leaderboardEntries = [
+      LeaderboardEntry(
+        rank: 1,
+        username: 'Alice',
+        baksConsumed: 50,
+        baksDebt: 20,
+      ),
+      LeaderboardEntry(
+        rank: 2,
+        username: 'Bob',
+        baksConsumed: 40,
+        baksDebt: 15,
+      ),
+      LeaderboardEntry(
+        rank: 3,
+        username: 'Charlie',
+        baksConsumed: 35,
+        baksDebt: 25,
+      ),
+      LeaderboardEntry(
+        rank: 4,
+        username: 'David',
+        baksConsumed: 30,
+        baksDebt: 10,
+      ),
+      LeaderboardEntry(
+        rank: 5,
+        username: 'Eve',
+        baksConsumed: 25,
+        baksDebt: 5,
+      ),
+    ];
 
-    // Fetch leaderboard entries
-    if (_selectedAssociation != null && _selectedBoardYear != null) {
-      final List<dynamic> response = await supabase
-          .from('leaderboard') // Assuming you have a leaderboard table
-          .select()
-          .eq('association_id', _selectedAssociation!.id)
-          .eq('board_year_id', _selectedBoardYear!.id)
-          .order('rank', ascending: true);
-
-      if (response.isNotEmpty) {
-        setState(() {
-          _leaderboardEntries = (response).map((data) {
-            final map = data as Map<String, dynamic>;
-            return LeaderboardEntry(
-              rank: map['rank'],
-              username: map['username'],
-              baksConsumed: map['baks_consumed'],
-              baksDebt: map['baks_debt'],
-            );
-          }).toList();
-        });
-      }
-    }
+    setState(() {});
   }
+
+  // Future<void> _fetchLeaderboard() async {
+  //   final supabase = Supabase.instance.client;
+
+  //   // Fetch leaderboard entries
+  //   if (_selectedAssociation != null && _selectedBoardYear != null) {
+  //     final List<dynamic> response = await supabase
+  //         .from('leaderboard') // Assuming you have a leaderboard table
+  //         .select()
+  //         .eq('association_id', _selectedAssociation!.id)
+  //         .eq('board_year_id', _selectedBoardYear!.id)
+  //         .order('rank', ascending: true);
+
+  //     if (response.isNotEmpty) {
+  //       setState(() {
+  //         _leaderboardEntries = (response).map((data) {
+  //           final map = data as Map<String, dynamic>;
+  //           return LeaderboardEntry(
+  //             rank: map['rank'],
+  //             username: map['username'],
+  //             baksConsumed: map['baks_consumed'],
+  //             baksDebt: map['baks_debt'],
+  //           );
+  //         }).toList();
+  //       });
+  //     }
+  //   }
+  // }
 
   void _onAssociationChanged(AssociationModel? newAssociation) {
     setState(() {
@@ -104,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedBoardYear = newBoardYear;
       _leaderboardEntries = []; // Clear leaderboard entries
     });
-    _fetchLeaderboard(); // Fetch leaderboard based on new board year
+    _fetchDemoLeaderboardData(); // Fetch leaderboard based on new board year
   }
 
   @override
@@ -113,15 +152,20 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Home'),
         actions: [
-          DropdownButton<AssociationModel>(
-            value: _selectedAssociation,
-            onChanged: _onAssociationChanged,
-            items: _associations.map((association) {
-              return DropdownMenuItem(
-                value: association,
-                child: Text(association.name),
-              );
-            }).toList(),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<AssociationModel>(
+              value: _selectedAssociation,
+              onChanged: _onAssociationChanged,
+              dropdownColor: Colors.white,
+              icon: Icon(Icons.keyboard_arrow_down, color: Colors.white),
+              items: _associations.map((association) {
+                return DropdownMenuItem(
+                  value: association,
+                  child: Text(association.name,
+                      style: TextStyle(color: Colors.black)),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
@@ -135,11 +179,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: DropdownButton<BoardYearModel>(
                   value: _selectedBoardYear,
                   onChanged: _onBoardYearChanged,
+                  dropdownColor: Colors.white,
+                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.black),
                   items: _boardYears.map((boardYear) {
                     return DropdownMenuItem(
                       value: boardYear,
                       child: Text(
-                          '${boardYear.yearStart.year} - ${boardYear.yearEnd.year}'),
+                          '${boardYear.yearStart.year} - ${boardYear.yearEnd.year}',
+                          style: TextStyle(color: Colors.black)),
                     );
                   }).toList(),
                 ),

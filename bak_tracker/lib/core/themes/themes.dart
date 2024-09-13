@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'colors.dart';
 
 class AppThemes {
-  static final ThemeData lightTheme = ThemeData(
-    brightness: Brightness.light,
+  static final ThemeData darkTheme = ThemeData(
+    brightness: Brightness.dark,
     colorScheme: ColorScheme(
       primary: AppColors.lightPrimary,
       primaryContainer: AppColors.lightPrimary,
@@ -14,14 +14,14 @@ class AppThemes {
       onSurface: AppColors.lightOnPrimary,
       error: Colors.red.shade700,
       onError: Colors.white,
-      brightness: Brightness.light,
+      brightness: Brightness.dark,
     ),
-    scaffoldBackgroundColor: AppColors.lightBackground,
+    scaffoldBackgroundColor: AppColors.lightPrimaryVariant,
     appBarTheme: const AppBarTheme(
       color: AppColors.lightPrimary,
-      iconTheme: IconThemeData(color: AppColors.lightOnPrimary),
+      iconTheme: IconThemeData(color: AppColors.lightSecondary),
       titleTextStyle: TextStyle(
-        color: AppColors.lightOnPrimary,
+        color: AppColors.lightSecondary,
         fontSize: 20.0,
         fontWeight: FontWeight.bold,
       ),
@@ -38,61 +38,14 @@ class AppThemes {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        foregroundColor: AppColors.lightOnPrimary,
+        foregroundColor: AppColors.lightAccent,
         backgroundColor: AppColors.lightPrimary,
       ),
     ),
     buttonTheme: const ButtonThemeData(
       buttonColor: AppColors.lightPrimary,
-      textTheme: ButtonTextTheme.primary,
+      textTheme: ButtonTextTheme.accent,
     ),
     dividerColor: Colors.grey.shade300,
-  );
-
-  static final ThemeData darkTheme = ThemeData(
-    brightness: Brightness.dark,
-    colorScheme: ColorScheme(
-      primary: AppColors.darkPrimary,
-      primaryContainer: AppColors.darkPrimary,
-      secondary: AppColors.darkSecondary,
-      surface: AppColors.darkSurface,
-      onPrimary: AppColors.darkOnPrimary,
-      onSecondary: AppColors.darkOnPrimary,
-      onSurface: AppColors.darkOnPrimary,
-      error: Colors.red.shade900,
-      onError: Colors.black,
-      brightness: Brightness.dark,
-    ),
-    scaffoldBackgroundColor: AppColors.darkBackground,
-    appBarTheme: const AppBarTheme(
-      color: AppColors.darkPrimary,
-      iconTheme: IconThemeData(color: AppColors.darkOnPrimary),
-      titleTextStyle: TextStyle(
-        color: AppColors.darkOnPrimary,
-        fontSize: 20.0,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-    iconTheme: const IconThemeData(color: AppColors.darkOnPrimary),
-    floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: AppColors.darkAccent,
-      foregroundColor: AppColors.darkOnPrimary,
-    ),
-    textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: AppColors.darkOnPrimary),
-      bodyMedium: TextStyle(color: AppColors.darkOnPrimary),
-      displayLarge: TextStyle(color: AppColors.darkOnPrimary),
-    ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        foregroundColor: AppColors.darkOnPrimary,
-        backgroundColor: AppColors.darkPrimary,
-      ),
-    ),
-    buttonTheme: const ButtonThemeData(
-      buttonColor: AppColors.darkAccent,
-      textTheme: ButtonTextTheme.primary,
-    ),
-    dividerColor: Colors.grey.shade600,
   );
 }

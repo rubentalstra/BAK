@@ -30,41 +30,69 @@ class LeaderboardWidget extends StatelessWidget {
       itemBuilder: (context, index) {
         final entry = entries[index];
         return Container(
-          padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-          color: Colors.white,
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: CircleAvatar(
-              backgroundColor: Colors.blueAccent,
-              foregroundColor: Colors.white,
-              child: Text(entry.rank.toString(),
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            title: Text(
-              entry.username,
-              style: TextStyle(
-                fontSize: 18.0,
-                fontWeight: FontWeight.bold,
+          margin: EdgeInsets.symmetric(vertical: 8.0),
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+                radius: 20.0,
+                child: Text(
+                  entry.rank.toString(),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Baks Consumed: ${entry.baksConsumed}',
-                  style: TextStyle(color: Colors.green[700]),
+              const SizedBox(width: 16.0),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.username,
+                      style: const TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4.0),
+                    Row(
+                      children: [
+                        Text(
+                          'Consumed: ${entry.baksConsumed}',
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            color: Colors.green[700],
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        const SizedBox(width: 16.0),
+                        Text(
+                          'Debt: ${entry.baksDebt}',
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            color: Colors.red[700],
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                Text(
-                  'Baks Debt: ${entry.baksDebt}',
-                  style: TextStyle(color: Colors.red[700]),
-                ),
-              ],
-            ),
-            trailing: Icon(
-              Icons.star,
-              color: Colors.amber,
-              size: 24.0,
-            ),
+              ),
+              const SizedBox(width: 16.0),
+              Icon(
+                Icons.military_tech,
+                color: Colors.amber[700],
+                size: 28.0,
+              ),
+            ],
           ),
         );
       },
