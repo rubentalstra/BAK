@@ -19,9 +19,15 @@ class SettingsScreen extends StatelessWidget {
         children: [
           // Change Display Name Option
           ListTile(
-            title: const Text('Display Name'),
-            subtitle: const Text('Change your display name'),
-            trailing: const Icon(Icons.chevron_right),
+            title: const Text(
+              'Display Name',
+            ),
+            subtitle: const Text(
+              'Change your display name',
+            ),
+            trailing: const Icon(
+              Icons.chevron_right,
+            ), // Themed icon color
             onTap: () {
               // Navigate to change display name screen
               Navigator.of(context).push(
@@ -31,17 +37,25 @@ class SettingsScreen extends StatelessWidget {
               );
             },
           ),
-          const Divider(),
+          const Divider(), // Use themed divider color
 
           // Locale Change (Language)
           BlocBuilder<LocaleBloc, LocaleState>(
             builder: (context, state) {
               return ListTile(
-                title: const Text('Language'),
-                subtitle: const Text('Select app language'),
+                title: const Text(
+                  'Language',
+                ),
+                subtitle: const Text(
+                  'Select app language',
+                ),
                 trailing: DropdownButton<String>(
                   value:
                       state.locale.languageCode == 'en' ? 'English' : 'Dutch',
+
+                  icon: const Icon(
+                    Icons.language,
+                  ), // Themed icon color
                   items: const [
                     DropdownMenuItem(value: 'English', child: Text('English')),
                     DropdownMenuItem(value: 'Dutch', child: Text('Dutch')),
@@ -56,7 +70,7 @@ class SettingsScreen extends StatelessWidget {
               );
             },
           ),
-          const Divider(),
+          const Divider(), // Use themed divider color
 
           // Logout Button
           ElevatedButton(

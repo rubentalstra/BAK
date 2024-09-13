@@ -1,3 +1,4 @@
+import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/models/association_model.dart';
 import 'package:bak_tracker/models/board_year_model.dart';
 import 'package:bak_tracker/ui/home/widgets/leaderboard_widget.dart';
@@ -156,13 +157,16 @@ class _HomeScreenState extends State<HomeScreen> {
             child: DropdownButton<AssociationModel>(
               value: _selectedAssociation,
               onChanged: _onAssociationChanged,
-              dropdownColor: Colors.white,
-              icon: Icon(Icons.keyboard_arrow_down, color: Colors.white),
+              dropdownColor: AppColors.lightPrimaryVariant,
+              icon: Icon(Icons.keyboard_arrow_down,
+                  color: Theme.of(context).iconTheme.color),
               items: _associations.map((association) {
                 return DropdownMenuItem(
                   value: association,
-                  child: Text(association.name,
-                      style: TextStyle(color: Colors.black)),
+                  child: Text(
+                    association.name,
+                    style: Theme.of(context).dropdownMenuTheme.textStyle,
+                  ),
                 );
               }).toList(),
             ),

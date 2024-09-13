@@ -1,12 +1,12 @@
 class AssociationModel {
   final String id;
   final String name;
-  final DateTime createdAt;
+  final DateTime? createdAt;
 
   AssociationModel({
     required this.id,
     required this.name,
-    required this.createdAt,
+    this.createdAt,
   });
 
   factory AssociationModel.fromMap(Map<String, dynamic> map) {
@@ -21,7 +21,7 @@ class AssociationModel {
     return {
       'id': id,
       'name': name,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
     };
   }
 }

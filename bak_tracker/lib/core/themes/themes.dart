@@ -26,7 +26,7 @@ class AppThemes {
         fontWeight: FontWeight.bold,
       ),
     ),
-    iconTheme: const IconThemeData(color: AppColors.lightOnPrimary),
+    iconTheme: const IconThemeData(color: AppColors.lightSecondary),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: AppColors.lightAccent,
       foregroundColor: AppColors.lightOnPrimary,
@@ -47,5 +47,40 @@ class AppThemes {
       textTheme: ButtonTextTheme.accent,
     ),
     dividerColor: Colors.grey.shade300,
+
+//tab bar theme
+    tabBarTheme: const TabBarTheme(
+      labelColor: AppColors.lightSecondary,
+      unselectedLabelColor: Colors.grey,
+      indicator: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.lightSecondary,
+            width: 2.0,
+          ),
+        ),
+      ),
+    ),
+
+    // Add DropdownMenu Theme
+    dropdownMenuTheme: DropdownMenuThemeData(
+      textStyle: const TextStyle(
+        color: AppColors.lightSecondary,
+        fontSize: 16.0,
+      ),
+      inputDecorationTheme: const InputDecorationTheme(
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.all(12.0),
+      ),
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStateProperty.all(AppColors.lightSurface),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+        ),
+        elevation: WidgetStateProperty.all(8),
+      ),
+    ),
   );
 }
