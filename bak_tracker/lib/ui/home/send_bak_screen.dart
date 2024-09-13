@@ -17,12 +17,24 @@ class _SendBakScreenState extends State<SendBakScreen>
 
   late TabController _tabController;
 
+  List<Map<String, dynamic>> _sentBakken = [];
+  List<Map<String, dynamic>> _receivedBakken = [];
+  bool _isLoadingSent = false;
+  bool _isLoadingReceived = false;
+
   @override
   void initState() {
     super.initState();
-    _tabController =
-        TabController(length: 3, vsync: this); // Initialize tab controller
+    _tabController = TabController(length: 3, vsync: this);
     _fetchData();
+
+    _tabController.addListener(() {
+      if (_tabController.index == 1) {
+        _fetchReceivedBakken(); // Fetch received bakken when this tab is selected
+      } else if (_tabController.index == 2) {
+        _fetchSentBakken(); // Fetch sent bakken (transactions) when this tab is selected
+      }
+    });
   }
 
   @override
@@ -33,31 +45,36 @@ class _SendBakScreenState extends State<SendBakScreen>
   }
 
   Future<void> _fetchData() async {
+    setState(() {
+      _isLoadingSent = true;
+      _isLoadingReceived = true;
+    });
+
     final supabase = Supabase.instance.client;
+    final currentUserId = supabase.auth.currentUser!.id;
 
-    // Fetch associations the current user belongs to using association_members table
-    final List<dynamic> memberResponse = await supabase
-        .from('association_members')
-        .select('association_id, associations (id, name)')
-        .eq('user_id', supabase.auth.currentUser!.id);
+    // Fetch both sent and received baks
+    final List<dynamic> sentResponse = await supabase
+        .from('bak_send')
+        .select(
+            'id, amount, status, created_at, receiver_id (id, name), giver_id (id, name)')
+        .eq('giver_id', currentUserId)
+        .order('created_at', ascending: false);
 
-    if (memberResponse.isNotEmpty) {
-      setState(() {
-        _associations = memberResponse.map((data) {
-          final association = data['associations'] as Map<String, dynamic>;
-          return AssociationModel(
-            id: association['id'],
-            name: association['name'],
-          );
-        }).toList();
+    final List<dynamic> receivedResponse = await supabase
+        .from('bak_send')
+        .select(
+            'id, amount, status, created_at, receiver_id (id, name), giver_id (id, name)')
+        .eq('receiver_id', currentUserId)
+        .neq('status', 'pending') // Exclude pending baks
+        .order('created_at', ascending: false);
 
-        // Automatically select the first association if only one, otherwise allow user to choose
-        if (_associations.length == 1) {
-          _selectedAssociation = _associations.first.id;
-          _fetchUsers(); // Fetch users for the selected association
-        }
-      });
-    }
+    setState(() {
+      _sentBakken = List<Map<String, dynamic>>.from(sentResponse);
+      _receivedBakken = List<Map<String, dynamic>>.from(receivedResponse);
+      _isLoadingSent = false;
+      _isLoadingReceived = false;
+    });
   }
 
   Future<void> _fetchUsers() async {
@@ -106,29 +123,120 @@ class _SendBakScreenState extends State<SendBakScreen>
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchSentBakken() async {
+  Future<void> _fetchSentBakken() async {
+    setState(() {
+      _isLoadingSent = true;
+    });
+
     final supabase = Supabase.instance.client;
     final response = await supabase
         .from('bak_send')
-        .select()
-        .eq('giver_id', Supabase.instance.client.auth.currentUser!.id);
-    return List<Map<String, dynamic>>.from(response);
+        .select(
+            'id, amount, status, created_at, receiver_id (id, name), giver_id (id, name)')
+        .eq('giver_id', Supabase.instance.client.auth.currentUser!.id)
+        .order('created_at', ascending: false);
+
+    setState(() {
+      _sentBakken = List<Map<String, dynamic>>.from(response);
+      _isLoadingSent = false;
+    });
   }
 
-  Future<List<Map<String, dynamic>>> _fetchReceivedBakken() async {
+  Future<void> _fetchReceivedBakken() async {
+    setState(() {
+      _isLoadingReceived = true;
+    });
+
     final supabase = Supabase.instance.client;
     final response = await supabase
         .from('bak_send')
-        .select()
-        .eq('receiver_id', Supabase.instance.client.auth.currentUser!.id);
-    return List<Map<String, dynamic>>.from(response);
+        .select(
+            'id, amount, status, created_at, receiver_id (id, name), giver_id (id, name)')
+        .eq('receiver_id', Supabase.instance.client.auth.currentUser!.id)
+        .order('created_at', ascending: false);
+
+    setState(() {
+      _receivedBakken = List<Map<String, dynamic>>.from(response);
+      _isLoadingReceived = false;
+    });
+  }
+
+// Approve Bak
+  Future<void> approveBak(
+      String bakId, String receiverId, String giverId) async {
+    final supabase = Supabase.instance.client;
+
+    try {
+      // Update the bak_send table to mark the bak as approved
+      await supabase
+          .from('bak_send')
+          .update({'status': 'approved'}).eq('id', bakId);
+
+      // Get the current baks_received value for the receiver
+      final receiverResponse = await supabase
+          .from('association_members')
+          .select('baks_received')
+          .eq('user_id', receiverId)
+          .single();
+
+      if (receiverResponse['baks_received'] != null) {
+        // Increment the baks_received value
+        final updatedBaksReceived = receiverResponse['baks_received'] + 1;
+
+        // Update the baks_received for the receiver
+        await supabase.from('association_members').update({
+          'baks_received': updatedBaksReceived,
+        }).eq('user_id', receiverId);
+      }
+
+      // Refresh the data
+      _fetchReceivedBakken();
+      _fetchSentBakken();
+    } catch (e) {
+      print('Error approving bak: $e');
+    }
+  }
+
+// Decline Bak
+  Future<void> declineBak(String bakId, String giverId) async {
+    final supabase = Supabase.instance.client;
+
+    try {
+      // Update the bak_send table to mark the bak as declined
+      await supabase
+          .from('bak_send')
+          .update({'status': 'declined'}).eq('id', bakId);
+
+      // Get the current baks_consumed value for the giver
+      final giverResponse = await supabase
+          .from('association_members')
+          .select('baks_consumed')
+          .eq('user_id', giverId)
+          .single();
+
+      if (giverResponse != null && giverResponse['baks_consumed'] != null) {
+        // Increment the baks_consumed value
+        final updatedBaksConsumed = giverResponse['baks_consumed'] + 1;
+
+        // Update the baks_consumed for the giver
+        await supabase.from('association_members').update({
+          'baks_consumed': updatedBaksConsumed,
+        }).eq('user_id', giverId);
+      }
+
+      // Refresh the data
+      _fetchReceivedBakken();
+      _fetchSentBakken();
+    } catch (e) {
+      print('Error declining bak: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bak Tracker'),
+        title: const Text('Bak'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -277,54 +385,87 @@ class _SendBakScreenState extends State<SendBakScreen>
   }
 
   Widget _buildSentBakTab() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _fetchSentBakken(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No sent baks found.'));
-        }
-        final sentBakken = snapshot.data!;
-        return ListView.builder(
-          itemCount: sentBakken.length,
-          itemBuilder: (context, index) {
-            final bak = sentBakken[index];
-            return ListTile(
-              title: Text('Sent to: ${bak['receiver_id']}'),
-              subtitle: Text('Amount: ${bak['amount']}'),
-              trailing: Text('Status: ${bak['status']}'),
-            );
-          },
-        );
-      },
-    );
+    final currentUserId = Supabase.instance.client.auth.currentUser!.id;
+
+    // Combine sent and received baks into a single list for transactions
+    List<Map<String, dynamic>> transactions = [
+      ..._sentBakken,
+      ..._receivedBakken
+    ];
+    transactions.sort((a, b) => DateTime.parse(b['created_at'])
+        .compareTo(DateTime.parse(a['created_at']))); // Sort by newest first
+
+    return _isLoadingSent || _isLoadingReceived
+        ? const Center(child: CircularProgressIndicator())
+        : transactions.isEmpty
+            ? const Center(child: Text('No transactions found.'))
+            : ListView.builder(
+                itemCount: transactions.length,
+                itemBuilder: (context, index) {
+                  final bak = transactions[index];
+                  final date = DateTime.parse(bak['created_at']).toLocal();
+                  final formattedDate =
+                      '${date.day}/${date.month}/${date.year}';
+
+                  final isSent = bak['giver_id']['id'] == currentUserId;
+
+                  return ListTile(
+                    title: Text(
+                      isSent
+                          ? 'Sent to: ${bak['receiver_id']['name']}'
+                          : 'Received from: ${bak['giver_id']['name']}',
+                    ),
+                    subtitle:
+                        Text('Amount: ${bak['amount']} | Date: $formattedDate'),
+                    trailing: Text('Status: ${bak['status']}'),
+                  );
+                },
+              );
   }
 
   Widget _buildReceivedBakTab() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _fetchReceivedBakken(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No received baks found.'));
-        }
-        final receivedBakken = snapshot.data!;
-        return ListView.builder(
-          itemCount: receivedBakken.length,
-          itemBuilder: (context, index) {
-            final bak = receivedBakken[index];
-            return ListTile(
-              title: Text('Received from: ${bak['giver_id']}'),
-              subtitle: Text('Amount: ${bak['amount']}'),
-              trailing: Text('Status: ${bak['status']}'),
-            );
-          },
-        );
-      },
-    );
+    return _isLoadingReceived
+        ? const Center(child: CircularProgressIndicator())
+        : _receivedBakken.isEmpty
+            ? const Center(child: Text('No received baks found.'))
+            : ListView.builder(
+                itemCount: _receivedBakken.length,
+                itemBuilder: (context, index) {
+                  final bak = _receivedBakken[index];
+                  final bakStatus = bak['status']; // Get the current status
+                  final date = DateTime.parse(bak['created_at']).toLocal();
+                  final formattedDate =
+                      '${date.day}/${date.month}/${date.year}';
+
+                  return ListTile(
+                    title: Text('Received from: ${bak['giver_id']['name']}'),
+                    subtitle:
+                        Text('Amount: ${bak['amount']} | Date: $formattedDate'),
+                    trailing: bakStatus == 'pending'
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.check,
+                                    color: Colors.green),
+                                onPressed: () => approveBak(
+                                    bak['id'],
+                                    bak['receiver_id']['id'],
+                                    bak['giver_id']['id']),
+                              ),
+                              IconButton(
+                                icon:
+                                    const Icon(Icons.close, color: Colors.red),
+                                onPressed: () => declineBak(
+                                    bak['id'], bak['giver_id']['id']),
+                              ),
+                            ],
+                          )
+                        : Text(bakStatus == 'approved'
+                            ? 'Approved'
+                            : 'Declined'), // Display status if already processed
+                  );
+                },
+              );
   }
 }
