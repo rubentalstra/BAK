@@ -14,31 +14,34 @@ class BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
+    final theme = Theme.of(context);
 
     return isIOS
         ? CupertinoTabBar(
             // Native look for iOS
             currentIndex: selectedIndex,
             onTap: onTap,
+            activeColor: theme
+                .colorScheme.secondary, // Use secondary color for active tab
             items: const [
               BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.home), // Home Tab
+                icon: Icon(CupertinoIcons.home),
                 label: 'Home',
               ),
               BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.add), // Add Bak Tab
+                icon: Icon(CupertinoIcons.add),
                 label: 'Send Bak',
               ),
               BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.time), // Pending Approvals Tab
+                icon: Icon(CupertinoIcons.time),
                 label: 'Approvals',
               ),
               BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.book), // History Tab
+                icon: Icon(CupertinoIcons.book),
                 label: 'History',
               ),
               BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.settings), // Settings Tab
+                icon: Icon(CupertinoIcons.settings),
                 label: 'Settings',
               ),
             ],
@@ -47,25 +50,27 @@ class BottomNavBar extends StatelessWidget {
             // Native look for Android
             currentIndex: selectedIndex,
             onTap: onTap,
+            selectedItemColor: theme
+                .colorScheme.secondary, // Use secondary color for active tab
             items: const [
               BottomNavigationBarItem(
-                icon: Icon(Icons.home), // Home Tab
+                icon: Icon(Icons.home),
                 label: 'Home',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.add_circle_outline), // Add Bak Tab
+                icon: Icon(Icons.add_circle_outline),
                 label: 'Add Bak',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.hourglass_bottom), // Pending Approvals Tab
+                icon: Icon(Icons.hourglass_bottom),
                 label: 'Approvals',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.history), // History Tab
+                icon: Icon(Icons.history),
                 label: 'History',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.settings), // Settings Tab
+                icon: Icon(Icons.settings),
                 label: 'Settings',
               ),
             ],
