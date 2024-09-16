@@ -1,15 +1,15 @@
 class BoardYearModel {
   final String id;
   final String associationId;
-  final DateTime yearStart;
-  final DateTime yearEnd;
+  final String boardYear;
+  final bool isActive;
   final String? description;
 
   BoardYearModel({
     required this.id,
     required this.associationId,
-    required this.yearStart,
-    required this.yearEnd,
+    required this.boardYear,
+    required this.isActive,
     this.description,
   });
 
@@ -17,8 +17,8 @@ class BoardYearModel {
     return BoardYearModel(
       id: map['id'],
       associationId: map['association_id'],
-      yearStart: DateTime.parse(map['year_start']),
-      yearEnd: DateTime.parse(map['year_end']),
+      boardYear: map['board_year'],
+      isActive: map['is_active'],
       description: map['description'],
     );
   }
@@ -27,8 +27,8 @@ class BoardYearModel {
     return {
       'id': id,
       'association_id': associationId,
-      'year_start': yearStart.toIso8601String(),
-      'year_end': yearEnd.toIso8601String(),
+      'board_year': boardYear,
+      'is_active': isActive,
       'description': description,
     };
   }

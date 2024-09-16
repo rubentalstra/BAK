@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -28,37 +28,59 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchData() async {
     final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
 
-    // Fetch associations
-    final List<dynamic> response = await supabase.from('associations').select();
-    if (response.isNotEmpty) {
-      setState(() {
-        _associations = response
-            .map((data) =>
-                AssociationModel.fromMap(data as Map<String, dynamic>))
-            .toList();
-        _selectedAssociation =
-            _associations.isNotEmpty ? _associations.first : null;
-      });
+    if (userId == null) {
+      // Handle unauthenticated state
+      return;
+    }
 
-      // Fetch board years
-      if (_selectedAssociation != null) {
-        final List<dynamic> boardYearResponse = await supabase
-            .from('board_years')
-            .select()
-            .eq('association_id', _selectedAssociation!.id);
-        if (boardYearResponse.isNotEmpty) {
-          setState(() {
-            _boardYears = boardYearResponse
-                .map((data) =>
-                    BoardYearModel.fromMap(data as Map<String, dynamic>))
-                .toList();
-            _selectedBoardYear =
-                _boardYears.isNotEmpty ? _boardYears.first : null;
-          });
+    // Fetch associations where the user is a member
+    final List<dynamic> memberResponse = await supabase
+        .from('association_members')
+        .select('association_id')
+        .eq('user_id', userId);
 
-          // Fetch leaderboard entries
-          _fetchDemoLeaderboardData();
+    if (memberResponse.isNotEmpty) {
+      final associationIds =
+          memberResponse.map((m) => m['association_id']).toList();
+
+      // Fetch associations by IDs
+      final List<dynamic> response = await supabase
+          .from('associations')
+          .select()
+          .inFilter('id', associationIds);
+
+      if (response.isNotEmpty) {
+        setState(() {
+          _associations = response
+              .map((data) =>
+                  AssociationModel.fromMap(data as Map<String, dynamic>))
+              .toList();
+          _selectedAssociation =
+              _associations.isNotEmpty ? _associations.first : null;
+        });
+
+        // Fetch board years if an association is selected
+        if (_selectedAssociation != null) {
+          final List<dynamic> boardYearResponse = await supabase
+              .from('board_years')
+              .select()
+              .eq('association_id', _selectedAssociation!.id);
+
+          if (boardYearResponse.isNotEmpty) {
+            setState(() {
+              _boardYears = boardYearResponse
+                  .map((data) =>
+                      BoardYearModel.fromMap(data as Map<String, dynamic>))
+                  .toList();
+              _selectedBoardYear =
+                  _boardYears.isNotEmpty ? _boardYears.first : null;
+            });
+
+            // Fetch leaderboard entries
+            _fetchDemoLeaderboardData();
+          }
         }
       }
     }
@@ -184,13 +206,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   value: _selectedBoardYear,
                   onChanged: _onBoardYearChanged,
                   dropdownColor: Colors.white,
-                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.black),
+                  icon: const Icon(Icons.keyboard_arrow_down,
+                      color: Colors.black),
                   items: _boardYears.map((boardYear) {
                     return DropdownMenuItem(
                       value: boardYear,
-                      child: Text(
-                          '${boardYear.yearStart.year} - ${boardYear.yearEnd.year}',
-                          style: TextStyle(color: Colors.black)),
+                      child: Text(boardYear.boardYear,
+                          style: const TextStyle(color: Colors.black)),
                     );
                   }).toList(),
                 ),

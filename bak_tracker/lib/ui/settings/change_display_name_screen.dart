@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ChangeDisplayNameScreen extends StatefulWidget {
-  const ChangeDisplayNameScreen({Key? key}) : super(key: key);
+  const ChangeDisplayNameScreen({super.key});
 
   @override
   _ChangeDisplayNameScreenState createState() =>

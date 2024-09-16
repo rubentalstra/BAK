@@ -17,7 +17,7 @@ class LeaderboardEntry {
 class LeaderboardWidget extends StatelessWidget {
   final List<LeaderboardEntry> entries;
 
-  const LeaderboardWidget({Key? key, required this.entries}) : super(key: key);
+  const LeaderboardWidget({super.key, required this.entries});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +30,7 @@ class LeaderboardWidget extends StatelessWidget {
       itemBuilder: (context, index) {
         final entry = entries[index];
         return Container(
-          margin: EdgeInsets.symmetric(vertical: 8.0),
+          margin: const EdgeInsets.symmetric(vertical: 8.0),
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
             color: Colors.grey[100],

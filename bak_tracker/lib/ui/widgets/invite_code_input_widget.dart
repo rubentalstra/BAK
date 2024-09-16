@@ -5,9 +5,9 @@ class InviteCodeInputWidget extends StatefulWidget {
   final void Function(String) onCodeSubmitted;
 
   const InviteCodeInputWidget({
-    Key? key,
+    super.key,
     required this.onCodeSubmitted,
-  }) : super(key: key);
+  });
 
   @override
   _InviteCodeInputWidgetState createState() => _InviteCodeInputWidgetState();

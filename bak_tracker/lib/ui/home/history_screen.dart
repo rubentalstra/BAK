@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class HistoryScreen extends StatelessWidget {
-  const HistoryScreen({Key? key}) : super(key: key);
+  const HistoryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -9,11 +9,11 @@ class HistoryScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Transaction History'),
       ),
-      body: Center(
+      body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Bakken Transaction History'),
+            Text('Bakken Transaction History'),
             // Add history list logic here
           ],
         ),

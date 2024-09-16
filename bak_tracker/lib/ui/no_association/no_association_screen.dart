@@ -4,7 +4,7 @@ import 'package:bak_tracker/ui/widgets/bottem_nav_bar_no_association.dart';
 import 'package:flutter/material.dart';
 
 class NoAssociationScreen extends StatefulWidget {
-  const NoAssociationScreen({Key? key}) : super(key: key);
+  const NoAssociationScreen({super.key});
 
   @override
   _NoAssociationScreenState createState() => _NoAssociationScreenState();

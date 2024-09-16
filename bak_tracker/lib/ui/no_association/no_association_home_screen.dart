@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'association_request_screen.dart';
 
 class NoAssociationHomeScreen extends StatelessWidget {
-  const NoAssociationHomeScreen({Key? key}) : super(key: key);
+  const NoAssociationHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +22,7 @@ class NoAssociationHomeScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => AssociationRequestScreen()),
+                      builder: (context) => const AssociationRequestScreen()),
                 );
               },
               child: const Text('Request Association'),

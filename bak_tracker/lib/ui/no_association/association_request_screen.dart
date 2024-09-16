@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AssociationRequestScreen extends StatefulWidget {
+  const AssociationRequestScreen({super.key});
+
   @override
   _AssociationRequestScreenState createState() =>
       _AssociationRequestScreenState();

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class PendingApprovalsScreen extends StatelessWidget {
-  const PendingApprovalsScreen({Key? key}) : super(key: key);
+  const PendingApprovalsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -9,11 +9,11 @@ class PendingApprovalsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Pending Approvals'),
       ),
-      body: Center(
+      body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Pending Bakken Approvals'),
+            Text('Pending Bakken Approvals'),
             // Add list of pending approvals
           ],
         ),

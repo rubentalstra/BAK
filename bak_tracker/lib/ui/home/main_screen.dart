@@ -7,8 +7,7 @@ import 'package:bak_tracker/ui/widgets/bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
 
 class MainScreen extends StatefulWidget {
-  // Updated from HomeScreen to MainScreen for better clarity
-  const MainScreen({Key? key}) : super(key: key);
+  const MainScreen({super.key});
 
   @override
   _MainScreenState createState() => _MainScreenState();
@@ -18,8 +17,8 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    const HomeScreen(), // Updated: Main dashboard for stats & leaderboard
-    BakScreen(), // Send Bak
+    const HomeScreen(), // Home
+    const BakScreen(), // Send Bak
     const PendingApprovalsScreen(), // Pending Approvals
     const HistoryScreen(), // History
     const SettingsScreen(), // Settings

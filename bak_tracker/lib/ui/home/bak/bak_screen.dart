@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/models/association_model.dart';
 
 class BakScreen extends StatefulWidget {
+  const BakScreen({super.key});
+
   @override
   _BakScreenState createState() => _BakScreenState();
 }
