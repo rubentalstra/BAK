@@ -20,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<AssociationModel> _associations = [];
   AssociationModel? _selectedAssociation;
   List<LeaderboardEntry> _leaderboardEntries = [];
+  bool _isLoading = true; // Add a loading flag
 
   @override
   void initState() {
@@ -35,6 +36,11 @@ class _HomeScreenState extends State<HomeScreen> {
       // Handle unauthenticated state
       return;
     }
+
+    // Start loading
+    setState(() {
+      _isLoading = true;
+    });
 
     // Fetch associations where the user is a member
     final List<dynamic> memberResponse = await supabase
@@ -73,12 +79,22 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+
+    // Stop loading
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   Future<void> _fetchLeaderboard() async {
     if (_selectedAssociation == null) return;
 
     final supabase = Supabase.instance.client;
+
+    // Start loading
+    setState(() {
+      _isLoading = true;
+    });
 
     // Fetch association members for the selected association
     final List<dynamic> memberResponse = await supabase
@@ -129,6 +145,11 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       });
     }
+
+    // Stop loading
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   void _onAssociationChanged(AssociationModel? newAssociation) {
@@ -151,38 +172,47 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: DropdownButtonHideUnderline(
-          child: DropdownButton<AssociationModel>(
-            value: _selectedAssociation,
-            onChanged: _onAssociationChanged,
-            dropdownColor: AppColors.lightPrimaryVariant,
-            icon: Icon(Icons.keyboard_arrow_down,
-                color: Theme.of(context).iconTheme.color),
-            items: _associations.map((association) {
-              return DropdownMenuItem(
-                value: association,
-                child: Text(association.name,
-                    style: Theme.of(context).dropdownMenuTheme.textStyle),
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_selectedAssociation != null) ...[
-              Expanded(
-                child: LeaderboardWidget(
-                  entries: _leaderboardEntries,
+        title: _associations.length > 1
+            ? DropdownButtonHideUnderline(
+                child: DropdownButton<AssociationModel>(
+                  value: _selectedAssociation,
+                  onChanged: _onAssociationChanged,
+                  dropdownColor: AppColors.lightPrimaryVariant,
+                  icon: Icon(Icons.keyboard_arrow_down,
+                      color: Theme.of(context).iconTheme.color),
+                  items: _associations.map((association) {
+                    return DropdownMenuItem(
+                      value: association,
+                      child: Text(association.name,
+                          style: Theme.of(context).dropdownMenuTheme.textStyle),
+                    );
+                  }).toList(),
                 ),
+              )
+            : Text(
+                _selectedAssociation?.name ?? 'Loading...',
+                style: Theme.of(context).dropdownMenuTheme.textStyle,
               ),
-            ],
-          ],
-        ),
       ),
+      body: _isLoading // Display loading animation while fetching data
+          ? const Center(
+              child: CircularProgressIndicator(), // Default loading spinner
+            )
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_selectedAssociation != null) ...[
+                    Expanded(
+                      child: LeaderboardWidget(
+                        entries: _leaderboardEntries,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
+import 'package:bak_tracker/ui/widgets/invite_code_input_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/ui/settings/association_settings_screen.dart';
@@ -62,8 +63,18 @@ class SettingsScreen extends StatelessWidget {
                       );
                     },
                   ),
-
                 if (hasAssociationPermissions) const Divider(),
+
+                // Option to Join Another Association
+                ListTile(
+                  title: const Text('Join Another Association'),
+                  subtitle: const Text('Enter an invite code to join'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    _showInviteCodeModal(context);
+                  },
+                ),
+                const Divider(),
 
                 // Logout Button
                 ElevatedButton(
@@ -85,6 +96,28 @@ class SettingsScreen extends StatelessWidget {
           }
         },
       ),
+    );
+  }
+
+  void _showInviteCodeModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: InviteCodeInputWidget(
+            onCodeSubmitted: (inviteCode) {
+              // Handle the invite code submission
+              // Example: Call a Bloc or API to join the association
+              print('Invite Code: $inviteCode');
+              // Perform necessary actions with the invite code
+            },
+          ),
+        );
+      },
     );
   }
 }
