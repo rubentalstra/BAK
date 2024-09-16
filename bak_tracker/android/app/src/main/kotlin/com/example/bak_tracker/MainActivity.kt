@@ -1,4 +1,4 @@
-package com.example.bak_tracker
+package com.baktracker
 
 import io.flutter.embedding.android.FlutterActivity
 

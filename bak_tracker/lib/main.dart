@@ -37,7 +37,7 @@ void main() async {
   final NotificationsService notificationsService =
       NotificationsService(flutterLocalNotificationsPlugin);
 
-  await notificationsService.initialize();
+  await notificationsService.initializeNotifications();
 
   runApp(BakTrackerApp(
     flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,

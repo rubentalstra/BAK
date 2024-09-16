@@ -7,29 +7,39 @@ class NotificationsService {
 
   NotificationsService(this.flutterLocalNotificationsPlugin);
 
-  Future<void> initialize() async {
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('app_icon');
-    DarwinInitializationSettings initializationSettingsIOS =
-        const DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-    InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
+  Future<void> initializeNotifications() async {
+    try {
+      print('Starting initialization of FlutterLocalNotificationsPlugin');
 
-    await flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // Handle notification tap
-        print('Notification tapped with payload: ${response.payload}');
-      },
-    );
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings(
+              'ic_launcher'); // Ensure the icon exists
+      const DarwinInitializationSettings initializationSettingsIOS =
+          DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
 
-    await _setupFirebaseMessaging();
+      const InitializationSettings initializationSettings =
+          InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: initializationSettingsIOS,
+      );
+
+      print('Before initializing FlutterLocalNotificationsPlugin');
+
+      await flutterLocalNotificationsPlugin.initialize(
+        initializationSettings,
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          print('Notification tapped with payload: ${response.payload}');
+        },
+      );
+
+      print('FlutterLocalNotificationsPlugin initialized successfully');
+    } catch (e) {
+      print('Error initializing FlutterLocalNotificationsPlugin: $e');
+    }
   }
 
   Future<void> _setupFirebaseMessaging() async {
