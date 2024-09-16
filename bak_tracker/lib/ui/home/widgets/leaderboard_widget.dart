@@ -12,6 +12,21 @@ class LeaderboardEntry {
     required this.baksConsumed,
     required this.baksDebt,
   });
+
+  // Add the copyWith method to create a new instance with modified values
+  LeaderboardEntry copyWith({
+    int? rank,
+    String? username,
+    int? baksConsumed,
+    int? baksDebt,
+  }) {
+    return LeaderboardEntry(
+      rank: rank ?? this.rank,
+      username: username ?? this.username,
+      baksConsumed: baksConsumed ?? this.baksConsumed,
+      baksDebt: baksDebt ?? this.baksDebt,
+    );
+  }
 }
 
 class LeaderboardWidget extends StatelessWidget {

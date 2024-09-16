@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:bak_tracker/models/association_model.dart';
+import 'package:bak_tracker/bloc/association/association_bloc.dart';
 
 class BakScreen extends StatefulWidget {
   const BakScreen({super.key});
@@ -12,12 +13,11 @@ class BakScreen extends StatefulWidget {
 class _BakScreenState extends State<BakScreen>
     with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _users = [];
-  List<AssociationModel> _associations = [];
   String? _selectedReceiverId;
-  String? _selectedAssociation;
   final _amountController = TextEditingController();
 
   late TabController _tabController;
+  String? _selectedAssociationId;
 
   List<Map<String, dynamic>> _sentBakken = [];
   List<Map<String, dynamic>> _receivedBakken = [];
@@ -30,13 +30,13 @@ class _BakScreenState extends State<BakScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _fetchAssociations();
 
     _tabController.addListener(() {
       if (_tabController.index == 1) {
         _fetchReceivedBakken(); // Fetch received bakken when this tab is selected
-      } else if (_tabController.index == 2) {
-        _fetchSentBakken(); // Fetch sent bakken (transactions) when this tab is selected
+      } else if (_tabController.index == 2 && _selectedAssociationId != null) {
+        _fetchSentBakken(
+            _selectedAssociationId!); // Fetch sent bakken (transactions) with associationId
       }
     });
   }
@@ -48,50 +48,8 @@ class _BakScreenState extends State<BakScreen>
     super.dispose();
   }
 
-  /// Fetches the associations the user is part of.
-  Future<void> _fetchAssociations() async {
-    setState(() {
-      _isLoadingSent = true;
-      _isLoadingReceived = true;
-    });
-
-    final supabase = Supabase.instance.client;
-    final currentUserId = supabase.auth.currentUser!.id;
-
-    // Fetch associations the user belongs to
-    final List<dynamic> associationResponse = await supabase
-        .from('association_members')
-        .select('association_id, associations (id, name)')
-        .eq('user_id', currentUserId);
-
-    setState(() {
-      _associations = associationResponse.map<AssociationModel>((data) {
-        final association = data['associations'] as Map<String, dynamic>;
-        return AssociationModel(
-          id: association['id'],
-          name: association['name'],
-        );
-      }).toList();
-
-      if (_associations.length == 1) {
-        // If the user is part of one association, select it automatically
-        _selectedAssociation = _associations.first.id;
-        _fetchUsers(); // Fetch users for the selected association
-      } else {
-        // If the user is part of more than one association, they need to select
-        _selectedAssociation = null;
-        _users
-            .clear(); // Clear the list of users until an association is selected
-      }
-      _isLoadingSent = false;
-      _isLoadingReceived = false;
-    });
-  }
-
-  /// Fetches the users for the selected association.
-  Future<void> _fetchUsers() async {
-    if (_selectedAssociation == null) return;
-
+  /// Fetch users for the selected association when it's loaded
+  void _fetchUsers(String associationId) async {
     setState(() {
       _isLoadingUsers = true;
     });
@@ -100,18 +58,23 @@ class _BakScreenState extends State<BakScreen>
     final List<dynamic> userResponse = await supabase
         .from('association_members')
         .select('user_id (id, name)')
-        .eq('association_id', _selectedAssociation!);
+        .eq('association_id', associationId);
 
-    setState(() {
-      _users = userResponse.map((data) {
-        final userMap = data['user_id'] as Map<String, dynamic>;
-        return {
-          'id': userMap['id'],
-          'name': userMap['name'],
-        };
-      }).toList();
-      _selectedReceiverId = _users.isNotEmpty ? _users.first['id'] : null;
-      _isLoadingUsers = false;
+    // Post-frame callback to update state after the build is done
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _users = userResponse.map((data) {
+            final userMap = data['user_id'] as Map<String, dynamic>;
+            return {
+              'id': userMap['id'],
+              'name': userMap['name'],
+            };
+          }).toList();
+          _selectedReceiverId = _users.isNotEmpty ? _users.first['id'] : null;
+          _isLoadingUsers = false;
+        });
+      }
     });
   }
 
@@ -119,7 +82,6 @@ class _BakScreenState extends State<BakScreen>
     required String receiverId,
     required String associationId,
     required int amount,
-    String? boardYearId,
   }) async {
     final supabase = Supabase.instance.client;
     final userId = supabase.auth.currentUser!.id;
@@ -129,7 +91,6 @@ class _BakScreenState extends State<BakScreen>
         'giver_id': userId,
         'receiver_id': receiverId,
         'association_id': associationId,
-        'board_year_id': boardYearId,
         'amount': amount,
         'status': 'pending',
         'created_at': DateTime.now().toIso8601String(),
@@ -139,7 +100,7 @@ class _BakScreenState extends State<BakScreen>
     }
   }
 
-  Future<void> _fetchSentBakken() async {
+  Future<void> _fetchSentBakken(String associationId) async {
     setState(() {
       _isLoadingSent = true;
     });
@@ -152,6 +113,7 @@ class _BakScreenState extends State<BakScreen>
         .select(
             'id, amount, status, created_at, receiver_id (id, name), giver_id (id, name)')
         .eq('giver_id', currentUserId)
+        .eq('association_id', associationId)
         .order('created_at', ascending: false);
 
     final List<dynamic> receivedResponse = await supabase
@@ -159,6 +121,7 @@ class _BakScreenState extends State<BakScreen>
         .select(
             'id, amount, status, created_at, receiver_id (id, name), giver_id (id, name)')
         .eq('receiver_id', currentUserId)
+        .eq('association_id', associationId)
         .neq('status', 'pending') // Exclude pending baks
         .order('created_at', ascending: false);
 
@@ -167,26 +130,6 @@ class _BakScreenState extends State<BakScreen>
       _receivedBakkenTransaction =
           List<Map<String, dynamic>>.from(receivedResponse);
       _isLoadingSent = false;
-    });
-  }
-
-  Future<void> _fetchReceivedBakken() async {
-    setState(() {
-      _isLoadingReceived = true;
-    });
-
-    final supabase = Supabase.instance.client;
-    final response = await supabase
-        .from('bak_send')
-        .select(
-            'id, amount, status, created_at, receiver_id (id, name), giver_id (id, name)')
-        .eq('receiver_id', Supabase.instance.client.auth.currentUser!.id)
-        .eq('status', 'pending') // Only fetch 'pending' baks
-        .order('created_at', ascending: false);
-
-    setState(() {
-      _receivedBakken = List<Map<String, dynamic>>.from(response);
-      _isLoadingReceived = false;
     });
   }
 
@@ -220,13 +163,12 @@ class _BakScreenState extends State<BakScreen>
 
       // Refresh the data
       _fetchReceivedBakken();
-      _fetchSentBakken();
     } catch (e) {
       print('Error approving bak: $e');
     }
   }
 
-// Decline Bak
+  // Decline Bak
   Future<void> declineBak(String bakId, String giverId) async {
     final supabase = Supabase.instance.client;
 
@@ -255,15 +197,74 @@ class _BakScreenState extends State<BakScreen>
 
       // Refresh the data
       _fetchReceivedBakken();
-      _fetchSentBakken();
     } catch (e) {
       print('Error declining bak: $e');
     }
   }
 
-  Widget _buildSendBakTab(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+  Future<void> _fetchReceivedBakken() async {
+    setState(() {
+      _isLoadingReceived = true;
+    });
 
+    final supabase = Supabase.instance.client;
+    final response = await supabase
+        .from('bak_send')
+        .select(
+            'id, amount, status, created_at, receiver_id (id, name), giver_id (id, name)')
+        .eq('receiver_id', Supabase.instance.client.auth.currentUser!.id)
+        .eq('status', 'pending') // Only fetch 'pending' baks
+        .order('created_at', ascending: false);
+
+    setState(() {
+      _receivedBakken = List<Map<String, dynamic>>.from(response);
+      _isLoadingReceived = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Bak'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Send Bak'),
+            Tab(text: 'Received Bak'),
+            Tab(text: 'Transactions'),
+          ],
+        ),
+      ),
+      body: BlocBuilder<AssociationBloc, AssociationState>(
+        builder: (context, state) {
+          if (state is AssociationLoaded) {
+            final associationId = state.selectedAssociation.id;
+            if (_selectedAssociationId != associationId) {
+              _selectedAssociationId = associationId;
+
+              // Delay fetching users until the next frame
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _fetchUsers(associationId);
+              });
+            }
+            return TabBarView(
+              controller: _tabController,
+              children: [
+                _buildSendBakTab(context, associationId),
+                _buildReceivedBakTab(),
+                _buildTransactionsBakTab(),
+              ],
+            );
+          } else {
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildSendBakTab(BuildContext context, String associationId) {
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus(); // Dismiss the keyboard
@@ -273,45 +274,7 @@ class _BakScreenState extends State<BakScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_associations.length > 1) ...[
-              Text(
-                'Select Association',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8.0),
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: DropdownButton<String>(
-                    value: _selectedAssociation,
-                    hint: const Text('Choose an Association'),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedAssociation = value;
-                        _fetchUsers(); // Fetch users when the association changes
-                      });
-                    },
-                    items: _associations.map((association) {
-                      return DropdownMenuItem<String>(
-                        value: association.id,
-                        child: Text(association.name),
-                      );
-                    }).toList(),
-                    isExpanded: true,
-                    underline: Container(),
-                    dropdownColor: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16.0),
-            ],
-            if (_selectedAssociation != null || _associations.length == 1) ...[
+            if (_users.isNotEmpty) ...[
               Text(
                 'Select Receiver',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -376,23 +339,23 @@ class _BakScreenState extends State<BakScreen>
               ),
               const SizedBox(height: 24.0),
               Align(
-                alignment:
-                    isSmallScreen ? Alignment.center : Alignment.centerRight,
+                alignment: MediaQuery.of(context).size.width < 600
+                    ? Alignment.center
+                    : Alignment.centerRight,
                 child: ElevatedButton.icon(
                   onPressed: () async {
-                    if (_selectedReceiverId == null ||
-                        _selectedAssociation == null) {
+                    if (_selectedReceiverId == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                             content: Text(
-                                'Please select both an association and a receiver.')),
+                                'Please select a receiver and enter an amount.')),
                       );
                       return;
                     }
                     try {
                       await sendBak(
                         receiverId: _selectedReceiverId!,
-                        associationId: _selectedAssociation!,
+                        associationId: associationId,
                         amount: int.parse(_amountController.text),
                       );
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -504,30 +467,5 @@ class _BakScreenState extends State<BakScreen>
                   );
                 },
               );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bak'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Send Bak'),
-            Tab(text: 'Received Bak'),
-            Tab(text: 'Transactions'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildSendBakTab(context),
-          _buildReceivedBakTab(),
-          _buildTransactionsBakTab(),
-        ],
-      ),
-    );
   }
 }

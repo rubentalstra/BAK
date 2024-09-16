@@ -1,7 +1,7 @@
 import 'package:bak_tracker/ui/home/bak/bak_screen.dart';
 import 'package:bak_tracker/ui/home/history_screen.dart';
 import 'package:bak_tracker/ui/home/home_screen.dart';
-import 'package:bak_tracker/ui/home/pending_approval_screen.dart';
+import 'package:bak_tracker/ui/home/bets_screen.dart';
 import 'package:bak_tracker/ui/settings/settings_screen.dart.dart';
 import 'package:bak_tracker/ui/widgets/bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +19,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = [
     const HomeScreen(), // Home
     const BakScreen(), // Send Bak
-    const PendingApprovalsScreen(), // Pending Approvals
+    const BetsScreen(), // Pending Approvals
     const HistoryScreen(), // History
     const SettingsScreen(), // Settings
   ];

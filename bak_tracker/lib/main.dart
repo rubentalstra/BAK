@@ -1,3 +1,4 @@
+import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
 import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
 import 'package:bak_tracker/core/themes/themes.dart';
@@ -55,6 +56,7 @@ class BakTrackerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider<AssociationBloc>(create: (_) => AssociationBloc()),
         BlocProvider<AuthenticationBloc>(create: (_) => AuthenticationBloc()),
         BlocProvider<LocaleBloc>(create: (_) => LocaleBloc()),
       ],

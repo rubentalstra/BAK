@@ -3,7 +3,6 @@ class BakSendModel {
   final String giverId;
   final String receiverId;
   final String associationId;
-  final String? boardYearId;
   final int amount;
   final String status;
   final DateTime createdAt;
@@ -13,7 +12,6 @@ class BakSendModel {
     required this.giverId,
     required this.receiverId,
     required this.associationId,
-    this.boardYearId,
     required this.amount,
     required this.status,
     required this.createdAt,
@@ -25,7 +23,6 @@ class BakSendModel {
       giverId: map['giver_id'],
       receiverId: map['receiver_id'],
       associationId: map['association_id'],
-      boardYearId: map['board_year_id'],
       amount: map['amount'],
       status: map['status'],
       createdAt: DateTime.parse(map['created_at']),
@@ -38,7 +35,6 @@ class BakSendModel {
       'giver_id': giverId,
       'receiver_id': receiverId,
       'association_id': associationId,
-      'board_year_id': boardYearId,
       'amount': amount,
       'status': status,
       'created_at': createdAt.toIso8601String(),

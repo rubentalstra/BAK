@@ -1,9 +1,10 @@
-import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
-import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
-import 'package:bak_tracker/ui/login/login_screen.dart';
-import 'package:bak_tracker/ui/settings/change_display_name_screen.dart';
+import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:bak_tracker/ui/settings/association_settings_screen.dart';
+import 'package:bak_tracker/ui/settings/change_display_name_screen.dart';
+import 'package:bak_tracker/ui/login/login_screen.dart';
+import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -14,75 +15,75 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Settings'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          // Change Display Name Option
-          ListTile(
-            title: const Text(
-              'Display Name',
-            ),
-            subtitle: const Text(
-              'Change your display name',
-            ),
-            trailing: const Icon(
-              Icons.chevron_right,
-            ), // Themed icon color
-            onTap: () {
-              // Navigate to change display name screen
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const ChangeDisplayNameScreen(),
-                ),
-              );
-            },
-          ),
-          const Divider(), // Use themed divider color
+      body: BlocBuilder<AssociationBloc, AssociationState>(
+        builder: (context, state) {
+          if (state is AssociationLoaded) {
+            final memberData = state.memberData;
 
-          // Locale Change (Language)
-          BlocBuilder<LocaleBloc, LocaleState>(
-            builder: (context, state) {
-              return ListTile(
-                title: const Text(
-                  'Language',
-                ),
-                subtitle: const Text(
-                  'Select app language',
-                ),
-                trailing: DropdownButton<String>(
-                  value:
-                      state.locale.languageCode == 'en' ? 'English' : 'Dutch',
+            bool hasAssociationPermissions = memberData.canInviteMembers ||
+                memberData.canRemoveMembers ||
+                memberData.canUpdateRole ||
+                memberData.canUpdateBakAmount ||
+                memberData.canApproveBakTaken;
 
-                  icon: const Icon(
-                    Icons.language,
-                  ), // Themed icon color
-                  items: const [
-                    DropdownMenuItem(value: 'English', child: Text('English')),
-                    DropdownMenuItem(value: 'Dutch', child: Text('Dutch')),
-                  ],
-                  onChanged: (value) {
-                    context.read<LocaleBloc>().add(LocaleChanged(
-                        locale: value == 'English'
-                            ? const Locale('en')
-                            : const Locale('nl')));
+            return ListView(
+              padding: const EdgeInsets.all(16.0),
+              children: [
+                // Change Display Name Option
+                ListTile(
+                  title: const Text('Display Name'),
+                  subtitle: const Text('Change your display name'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const ChangeDisplayNameScreen(),
+                      ),
+                    );
                   },
                 ),
-              );
-            },
-          ),
-          const Divider(), // Use themed divider color
+                const Divider(),
 
-          // Logout Button
-          ElevatedButton(
-            onPressed: () {
-              context.read<AuthenticationBloc>().signOut(); // Sign out logic
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-              );
-            },
-            child: const Text('Logout'),
-          ),
-        ],
+                // Conditionally display the Association Settings option
+                if (hasAssociationPermissions)
+                  ListTile(
+                    title: const Text('Association Settings'),
+                    subtitle: const Text('Manage association settings'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => AssociationSettingsScreen(
+                            memberData: memberData,
+                            associationId: state.selectedAssociation
+                                .id, // Pass the association ID if needed
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                if (hasAssociationPermissions) const Divider(),
+
+                // Logout Button
+                ElevatedButton(
+                  onPressed: () {
+                    context.read<AuthenticationBloc>().signOut();
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                          builder: (context) => const LoginScreen()),
+                    );
+                  },
+                  child: const Text('Logout'),
+                ),
+              ],
+            );
+          } else if (state is AssociationLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else {
+            return const Center(child: Text('No association selected.'));
+          }
+        },
       ),
     );
   }

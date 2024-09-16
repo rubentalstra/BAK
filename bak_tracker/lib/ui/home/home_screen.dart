@@ -1,9 +1,13 @@
+import 'dart:convert';
+
+import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
-import 'package:bak_tracker/models/association_model.dart';
-import 'package:bak_tracker/models/board_year_model.dart';
-import 'package:bak_tracker/ui/home/widgets/leaderboard_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bak_tracker/models/association_model.dart';
+import 'package:bak_tracker/models/association_member_model.dart';
+import 'package:bak_tracker/ui/home/widgets/leaderboard_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,16 +18,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<AssociationModel> _associations = [];
-  List<BoardYearModel> _boardYears = [];
   AssociationModel? _selectedAssociation;
-  BoardYearModel? _selectedBoardYear;
   List<LeaderboardEntry> _leaderboardEntries = [];
 
   @override
   void initState() {
     super.initState();
     _fetchData();
-    _fetchDemoLeaderboardData();
   }
 
   Future<void> _fetchData() async {
@@ -59,141 +60,113 @@ class _HomeScreenState extends State<HomeScreen> {
               .toList();
           _selectedAssociation =
               _associations.isNotEmpty ? _associations.first : null;
-        });
 
-        // Fetch board years if an association is selected
-        if (_selectedAssociation != null) {
-          final List<dynamic> boardYearResponse = await supabase
-              .from('board_years')
-              .select()
-              .eq('association_id', _selectedAssociation!.id);
+          if (_selectedAssociation != null) {
+            // Dispatch the SelectAssociation event when the first association is selected
+            context.read<AssociationBloc>().add(
+                  SelectAssociation(selectedAssociation: _selectedAssociation!),
+                );
 
-          if (boardYearResponse.isNotEmpty) {
-            setState(() {
-              _boardYears = boardYearResponse
-                  .map((data) =>
-                      BoardYearModel.fromMap(data as Map<String, dynamic>))
-                  .toList();
-              _selectedBoardYear =
-                  _boardYears.isNotEmpty ? _boardYears.first : null;
-            });
-
-            // Fetch leaderboard entries
-            _fetchDemoLeaderboardData();
+            // Fetch leaderboard for the selected association
+            _fetchLeaderboard();
           }
-        }
+        });
       }
     }
   }
 
-  void _fetchDemoLeaderboardData() {
-    // Creating some demo leaderboard data
-    _leaderboardEntries = [
-      LeaderboardEntry(
-        rank: 1,
-        username: 'Alice',
-        baksConsumed: 50,
-        baksDebt: 20,
-      ),
-      LeaderboardEntry(
-        rank: 2,
-        username: 'Bob',
-        baksConsumed: 40,
-        baksDebt: 15,
-      ),
-      LeaderboardEntry(
-        rank: 3,
-        username: 'Charlie',
-        baksConsumed: 35,
-        baksDebt: 25,
-      ),
-      LeaderboardEntry(
-        rank: 4,
-        username: 'David',
-        baksConsumed: 30,
-        baksDebt: 10,
-      ),
-      LeaderboardEntry(
-        rank: 5,
-        username: 'Eve',
-        baksConsumed: 25,
-        baksDebt: 5,
-      ),
-    ];
+  Future<void> _fetchLeaderboard() async {
+    if (_selectedAssociation == null) return;
 
-    setState(() {});
+    final supabase = Supabase.instance.client;
+
+    // Fetch association members for the selected association
+    final List<dynamic> memberResponse = await supabase
+        .from('association_members')
+        .select(
+            'user_id (id, name), association_id, role, permissions, joined_at, baks_received, baks_consumed')
+        .eq('association_id', _selectedAssociation!.id);
+
+    if (memberResponse.isNotEmpty) {
+      // Convert the fetched data to AssociationMemberModel
+      List<AssociationMemberModel> members = memberResponse.map((data) {
+        // The 'user_id' field is a nested map containing 'id' and 'name'
+        final userMap = data['user_id'] as Map<String, dynamic>;
+
+        return AssociationMemberModel(
+          userId: userMap['id'],
+          name: userMap['name'] ?? 'Unknown User', // Fallback if name is null
+          associationId: data['association_id'],
+          role: data['role'],
+          permissions: data['permissions'] is String
+              ? jsonDecode(data['permissions']) as Map<String, dynamic>
+              : data['permissions'] as Map<String, dynamic>,
+          joinedAt: DateTime.parse(data['joined_at']),
+          baksReceived: data['baks_received'],
+          baksConsumed: data['baks_consumed'],
+        );
+      }).toList();
+
+      // Create leaderboard entries based on members
+      setState(() {
+        _leaderboardEntries = members.map((member) {
+          return LeaderboardEntry(
+            rank: 0, // You can assign a rank based on sorting later
+            username: member.name ??
+                member.userId, // Use name if available, else fallback to userId
+            baksConsumed: member.baksConsumed,
+            baksDebt: member.baksReceived, // Assuming this is the debt
+          );
+        }).toList();
+
+        // Sort leaderboard entries by baksConsumed in descending order
+        _leaderboardEntries
+            .sort((a, b) => b.baksConsumed.compareTo(a.baksConsumed));
+
+        // Assign ranks based on sorted order
+        for (int i = 0; i < _leaderboardEntries.length; i++) {
+          _leaderboardEntries[i] = _leaderboardEntries[i].copyWith(rank: i + 1);
+        }
+      });
+    }
   }
-
-  // Future<void> _fetchLeaderboard() async {
-  //   final supabase = Supabase.instance.client;
-
-  //   // Fetch leaderboard entries
-  //   if (_selectedAssociation != null && _selectedBoardYear != null) {
-  //     final List<dynamic> response = await supabase
-  //         .from('leaderboard') // Assuming you have a leaderboard table
-  //         .select()
-  //         .eq('association_id', _selectedAssociation!.id)
-  //         .eq('board_year_id', _selectedBoardYear!.id)
-  //         .order('rank', ascending: true);
-
-  //     if (response.isNotEmpty) {
-  //       setState(() {
-  //         _leaderboardEntries = (response).map((data) {
-  //           final map = data as Map<String, dynamic>;
-  //           return LeaderboardEntry(
-  //             rank: map['rank'],
-  //             username: map['username'],
-  //             baksConsumed: map['baks_consumed'],
-  //             baksDebt: map['baks_debt'],
-  //           );
-  //         }).toList();
-  //       });
-  //     }
-  //   }
-  // }
 
   void _onAssociationChanged(AssociationModel? newAssociation) {
     setState(() {
       _selectedAssociation = newAssociation;
-      _selectedBoardYear = null; // Reset board year selection
       _leaderboardEntries = []; // Clear leaderboard entries
     });
-    _fetchData(); // Re-fetch board years and leaderboard based on new association
-  }
 
-  void _onBoardYearChanged(BoardYearModel? newBoardYear) {
-    setState(() {
-      _selectedBoardYear = newBoardYear;
-      _leaderboardEntries = []; // Clear leaderboard entries
-    });
-    _fetchDemoLeaderboardData(); // Fetch leaderboard based on new board year
+    // Dispatch the SelectAssociation event
+    if (newAssociation != null) {
+      context.read<AssociationBloc>().add(
+            SelectAssociation(selectedAssociation: newAssociation),
+          );
+
+      _fetchLeaderboard(); // Fetch leaderboard for the new association
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
-        actions: [
-          DropdownButtonHideUnderline(
-            child: DropdownButton<AssociationModel>(
-              value: _selectedAssociation,
-              onChanged: _onAssociationChanged,
-              dropdownColor: AppColors.lightPrimaryVariant,
-              icon: Icon(Icons.keyboard_arrow_down,
-                  color: Theme.of(context).iconTheme.color),
-              items: _associations.map((association) {
-                return DropdownMenuItem(
-                  value: association,
-                  child: Text(
-                    association.name,
-                    style: Theme.of(context).dropdownMenuTheme.textStyle,
-                  ),
-                );
-              }).toList(),
-            ),
+        title: DropdownButtonHideUnderline(
+          child: DropdownButton<AssociationModel>(
+            value: _selectedAssociation,
+            onChanged: _onAssociationChanged,
+            dropdownColor: AppColors.lightPrimaryVariant,
+            icon: Icon(Icons.keyboard_arrow_down,
+                color: Theme.of(context).iconTheme.color),
+            items: _associations.map((association) {
+              return DropdownMenuItem(
+                value: association,
+                child: Text(association.name,
+                    style: Theme.of(context).dropdownMenuTheme.textStyle),
+              );
+            }).toList(),
           ),
-        ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -201,23 +174,6 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_selectedAssociation != null) ...[
-              Center(
-                child: DropdownButton<BoardYearModel>(
-                  value: _selectedBoardYear,
-                  onChanged: _onBoardYearChanged,
-                  dropdownColor: Colors.white,
-                  icon: const Icon(Icons.keyboard_arrow_down,
-                      color: Colors.black),
-                  items: _boardYears.map((boardYear) {
-                    return DropdownMenuItem(
-                      value: boardYear,
-                      child: Text(boardYear.boardYear,
-                          style: const TextStyle(color: Colors.black)),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 16.0),
               Expanded(
                 child: LeaderboardWidget(
                   entries: _leaderboardEntries,

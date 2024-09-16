@@ -66,7 +66,7 @@ class AppThemes {
     dropdownMenuTheme: DropdownMenuThemeData(
       textStyle: const TextStyle(
         color: AppColors.lightSecondary,
-        fontSize: 16.0,
+        fontSize: 18.0,
       ),
       inputDecorationTheme: const InputDecorationTheme(
         border: OutlineInputBorder(),
