@@ -53,7 +53,7 @@
 			<string>nl</string>
 		</array>
 		<key>GIDClientID</key>
-		<string>666871801199-4h9tut4kam2ugbkajaet3v7q6lfqbdu7.apps.googleusercontent.com</string>
+		<string>946312363325-7stnuk9c7j4m0r58508u7ctda7bca6oc.apps.googleusercontent.com</string>
 		<key>CFBundleURLTypes</key>
 		<array>
 			<dict>
@@ -61,7 +61,7 @@
 				<string>Editor</string>
 				<key>CFBundleURLSchemes</key>
 				<array>
-					<string>com.googleusercontent.apps.666871801199-4h9tut4kam2ugbkajaet3v7q6lfqbdu7</string>
+					<string>com.googleusercontent.apps.946312363325-7stnuk9c7j4m0r58508u7ctda7bca6oc</string>
 				</array>
 			</dict>
 		</array>

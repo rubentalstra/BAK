@@ -1,4 +1,5 @@
 import 'package:bak_tracker/models/association_member_model.dart';
+import 'package:bak_tracker/ui/settings/association_settings/invite_members_screen.dart';
 import 'package:flutter/material.dart';
 
 class AssociationSettingsScreen extends StatelessWidget {
@@ -28,11 +29,12 @@ class AssociationSettingsScreen extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 // Navigate to invite members screen, passing associationId
-                // Navigator.of(context).push(
-                //   MaterialPageRoute(
-                //     builder: (context) => InviteMembersScreen(associationId: associationId),
-                //   ),
-                // );
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        InviteMembersScreen(associationId: associationId),
+                  ),
+                );
               },
             ),
           const Divider(),
