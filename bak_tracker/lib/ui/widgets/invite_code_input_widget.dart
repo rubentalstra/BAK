@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Needed to handle paste events
+import 'package:flutter/services.dart';
+import 'package:bak_tracker/services/join_association_service.dart';
 
 class InviteCodeInputWidget extends StatefulWidget {
-  final void Function(String) onCodeSubmitted;
-
-  const InviteCodeInputWidget({
-    super.key,
-    required this.onCodeSubmitted,
-  });
+  const InviteCodeInputWidget({super.key});
 
   @override
   _InviteCodeInputWidgetState createState() => _InviteCodeInputWidgetState();
@@ -18,6 +14,10 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   String? _errorMessage;
+  bool _isSubmitting = false;
+
+  final JoinAssociationService _joinAssociationService =
+      JoinAssociationService();
 
   @override
   void dispose() {
@@ -31,11 +31,32 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
   }
 
   // Method to handle submission when code is fully entered
-  void _submitCode() {
+  Future<void> _submitCode() async {
     final inviteCode = _controllers.map((e) => e.text).join();
     if (inviteCode.length == 6) {
-      widget.onCodeSubmitted(inviteCode);
-      Navigator.of(context).pop(); // Close the modal
+      setState(() {
+        _isSubmitting = true; // Show loading state
+        _errorMessage = null; // Clear previous error message
+      });
+
+      // Use the join association service
+      final result = await _joinAssociationService.joinAssociation(inviteCode);
+      setState(() {
+        _isSubmitting = false; // Reset loading state
+      });
+
+      if (result != null) {
+        // Show error if there's a message from the service
+        setState(() {
+          _errorMessage = result;
+        });
+      } else {
+        // Close the modal and show success message
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Successfully joined the association.')),
+        );
+      }
     } else {
       setState(() {
         _errorMessage = 'Please enter all 6 characters.';
@@ -61,7 +82,9 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -87,10 +110,13 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
                 ),
               ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _submitCode, // Submit the code when button is pressed
-              child: const Text('Join Association'),
-            ),
+            _isSubmitting
+                ? const CircularProgressIndicator() // Show a loading indicator while submitting
+                : ElevatedButton(
+                    onPressed:
+                        _submitCode, // Submit the code when button is pressed
+                    child: const Text('Join Association'),
+                  ),
           ],
         ),
       ),
@@ -128,7 +154,6 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
             _submitCode();
           }
         },
-        // Listen for paste event
         inputFormatters: [
           FilteringTextInputFormatter.singleLineFormatter,
           LengthLimitingTextInputFormatter(1), // Only 1 char allowed

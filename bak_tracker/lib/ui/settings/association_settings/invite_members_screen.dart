@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart'; // For copying text to the clipboard
 import 'dart:math';
 
-// Invite page
 class InviteMembersScreen extends StatefulWidget {
   final String associationId;
 
@@ -16,17 +16,26 @@ class InviteMembersScreen extends StatefulWidget {
   _InviteMembersScreenState createState() => _InviteMembersScreenState();
 }
 
-class _InviteMembersScreenState extends State<InviteMembersScreen> {
-  String? _inviteKey;
+class _InviteMembersScreenState extends State<InviteMembersScreen>
+    with SingleTickerProviderStateMixin {
   bool _isLoading = false;
   List<Map<String, dynamic>> _activeInvites = [];
   List<Map<String, dynamic>> _expiredInvites = [];
   bool _loadingInvites = true;
 
+  late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _fetchInvites();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   // Generate a random 6-character invite key
@@ -56,9 +65,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
         'is_expired': false,
       });
 
-      setState(() {
-        _inviteKey = inviteKey;
-      });
+      setState(() {});
       _fetchInvites(); // Refresh the list of invites
     } catch (e) {
       print('Error creating invite: $e');
@@ -120,11 +127,21 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
     }
   }
 
-  // Share the invite key
+  // Share the invite key with a deep link
   void _shareInvite(String inviteKey) {
+    final String deepLink = 'https://baktracker.com/invite/$inviteKey';
     final String shareText =
-        'Join our association using this invite key: $inviteKey';
+        'Join our association using this invite key: $inviteKey. '
+        'Click here to join: $deepLink';
     Share.share(shareText);
+  }
+
+  // Copy invite key to clipboard
+  void _copyInviteKey(String inviteKey) {
+    Clipboard.setData(ClipboardData(text: inviteKey));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Invite key copied to clipboard!')),
+    );
   }
 
   // UI to show active and expired invites
@@ -132,11 +149,6 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          isExpired ? 'Expired Invites' : 'Active Invites',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 10),
         invites.isEmpty
             ? Text(isExpired ? 'No expired invites.' : 'No active invites.')
             : Column(
@@ -150,16 +162,32 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
                         : const Text('Active'),
                     trailing: isExpired
                         ? null
-                        : IconButton(
-                            icon: const Icon(Icons.timer_off_outlined),
-                            onPressed: () {
-                              _expireInvite(inviteId);
-                            },
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.copy),
+                                onPressed: () {
+                                  _copyInviteKey(inviteKey);
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.share),
+                                onPressed: () {
+                                  _shareInvite(inviteKey);
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.timer_off_outlined),
+                                onPressed: () {
+                                  _expireInvite(inviteId);
+                                },
+                              ),
+                            ],
                           ),
                   );
                 }).toList(),
               ),
-        const SizedBox(height: 20),
       ],
     );
   }
@@ -169,44 +197,37 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Invite Members'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ElevatedButton(
-              onPressed: _isLoading ? null : _createInvite,
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text('Generate Invite Key'),
-            ),
-            if (_inviteKey != null) ...[
-              const SizedBox(height: 20),
-              Text(
-                'Invite Key: $_inviteKey',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton.icon(
-                onPressed: () => _shareInvite(_inviteKey!),
-                icon: const Icon(Icons.share),
-                label: const Text('Share Invite'),
-              ),
-            ],
-            const SizedBox(height: 30),
-            _loadingInvites
-                ? const CircularProgressIndicator()
-                : Expanded(
-                    child: ListView(
-                      children: [
-                        _buildInviteList(_activeInvites, false),
-                        _buildInviteList(_expiredInvites, true),
-                      ],
-                    ),
-                  ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Active Invites'),
+            Tab(text: 'Expired Invites'),
           ],
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _loadingInvites
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: _buildInviteList(_activeInvites, false),
+                ),
+          _loadingInvites
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: _buildInviteList(_expiredInvites, true),
+                ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _isLoading ? null : _createInvite,
+        tooltip: 'Generate Invite',
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Icon(Icons.add),
       ),
     );
   }

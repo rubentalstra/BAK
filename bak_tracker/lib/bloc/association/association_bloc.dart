@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/models/association_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Association Events
 abstract class AssociationEvent extends Equatable {
@@ -53,6 +55,30 @@ class AssociationError extends AssociationState {
 class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
   AssociationBloc() : super(AssociationInitial()) {
     on<SelectAssociation>(_onSelectAssociation);
+    _loadSelectedAssociation(); // Load from storage when initialized
+  }
+
+  // Load saved association from SharedPreferences
+  Future<void> _loadSelectedAssociation() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? selectedAssociationData =
+        prefs.getString('selected_association');
+
+    if (selectedAssociationData != null) {
+      final associationMap =
+          jsonDecode(selectedAssociationData) as Map<String, dynamic>;
+      final selectedAssociation = AssociationModel.fromMap(associationMap);
+
+      // Fetch and load member data for the association
+      add(SelectAssociation(selectedAssociation: selectedAssociation));
+    }
+  }
+
+  // Save selected association to SharedPreferences
+  Future<void> _saveSelectedAssociation(AssociationModel association) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        'selected_association', jsonEncode(association.toMap()));
   }
 
   Future<void> _onSelectAssociation(
@@ -60,6 +86,9 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     emit(AssociationLoading());
 
     try {
+      // Save the selected association to preferences
+      await _saveSelectedAssociation(event.selectedAssociation);
+
       // Fetch user ID from Supabase auth
       final supabase = Supabase.instance.client;
       final userId = supabase.auth.currentUser?.id;

@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/models/association_model.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/ui/home/widgets/leaderboard_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<AssociationModel> _associations = [];
   AssociationModel? _selectedAssociation;
   List<LeaderboardEntry> _leaderboardEntries = [];
-  bool _isLoading = true; // Add a loading flag
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -37,7 +37,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // Start loading
     setState(() {
       _isLoading = true;
     });
@@ -64,26 +63,55 @@ class _HomeScreenState extends State<HomeScreen> {
               .map((data) =>
                   AssociationModel.fromMap(data as Map<String, dynamic>))
               .toList();
-          _selectedAssociation =
-              _associations.isNotEmpty ? _associations.first : null;
-
-          if (_selectedAssociation != null) {
-            // Dispatch the SelectAssociation event when the first association is selected
-            context.read<AssociationBloc>().add(
-                  SelectAssociation(selectedAssociation: _selectedAssociation!),
-                );
-
-            // Fetch leaderboard for the selected association
-            _fetchLeaderboard();
-          }
         });
+
+        // Load the saved association from preferences or select the first one
+        _loadSavedAssociation();
       }
     }
 
-    // Stop loading
     setState(() {
       _isLoading = false;
     });
+  }
+
+  Future<void> _loadSavedAssociation() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? savedAssociationJson =
+        prefs.getString('selected_association');
+
+    if (savedAssociationJson != null) {
+      final savedAssociationMap =
+          jsonDecode(savedAssociationJson) as Map<String, dynamic>;
+      final savedAssociation = AssociationModel.fromMap(savedAssociationMap);
+
+      final existingAssociation = _associations.firstWhere(
+        (association) => association.id == savedAssociation.id,
+        orElse: () => _associations.first,
+      );
+
+      setState(() {
+        _selectedAssociation = existingAssociation;
+      });
+    } else {
+      setState(() {
+        _selectedAssociation =
+            _associations.isNotEmpty ? _associations.first : null;
+      });
+    }
+
+    if (_selectedAssociation != null) {
+      context.read<AssociationBloc>().add(
+            SelectAssociation(selectedAssociation: _selectedAssociation!),
+          );
+      _fetchLeaderboard();
+    }
+  }
+
+  Future<void> _saveSelectedAssociation(AssociationModel association) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        'selected_association', jsonEncode(association.toMap()));
   }
 
   Future<void> _fetchLeaderboard() async {
@@ -91,7 +119,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final supabase = Supabase.instance.client;
 
-    // Start loading
     setState(() {
       _isLoading = true;
     });
@@ -104,14 +131,12 @@ class _HomeScreenState extends State<HomeScreen> {
         .eq('association_id', _selectedAssociation!.id);
 
     if (memberResponse.isNotEmpty) {
-      // Convert the fetched data to AssociationMemberModel
       List<AssociationMemberModel> members = memberResponse.map((data) {
-        // The 'user_id' field is a nested map containing 'id' and 'name'
         final userMap = data['user_id'] as Map<String, dynamic>;
 
         return AssociationMemberModel(
           userId: userMap['id'],
-          name: userMap['name'] ?? 'Unknown User', // Fallback if name is null
+          name: userMap['name'] ?? 'Unknown User',
           associationId: data['association_id'],
           role: data['role'],
           permissions: data['permissions'] is String
@@ -123,30 +148,26 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }).toList();
 
-      // Create leaderboard entries based on members
       setState(() {
         _leaderboardEntries = members.map((member) {
           return LeaderboardEntry(
-            rank: 0, // You can assign a rank based on sorting later
-            username: member.name ??
-                member.userId, // Use name if available, else fallback to userId
+            rank: 0,
+            username: member.name ?? member.userId,
             baksConsumed: member.baksConsumed,
-            baksDebt: member.baksReceived, // Assuming this is the debt
+            baksDebt: member.baksReceived,
           );
         }).toList();
 
-        // Sort leaderboard entries by baksConsumed in descending order
+        // Sort and assign ranks
         _leaderboardEntries
             .sort((a, b) => b.baksConsumed.compareTo(a.baksConsumed));
 
-        // Assign ranks based on sorted order
         for (int i = 0; i < _leaderboardEntries.length; i++) {
           _leaderboardEntries[i] = _leaderboardEntries[i].copyWith(rank: i + 1);
         }
       });
     }
 
-    // Stop loading
     setState(() {
       _isLoading = false;
     });
@@ -155,16 +176,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onAssociationChanged(AssociationModel? newAssociation) {
     setState(() {
       _selectedAssociation = newAssociation;
-      _leaderboardEntries = []; // Clear leaderboard entries
+      _leaderboardEntries = [];
     });
 
-    // Dispatch the SelectAssociation event
     if (newAssociation != null) {
+      _saveSelectedAssociation(newAssociation);
       context.read<AssociationBloc>().add(
             SelectAssociation(selectedAssociation: newAssociation),
           );
-
-      _fetchLeaderboard(); // Fetch leaderboard for the new association
+      _fetchLeaderboard();
     }
   }
 
@@ -194,22 +214,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: Theme.of(context).dropdownMenuTheme.textStyle,
               ),
       ),
-      body: _isLoading // Display loading animation while fetching data
-          ? const Center(
-              child: CircularProgressIndicator(), // Default loading spinner
-            )
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_selectedAssociation != null) ...[
+                  if (_selectedAssociation != null)
                     Expanded(
                       child: LeaderboardWidget(
                         entries: _leaderboardEntries,
                       ),
                     ),
-                  ],
                 ],
               ),
             ),

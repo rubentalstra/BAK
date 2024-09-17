@@ -2,7 +2,7 @@ import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/ui/widgets/invite_code_input_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:bak_tracker/ui/settings/association_settings_screen.dart';
+import 'package:bak_tracker/ui/settings/association_settings/association_settings_screen.dart';
 import 'package:bak_tracker/ui/settings/change_display_name_screen.dart';
 import 'package:bak_tracker/ui/login/login_screen.dart';
 import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
@@ -108,14 +108,7 @@ class SettingsScreen extends StatelessWidget {
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          child: InviteCodeInputWidget(
-            onCodeSubmitted: (inviteCode) {
-              // Handle the invite code submission
-              // Example: Call a Bloc or API to join the association
-              print('Invite Code: $inviteCode');
-              // Perform necessary actions with the invite code
-            },
-          ),
+          child: const InviteCodeInputWidget(),
         );
       },
     );

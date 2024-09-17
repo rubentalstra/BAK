@@ -22,22 +22,25 @@ class _SplashScreenState extends State<SplashScreen> {
     final session = Supabase.instance.client.auth.currentSession;
 
     if (session != null) {
-      // User is logged in
       final associations = await _getAssociations();
-      associations.isNotEmpty
-          ? _navigateToHomeScreen()
-          : _navigateToNoAssociationScreen();
+      if (associations.isNotEmpty) {
+        _navigateToHomeScreen();
+      } else {
+        _navigateToNoAssociationScreen();
+      }
     } else {
-      // User is not logged in
       _navigateToLoginScreen();
     }
   }
 
   Future<List<dynamic>> _getAssociations() async {
     try {
-      return await Supabase.instance.client
+      final response = await Supabase.instance.client
           .from('association_members')
-          .select();
+          .select()
+          .eq('user_id', Supabase.instance.client.auth.currentUser!.id);
+
+      return response as List<dynamic>;
     } catch (e) {
       print('Error fetching associations: $e');
       return [];
@@ -66,8 +69,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(
-        child:
-            CircularProgressIndicator(), // Loading indicator while checking auth
+        child: CircularProgressIndicator(), // Show a loading spinner
       ),
     );
   }

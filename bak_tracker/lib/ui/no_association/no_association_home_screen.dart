@@ -1,5 +1,5 @@
-import 'package:bak_tracker/ui/widgets/invite_code_input_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:bak_tracker/ui/widgets/invite_code_input_widget.dart';
 import 'association_request_screen.dart';
 
 class NoAssociationHomeScreen extends StatelessWidget {
@@ -46,23 +46,8 @@ class NoAssociationHomeScreen extends StatelessWidget {
       isScrollControlled:
           true, // Makes the bottom sheet take full height if needed
       builder: (BuildContext context) {
-        return InviteCodeInputWidget(
-          onCodeSubmitted: (String code) {
-            _joinAssociationWithCode(context, code);
-          },
-        );
+        return const InviteCodeInputWidget();
       },
-    );
-  }
-
-  // Handle the code submission logic
-  void _joinAssociationWithCode(BuildContext context, String code) {
-    // TODO: Add your logic to validate the code and join the association
-    print('Submitted Invite Code: $code');
-
-    // Example action after submitting a code
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Joining association with code: $code')),
     );
   }
 }

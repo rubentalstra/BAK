@@ -14,10 +14,7 @@ class LoginScreen extends StatelessWidget {
       final response = await Supabase.instance.client
           .from('association_members')
           .select()
-          .eq(
-              'id',
-              Supabase.instance.client.auth.currentUser!
-                  .id); // Now using the user_id from the users table
+          .eq('user_id', Supabase.instance.client.auth.currentUser!.id);
 
       if (response.isNotEmpty) {
         return true; // User is part of at least one association
@@ -37,24 +34,18 @@ class LoginScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(24.0),
         children: [
-          // Google Social Sign-in with SupaSocialsAuth
           SupaSocialsAuth(
-            colored: true, // Enable colored Google button
+            colored: true,
             nativeGoogleAuthConfig: NativeGoogleAuthConfig(
-              webClientId: dotenv.env[
-                  'YOUR_WEB_CLIENT_ID']!, // Replace with your Google Web Client ID
-              iosClientId: dotenv.env[
-                  'YOUR_IOS_CLIENT_ID']!, // Replace with your Google iOS Client ID
+              webClientId: dotenv.env['YOUR_WEB_CLIENT_ID']!,
+              iosClientId: dotenv.env['YOUR_IOS_CLIENT_ID']!,
             ),
-            enableNativeAppleAuth: false, // Only Google login enabled
-            socialProviders: const [
-              OAuthProvider.google
-            ], // Only Google as the provider
+            enableNativeAppleAuth: false,
+            socialProviders: const [OAuthProvider.google],
             redirectUrl: kIsWeb
                 ? null
                 : 'https://iywlypvipqaibumbgsyf.supabase.co/auth/v1/callback',
             onSuccess: (Session session) async {
-              // Check if the user is part of an association
               bool isPartOfAssociation = await _checkUserAssociation();
 
               if (isPartOfAssociation) {
@@ -71,8 +62,7 @@ class LoginScreen extends StatelessWidget {
               }
             },
             onError: (error) {
-              print('Login error details: $error'); // Add detailed error logs
-              // Show an error message if login fails
+              print('Login error details: $error'); // Detailed error logs
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Login Failed: $error')),
               );
