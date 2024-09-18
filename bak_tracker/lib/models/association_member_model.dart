@@ -49,6 +49,7 @@ class AssociationMemberModel {
     };
   }
 
+  bool get canUpdatePermissions => permissions['update_permissions'] ?? false;
   bool get canInviteMembers => permissions['invite_members'] ?? false;
   bool get canRemoveMembers => permissions['remove_members'] ?? false;
   bool get canUpdateRole => permissions['update_role'] ?? false;

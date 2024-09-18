@@ -1,6 +1,7 @@
 import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/ui/settings/association_settings/invite_members_screen.dart';
 import 'package:bak_tracker/ui/settings/association_settings/remove_members_screen.dart';
+import 'package:bak_tracker/ui/settings/association_settings/permissions/list_permissions_screen.dart';
 import 'package:bak_tracker/ui/settings/association_settings/update_roles_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -53,6 +54,23 @@ class AssociationSettingsScreen extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (context) =>
                         RemoveMembersScreen(associationId: associationId),
+                  ),
+                );
+              },
+            ),
+          const Divider(),
+
+          // Show Permission option if the user has permission
+          if (memberData.canUpdatePermissions)
+            ListTile(
+              title: const Text('Update Permissions'),
+              subtitle: const Text('Update member permissions'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        UpdatePermissionsScreen(associationId: associationId),
                   ),
                 );
               },
