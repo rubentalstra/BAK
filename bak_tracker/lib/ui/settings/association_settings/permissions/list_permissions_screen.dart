@@ -95,23 +95,28 @@ class _UpdatePermissionsScreenState extends State<UpdatePermissionsScreen> {
   String _buildPermissionsSummary(Map<String, dynamic> permissions) {
     List<String> permissionLabels = [];
 
-    if (permissions['invite_members'] == true) {
-      permissionLabels.add('Invite Members');
-    }
-    if (permissions['remove_members'] == true) {
-      permissionLabels.add('Remove Members');
-    }
-    if (permissions['update_role'] == true) {
-      permissionLabels.add('Update Role');
-    }
-    if (permissions['update_bak_amount'] == true) {
-      permissionLabels.add('Update Bak Amount');
-    }
-    if (permissions['approve_bak_taken'] == true) {
-      permissionLabels.add('Approve Bak Taken');
-    }
-    if (permissions['update_permissions'] == true) {
-      permissionLabels.add('Update Permissions');
+    // Check if the user has all permissions
+    if (permissions['hasAllPermissions'] == true) {
+      permissionLabels.add('Has All Permissions');
+    } else {
+      if (permissions['canInviteMembers'] == true) {
+        permissionLabels.add('Invite Members');
+      }
+      if (permissions['canRemoveMembers'] == true) {
+        permissionLabels.add('Remove Members');
+      }
+      if (permissions['canManageRoles'] == true) {
+        permissionLabels.add('Manage Roles');
+      }
+      if (permissions['canManageBaks'] == true) {
+        permissionLabels.add('Manage Baks');
+      }
+      if (permissions['canApproveBaks'] == true) {
+        permissionLabels.add('Approve Baks');
+      }
+      if (permissions['canManagePermissions'] == true) {
+        permissionLabels.add('Manage Permissions');
+      }
     }
 
     return permissionLabels.isNotEmpty

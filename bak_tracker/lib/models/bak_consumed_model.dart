@@ -3,7 +3,7 @@ class BakConsumedModel {
   final String takerId;
   final String associationId;
   final int amount;
-  final String approvalStatus;
+  final String status;
   final String? approvedBy;
   final DateTime createdAt;
 
@@ -12,7 +12,7 @@ class BakConsumedModel {
     required this.takerId,
     required this.associationId,
     required this.amount,
-    required this.approvalStatus,
+    required this.status,
     this.approvedBy,
     required this.createdAt,
   });
@@ -23,7 +23,7 @@ class BakConsumedModel {
       takerId: map['taker_id'],
       associationId: map['association_id'],
       amount: map['amount'],
-      approvalStatus: map['approval_status'],
+      status: map['status'],
       approvedBy: map['approved_by'],
       createdAt: DateTime.parse(map['created_at']),
     );
@@ -35,7 +35,7 @@ class BakConsumedModel {
       'taker_id': takerId,
       'association_id': associationId,
       'amount': amount,
-      'approval_status': approvalStatus,
+      'status': status,
       'approved_by': approvedBy,
       'created_at': createdAt.toIso8601String(),
     };

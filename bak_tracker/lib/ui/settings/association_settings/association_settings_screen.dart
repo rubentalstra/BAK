@@ -24,23 +24,23 @@ class AssociationSettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // Show Invite Members option if the user has permission
+          // Show Permissions option if the user has permission
           if (memberData.canInviteMembers)
             ListTile(
               title: const Text('Invite Members'),
               subtitle: const Text('Send invites to new members'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                // Navigate to invite members screen, passing associationId
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) =>
-                        InviteMembersScreen(associationId: associationId),
+                    builder: (context) => InviteMembersScreen(
+                      associationId: associationId,
+                    ),
                   ),
                 );
               },
             ),
-          const Divider(),
+          if (memberData.canInviteMembers) const Divider(),
 
           // Show Remove Members option if the user has permission
           if (memberData.canRemoveMembers)
@@ -49,54 +49,56 @@ class AssociationSettingsScreen extends StatelessWidget {
               subtitle: const Text('Remove members from the association'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                // Navigate to remove members screen, passing associationId
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) =>
-                        RemoveMembersScreen(associationId: associationId),
+                    builder: (context) => RemoveMembersScreen(
+                      associationId: associationId,
+                    ),
                   ),
                 );
               },
             ),
-          const Divider(),
+          if (memberData.canRemoveMembers) const Divider(),
 
-          // Show Permission option if the user has permission
-          if (memberData.canUpdatePermissions)
+          // Show List Permissions option if the user has permission
+          if (memberData.canManagePermissions)
             ListTile(
-              title: const Text('Update Permissions'),
+              title: const Text('Manage Permissions'),
               subtitle: const Text('Update member permissions'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) =>
-                        UpdatePermissionsScreen(associationId: associationId),
+                    builder: (context) => UpdatePermissionsScreen(
+                      associationId: associationId,
+                    ),
                   ),
                 );
               },
             ),
-          const Divider(),
+          // Show divider if the user has permission
+          if (memberData.canManagePermissions) const Divider(),
 
-          // Show Update Role option if the user has permission
-          if (memberData.canUpdateRole)
+          // Show Update Roles option if the user has permission
+          if (memberData.canManageRoles)
             ListTile(
-              title: const Text('Update Roles'),
-              subtitle: const Text('Manage member roles'),
+              title: const Text('Manage Roles'),
+              subtitle: const Text('Update member roles'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                // Navigate to update role screen, passing associationId
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) =>
-                        UpdateRolesScreen(associationId: associationId),
+                    builder: (context) => UpdateRolesScreen(
+                      associationId: associationId,
+                    ),
                   ),
                 );
               },
             ),
-          const Divider(),
+          if (memberData.canManageRoles) const Divider(),
 
           // Show Update Bak Amount option if the user has permission
-          if (memberData.canUpdateBakAmount)
+          if (memberData.canManageBaks)
             ListTile(
               title: const Text('Update Bak Amount'),
               subtitle: const Text('Update the amount of baks consumed'),
@@ -106,23 +108,6 @@ class AssociationSettingsScreen extends StatelessWidget {
                 // Navigator.of(context).push(
                 //   MaterialPageRoute(
                 //     builder: (context) => UpdateBakAmountScreen(associationId: associationId),
-                //   ),
-                // );
-              },
-            ),
-          const Divider(),
-
-          // Show Approve Bak Taken option if the user has permission
-          if (memberData.canApproveBakTaken)
-            ListTile(
-              title: const Text('Approve Bak Taken'),
-              subtitle: const Text('Approve baks that were consumed'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                // Navigate to approve baks screen, passing associationId
-                // Navigator.of(context).push(
-                //   MaterialPageRoute(
-                //     builder: (context) => ApproveBaksScreen(associationId: associationId),
                 //   ),
                 // );
               },

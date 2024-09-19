@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'auth_state.dart';
@@ -42,6 +43,11 @@ class AuthenticationBloc extends Cubit<AuthenticationState> {
 
   Future<void> signOut() async {
     await Supabase.instance.client.auth.signOut();
+
+    // Clear the selected association from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('selected_association');
+
     emit(AuthenticationSignedOut());
   }
 }

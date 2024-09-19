@@ -21,6 +21,15 @@ class SelectAssociation extends AssociationEvent {
   List<Object?> get props => [selectedAssociation];
 }
 
+class LeaveAssociation extends AssociationEvent {
+  final String associationId;
+
+  LeaveAssociation({required this.associationId});
+
+  @override
+  List<Object?> get props => [associationId];
+}
+
 // Association States
 abstract class AssociationState extends Equatable {
   @override
@@ -55,6 +64,7 @@ class AssociationError extends AssociationState {
 class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
   AssociationBloc() : super(AssociationInitial()) {
     on<SelectAssociation>(_onSelectAssociation);
+    on<LeaveAssociation>(_onLeaveAssociation);
     _loadSelectedAssociation(); // Load from storage when initialized
   }
 
@@ -115,6 +125,61 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     } catch (e) {
       emit(AssociationError(e.toString()));
       return;
+    }
+  }
+
+  // Handle leaving the association
+  Future<void> _onLeaveAssociation(
+      LeaveAssociation event, Emitter<AssociationState> emit) async {
+    emit(AssociationLoading());
+
+    try {
+      // Get user and association information
+      final supabase = Supabase.instance.client;
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) {
+        emit(AssociationError('User not authenticated'));
+        return;
+      }
+
+      // Check if the user is the only one with management permissions
+      final otherAdminsResponse = await supabase
+          .from('association_members')
+          .select()
+          .eq('association_id', event.associationId)
+          .neq('user_id', userId); // Exclude current user
+
+      bool canLeave = false;
+
+      for (final admin in otherAdminsResponse) {
+        final permissions = Map<String, dynamic>.from(admin['permissions']);
+        if (permissions['hasAllPermissions'] == true) {
+          canLeave = true;
+          break;
+        }
+      }
+
+      if (!canLeave) {
+        emit(AssociationError(
+            'You cannot leave the association as you are the only member with management permissions.'));
+        return;
+      }
+
+      // Remove the user from the association_members table
+      await supabase
+          .from('association_members')
+          .delete()
+          .eq('user_id', userId)
+          .eq('association_id', event.associationId);
+
+      // Clear the saved association from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('selected_association');
+
+      // Emit a new state indicating the user has left the association
+      emit(AssociationInitial());
+    } catch (e) {
+      emit(AssociationError('Failed to leave association: $e'));
     }
   }
 }

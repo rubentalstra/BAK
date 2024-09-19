@@ -22,20 +22,31 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
   late Map<String, bool> _permissions;
   bool _isSaving = false;
 
+  final Map<String, String> _permissionLabels = {
+    'hasAllPermissions': 'Has All Permissions',
+    'canManagePermissions': 'Manage Permissions',
+    'canInviteMembers': 'Invite Members',
+    'canRemoveMembers': 'Remove Members',
+    'canManageRoles': 'Manage Roles',
+    'canManageBaks': 'Manage Baks',
+    'canApproveBaks': 'Approve Baks',
+  };
+
   @override
   void initState() {
     super.initState();
-    // Initialize with all possible permissions, using current values
     _permissions = {
-      'invite_members': widget.currentPermissions['invite_members'] ?? false,
-      'remove_members': widget.currentPermissions['remove_members'] ?? false,
-      'update_role': widget.currentPermissions['update_role'] ?? false,
-      'update_bak_amount':
-          widget.currentPermissions['update_bak_amount'] ?? false,
-      'approve_bak_taken':
-          widget.currentPermissions['approve_bak_taken'] ?? false,
-      'update_permissions':
-          widget.currentPermissions['update_permissions'] ?? false,
+      'hasAllPermissions':
+          widget.currentPermissions['hasAllPermissions'] ?? false,
+      'canManagePermissions':
+          widget.currentPermissions['canManagePermissions'] ?? false,
+      'canInviteMembers':
+          widget.currentPermissions['canInviteMembers'] ?? false,
+      'canRemoveMembers':
+          widget.currentPermissions['canRemoveMembers'] ?? false,
+      'canManageRoles': widget.currentPermissions['canManageRoles'] ?? false,
+      'canManageBaks': widget.currentPermissions['canManageBaks'] ?? false,
+      'canApproveBaks': widget.currentPermissions['canApproveBaks'] ?? false,
     };
   }
 
@@ -79,15 +90,12 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  _buildPermissionSwitch('Invite Members', 'invite_members'),
-                  _buildPermissionSwitch('Remove Members', 'remove_members'),
-                  _buildPermissionSwitch('Update Role', 'update_role'),
-                  _buildPermissionSwitch(
-                      'Update Bak Amount', 'update_bak_amount'),
-                  _buildPermissionSwitch(
-                      'Approve Bak Taken', 'approve_bak_taken'),
-                  _buildPermissionSwitch(
-                      'Update Permissions', 'update_permissions'),
+                  ..._permissionLabels.keys.map(
+                    (key) => _buildPermissionSwitch(
+                      _permissionLabels[key] ?? key,
+                      key,
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _savePermissions,
@@ -99,7 +107,6 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
     );
   }
 
-  // Helper method to build each permission switch
   Widget _buildPermissionSwitch(String label, String permissionKey) {
     return SwitchListTile(
       title: Text(label),
@@ -107,7 +114,21 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
       value: _permissions[permissionKey] ?? false,
       onChanged: (bool value) {
         setState(() {
-          _permissions[permissionKey] = value;
+          if (permissionKey == 'hasAllPermissions') {
+            _permissions = {
+              'hasAllPermissions': value,
+              'canManagePermissions': !value,
+              'canInviteMembers': !value,
+              'canRemoveMembers': !value,
+              'canManageRoles': !value,
+              'canManageBaks': !value,
+              'canApproveBaks': !value,
+            };
+          } else {
+            _permissions[permissionKey] = value;
+            // Disable all if specific is enabled
+            _permissions['hasAllPermissions'] = false;
+          }
         });
       },
     );

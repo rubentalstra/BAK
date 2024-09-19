@@ -49,10 +49,19 @@ class AssociationMemberModel {
     };
   }
 
-  bool get canUpdatePermissions => permissions['update_permissions'] ?? false;
-  bool get canInviteMembers => permissions['invite_members'] ?? false;
-  bool get canRemoveMembers => permissions['remove_members'] ?? false;
-  bool get canUpdateRole => permissions['update_role'] ?? false;
-  bool get canUpdateBakAmount => permissions['update_bak_amount'] ?? false;
-  bool get canApproveBakTaken => permissions['approve_bak_taken'] ?? false;
+  // If all_permissions is true, all permissions should be true
+  bool get hasAllPermissions => permissions['hasAllPermissions'] ?? false;
+
+  bool get canManagePermissions =>
+      hasAllPermissions || (permissions['canManagePermissions'] ?? false);
+  bool get canInviteMembers =>
+      hasAllPermissions || (permissions['canInviteMembers'] ?? false);
+  bool get canRemoveMembers =>
+      hasAllPermissions || (permissions['canRemoveMembers'] ?? false);
+  bool get canManageRoles =>
+      hasAllPermissions || (permissions['canManageRoles'] ?? false);
+  bool get canManageBaks =>
+      hasAllPermissions || (permissions['canManageBaks'] ?? false);
+  bool get canApproveBaks =>
+      hasAllPermissions || (permissions['canApproveBaks'] ?? false);
 }
