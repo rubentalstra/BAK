@@ -9,7 +9,7 @@ class NotificationsService {
 
   Future<void> initializeNotifications() async {
     try {
-      print('Starting initialization of FlutterLocalNotificationsPlugin');
+      // print('Starting initialization of FlutterLocalNotificationsPlugin');
 
       const AndroidInitializationSettings initializationSettingsAndroid =
           AndroidInitializationSettings(
@@ -27,7 +27,7 @@ class NotificationsService {
         iOS: initializationSettingsIOS,
       );
 
-      print('Before initializing FlutterLocalNotificationsPlugin');
+      // print('Before initializing FlutterLocalNotificationsPlugin');
 
       await flutterLocalNotificationsPlugin.initialize(
         initializationSettings,
@@ -36,7 +36,7 @@ class NotificationsService {
         },
       );
 
-      print('FlutterLocalNotificationsPlugin initialized successfully');
+      // print('FlutterLocalNotificationsPlugin initialized successfully');
     } catch (e) {
       print('Error initializing FlutterLocalNotificationsPlugin: $e');
     }

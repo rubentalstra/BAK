@@ -4,13 +4,34 @@ A new Flutter project.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+## TODO's
+- 
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### High Prio
+
+
+### Low Prio
+- Setup S3 for storage sollution
+
+- Profile page user
+    - Bio
+    - profile image
+- Assertion page
+    - with a list users (and there role if they have one)
+    - Assertion image
+
+
+
+UI veranderingen:
+
+BAK:
+trabsactions in a action button
+
+Getrokken - BAK
+chucked - BAK
+
+
+Approved:
+

@@ -108,12 +108,17 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       }
 
       // Fetch permissions from Supabase
-      final Map<String, dynamic> response = await supabase
+      final response = await supabase
           .from('association_members')
           .select()
           .eq('user_id', userId)
           .eq('association_id', event.selectedAssociation.id)
           .single();
+
+      if (response.isEmpty) {
+        emit(AssociationError('Failed to load association member data.'));
+        return;
+      }
 
       final memberData = AssociationMemberModel.fromMap(response);
 
