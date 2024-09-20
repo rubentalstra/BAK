@@ -43,12 +43,16 @@ class AssociationLoading extends AssociationState {}
 class AssociationLoaded extends AssociationState {
   final AssociationModel selectedAssociation;
   final AssociationMemberModel memberData;
+  final String? errorMessage; // New property for holding error messages
 
-  AssociationLoaded(
-      {required this.selectedAssociation, required this.memberData});
+  AssociationLoaded({
+    required this.selectedAssociation,
+    required this.memberData,
+    this.errorMessage, // Optional error message
+  });
 
   @override
-  List<Object?> get props => [selectedAssociation, memberData];
+  List<Object?> get props => [selectedAssociation, memberData, errorMessage];
 }
 
 class AssociationError extends AssociationState {
@@ -136,6 +140,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
   // Handle leaving the association
   Future<void> _onLeaveAssociation(
       LeaveAssociation event, Emitter<AssociationState> emit) async {
+    final currentState = state;
     emit(AssociationLoading());
 
     try {
@@ -165,12 +170,20 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       }
 
       if (!canLeave) {
-        emit(AssociationError(
-            'You cannot leave the association as you are the only member with management permissions.'));
+        // The user cannot leave because they are the only one with management permissions
+        if (currentState is AssociationLoaded) {
+          // Keep the state and show an error message
+          emit(AssociationLoaded(
+            selectedAssociation: currentState.selectedAssociation,
+            memberData: currentState.memberData,
+            errorMessage:
+                'You cannot leave the association as you are the only member with management permissions.',
+          ));
+        }
         return;
       }
 
-      // Remove the user from the association_members table
+      // Proceed with removing the user from the association_members table
       await supabase
           .from('association_members')
           .delete()
@@ -181,10 +194,19 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('selected_association');
 
-      // Emit a new state indicating the user has left the association
+      // Emit a new state indicating the user has successfully left the association
       emit(AssociationInitial());
     } catch (e) {
-      emit(AssociationError('Failed to leave association: $e'));
+      if (currentState is AssociationLoaded) {
+        // Keep the state and show an error message
+        emit(AssociationLoaded(
+          selectedAssociation: currentState.selectedAssociation,
+          memberData: currentState.memberData,
+          errorMessage: 'Failed to leave association: $e',
+        ));
+      } else {
+        emit(AssociationError('Failed to leave association: $e'));
+      }
     }
   }
 }

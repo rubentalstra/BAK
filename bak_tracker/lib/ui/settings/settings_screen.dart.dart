@@ -1,4 +1,5 @@
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
+import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/ui/no_association/association_request_screen.dart';
 import 'package:bak_tracker/ui/widgets/invite_code_input_widget.dart';
 import 'package:flutter/material.dart';
@@ -51,6 +52,16 @@ class SettingsScreen extends StatelessWidget {
 
                 return Column(
                   children: [
+                    // Display error message if any
+                    if (state.errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Text(
+                          state.errorMessage!,
+                          style:
+                              const TextStyle(color: AppColors.lightSecondary),
+                        ),
+                      ),
                     // Conditionally display the Association Settings option
                     if (hasAssociationPermissions)
                       ListTile(
@@ -62,8 +73,7 @@ class SettingsScreen extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (context) => AssociationSettingsScreen(
                                 memberData: memberData,
-                                associationId: state.selectedAssociation
-                                    .id, // Pass the association ID
+                                associationId: state.selectedAssociation.id,
                               ),
                             ),
                           );
@@ -142,7 +152,6 @@ class SettingsScreen extends StatelessWidget {
               } else if (state is AssociationLoading) {
                 return const Center(child: CircularProgressIndicator());
               } else {
-                // No association is loaded
                 return Column(
                   children: [
                     // Option to Join Association
