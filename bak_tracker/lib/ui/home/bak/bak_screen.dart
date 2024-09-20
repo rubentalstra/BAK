@@ -1,3 +1,4 @@
+import 'package:bak_tracker/ui/home/bak/transactions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -19,24 +20,18 @@ class _BakScreenState extends State<BakScreen>
   late TabController _tabController;
   String? _selectedAssociationId;
 
-  List<Map<String, dynamic>> _sentBakken = [];
   List<Map<String, dynamic>> _receivedBakken = [];
-  List<Map<String, dynamic>> _receivedBakkenTransaction = [];
-  bool _isLoadingSent = false;
   bool _isLoadingReceived = false;
   bool _isLoadingUsers = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
 
     _tabController.addListener(() {
       if (_tabController.index == 1) {
         _fetchReceivedBakken(); // Fetch received bakken when this tab is selected
-      } else if (_tabController.index == 3 && _selectedAssociationId != null) {
-        _fetchSentBakken(
-            _selectedAssociationId!); // Fetch sent bakken (transactions) with associationId
       }
     });
   }
@@ -118,39 +113,6 @@ class _BakScreenState extends State<BakScreen>
     } catch (e) {
       rethrow;
     }
-  }
-
-  Future<void> _fetchSentBakken(String associationId) async {
-    setState(() {
-      _isLoadingSent = true;
-    });
-
-    final supabase = Supabase.instance.client;
-    final currentUserId = supabase.auth.currentUser!.id;
-
-    final response = await supabase
-        .from('bak_send')
-        .select(
-            'id, amount, status, created_at, receiver_id (id, name), giver_id (id, name)')
-        .eq('giver_id', currentUserId)
-        .eq('association_id', associationId)
-        .order('created_at', ascending: false);
-
-    final List<dynamic> receivedResponse = await supabase
-        .from('bak_send')
-        .select(
-            'id, amount, status, created_at, receiver_id (id, name), giver_id (id, name)')
-        .eq('receiver_id', currentUserId)
-        .eq('association_id', associationId)
-        .neq('status', 'pending') // Exclude pending baks
-        .order('created_at', ascending: false);
-
-    setState(() {
-      _sentBakken = List<Map<String, dynamic>>.from(response);
-      _receivedBakkenTransaction =
-          List<Map<String, dynamic>>.from(receivedResponse);
-      _isLoadingSent = false;
-    });
   }
 
   // Approve Bak
@@ -247,13 +209,32 @@ class _BakScreenState extends State<BakScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Bak'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'transactions') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TransactionsScreen(),
+                  ),
+                );
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'transactions',
+                child: Text('Go to Transactions'),
+              ),
+            ],
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
             Tab(text: 'Send Bak'),
             Tab(text: 'Request Consumed Bak'),
             Tab(text: 'Received Bak'),
-            Tab(text: 'Transactions'),
           ],
         ),
       ),
@@ -275,7 +256,6 @@ class _BakScreenState extends State<BakScreen>
                 _buildSendBakTab(context, associationId),
                 _buildRequestConsumedBakTab(context, associationId),
                 _buildReceivedBakTab(),
-                _buildTransactionsBakTab(),
               ],
             );
           } else {
@@ -530,46 +510,6 @@ class _BakScreenState extends State<BakScreen>
                         ),
                       ],
                     ),
-                  );
-                },
-              );
-  }
-
-  // Tab 4: Transactions
-  Widget _buildTransactionsBakTab() {
-    final currentUserId = Supabase.instance.client.auth.currentUser!.id;
-
-    // Combine sent and received baks into a single list for transactions
-    List<Map<String, dynamic>> transactions = [
-      ..._sentBakken,
-      ..._receivedBakkenTransaction
-    ];
-    transactions.sort((a, b) => DateTime.parse(b['created_at'])
-        .compareTo(DateTime.parse(a['created_at']))); // Sort by newest first
-
-    return _isLoadingSent || _isLoadingReceived
-        ? const Center(child: CircularProgressIndicator())
-        : transactions.isEmpty
-            ? const Center(child: Text('No transactions found.'))
-            : ListView.builder(
-                itemCount: transactions.length,
-                itemBuilder: (context, index) {
-                  final bak = transactions[index];
-                  final date = DateTime.parse(bak['created_at']).toLocal();
-                  final formattedDate =
-                      '${date.day}/${date.month}/${date.year}';
-
-                  final isSent = bak['giver_id']['id'] == currentUserId;
-
-                  return ListTile(
-                    title: Text(
-                      isSent
-                          ? 'Sent to: ${bak['receiver_id']['name']}'
-                          : 'Received from: ${bak['giver_id']['name']}',
-                    ),
-                    subtitle:
-                        Text('Amount: ${bak['amount']} | Date: $formattedDate'),
-                    trailing: Text('Status: ${bak['status']}'),
                   );
                 },
               );

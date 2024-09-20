@@ -21,7 +21,7 @@ class BottomNavBar extends StatelessWidget {
     final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
     final theme = Theme.of(context);
 
-    // Create the common list of items
+    // List of items for the bottom navigation bar
     List<BottomNavigationBarItem> items = [
       const BottomNavigationBarItem(
         icon: Icon(Icons.home),
@@ -38,10 +38,17 @@ class BottomNavBar extends StatelessWidget {
       if (canApproveBaks) // Conditionally show Approve Baks tab
         BottomNavigationBarItem(
           icon: badges.Badge(
-            showBadge: pendingBaks > 0, // Show badge if pendingBaks > 0
+            showBadge:
+                pendingBaks > 0, // Only show badge if there are pending baks
             badgeContent: Text(
               pendingBaks.toString(),
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+              ),
+            ),
+            badgeStyle: const badges.BadgeStyle(
+              badgeColor: Colors.red, // Customize badge color
             ),
             child: const Icon(Icons.history),
           ),
@@ -53,19 +60,18 @@ class BottomNavBar extends StatelessWidget {
       ),
     ];
 
+    // Use CupertinoTabBar for iOS or BottomNavigationBar for Android
     return isIOS
         ? CupertinoTabBar(
             currentIndex: selectedIndex,
             onTap: onTap,
-            activeColor: theme
-                .colorScheme.secondary, // Use secondary color for active tab
+            activeColor: theme.colorScheme.secondary, // Active tab color
             items: items,
           )
         : BottomNavigationBar(
             currentIndex: selectedIndex,
             onTap: onTap,
-            selectedItemColor: theme
-                .colorScheme.secondary, // Use secondary color for active tab
+            selectedItemColor: theme.colorScheme.secondary, // Active tab color
             items: items,
           );
   }

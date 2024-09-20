@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:async'; // For polling
+
 import 'package:bak_tracker/ui/settings/settings_screen.dart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -26,11 +28,14 @@ class _MainScreenState extends State<MainScreen> {
   List<AssociationModel> _associations = [];
   AssociationModel? _selectedAssociation;
   List<Widget> _pages = [];
+  Timer? _timer; // Timer for periodic polling
 
   @override
   void initState() {
     super.initState();
     _fetchAssociations();
+    _startPollingPendingBaks(); // Start polling for pending baks
+
     // Listen for changes from the AssociationBloc
     context.read<AssociationBloc>().stream.listen((state) {
       if (state is AssociationLoaded) {
@@ -38,6 +43,21 @@ class _MainScreenState extends State<MainScreen> {
             state.memberData.hasAllPermissions;
         _fetchPendingBaks(state.selectedAssociation.id);
         _setPages();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // Cancel polling when the widget is disposed
+    super.dispose();
+  }
+
+  // Poll for pending baks every 10 seconds
+  void _startPollingPendingBaks() {
+    _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (_selectedAssociation != null) {
+        _fetchPendingBaks(_selectedAssociation!.id);
       }
     });
   }
@@ -105,6 +125,8 @@ class _MainScreenState extends State<MainScreen> {
           .select()
           .eq('association_id', associationId)
           .eq('status', 'pending');
+
+      // print('Pending baks: ${response.length}');
 
       if (mounted) {
         setState(() {

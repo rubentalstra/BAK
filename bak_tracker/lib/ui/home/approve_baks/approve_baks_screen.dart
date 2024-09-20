@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bak_tracker/bloc/association/association_bloc.dart';
 
 class ApproveBaksScreen extends StatefulWidget {
   const ApproveBaksScreen({super.key});
@@ -19,11 +21,20 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _fetchBaks();
+    _fetchBaksFromBloc(); // Fetch initial data from the selected association
   }
 
-  // Fetch Baks from the database
-  Future<void> _fetchBaks() async {
+  // Fetch Baks based on the current association from the Bloc
+  void _fetchBaksFromBloc() {
+    final associationBloc = context.read<AssociationBloc>().state;
+    if (associationBloc is AssociationLoaded) {
+      final associationId = associationBloc.selectedAssociation.id;
+      _fetchBaks(associationId); // Use association ID from the state
+    }
+  }
+
+  // Fetch Baks from the database for a specific association
+  Future<void> _fetchBaks(String associationId) async {
     setState(() {
       _isLoading = true;
     });
@@ -31,18 +42,20 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
     final supabase = Supabase.instance.client;
 
     try {
-      // Fetch requested baks (status = 'pending')
+      // Fetch requested baks (status = 'pending') for the current association
       final requestedResponse = await supabase
           .from('bak_consumed')
           .select('id, amount, created_at, taker_id (id, name)')
-          .eq('status', 'pending');
+          .eq('status', 'pending')
+          .eq('association_id', associationId); // Use associationId filter
 
-      // Fetch approved/rejected baks (status = 'approved' OR 'rejected')
+      // Fetch approved/rejected baks for the current association
       final processedResponse = await supabase
           .from('bak_consumed')
           .select(
               'id, amount, status, approved_by (id, name), created_at, taker_id (id, name)')
-          .neq('status', 'pending'); // Query for both approved and rejected
+          .neq('status', 'pending')
+          .eq('association_id', associationId); // Use associationId filter
 
       setState(() {
         _requestedBaks = List<Map<String, dynamic>>.from(requestedResponse);
@@ -58,7 +71,6 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
   }
 
   // Approve or reject a Bak
-// Approve or reject a Bak
   Future<void> _updateBakStatus(
       String bakId, String status, String takerId, int amount) async {
     final supabase = Supabase.instance.client;
@@ -70,37 +82,50 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
           .from('bak_consumed')
           .update({'status': status, 'approved_by': userId}).eq('id', bakId);
 
-      // If approved, increase the consumed count
-      if (status == 'approved') {
-        final takerResponse = await supabase
-            .from('association_members')
-            .select('baks_consumed')
-            .eq('user_id', takerId)
-            .single();
+      final associationBloc = context.read<AssociationBloc>().state;
+      if (associationBloc is AssociationLoaded) {
+        final associationId = associationBloc.selectedAssociation.id;
 
-        final updatedConsumed = takerResponse['baks_consumed'] + amount;
+        // If approved, increase the consumed count
+        if (status == 'approved') {
+          final takerResponse = await supabase
+              .from('association_members')
+              .select('baks_consumed')
+              .eq('user_id', takerId)
+              .eq('association_id', associationId) // Ensure correct association
+              .single();
 
-        await supabase
-            .from('association_members')
-            .update({'baks_consumed': updatedConsumed}).eq('user_id', takerId);
+          final updatedConsumed = takerResponse['baks_consumed'] + amount;
+
+          await supabase
+              .from('association_members')
+              .update({'baks_consumed': updatedConsumed})
+              .eq('user_id', takerId)
+              .eq('association_id',
+                  associationId); // Ensure correct association
+        }
+        // If rejected, increase the bak debt count
+        else if (status == 'rejected') {
+          final takerResponse = await supabase
+              .from('association_members')
+              .select('baks_received')
+              .eq('user_id', takerId)
+              .eq('association_id', associationId) // Ensure correct association
+              .single();
+
+          final updatedReceived = takerResponse['baks_received'] + amount;
+
+          await supabase
+              .from('association_members')
+              .update({'baks_received': updatedReceived})
+              .eq('user_id', takerId)
+              .eq('association_id',
+                  associationId); // Ensure correct association
+        }
+
+        // Refresh the list after approval/rejection
+        _fetchBaks(associationId);
       }
-      // If rejected, increase the bak debt count
-      else if (status == 'rejected') {
-        final takerResponse = await supabase
-            .from('association_members')
-            .select('baks_received')
-            .eq('user_id', takerId)
-            .single();
-
-        final updatedReceived = takerResponse['baks_received'] + amount;
-
-        await supabase
-            .from('association_members')
-            .update({'baks_received': updatedReceived}).eq('user_id', takerId);
-      }
-
-      // Refresh the list after approval/rejection
-      _fetchBaks();
     } catch (e) {
       print('Error updating bak status: $e');
     }
@@ -108,26 +133,38 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Approve Baks'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Requested'),
-            Tab(text: 'Approved/Rejected'),
-          ],
-        ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildRequestedTab(), // Tab for requested baks
-                _buildProcessedTab(), // Tab for approved/rejected baks
-              ],
+    return BlocBuilder<AssociationBloc, AssociationState>(
+      builder: (context, state) {
+        if (state is AssociationLoading) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (state is AssociationLoaded) {
+          // If association is loaded, show the UI
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Approve Baks'),
+              bottom: TabBar(
+                controller: _tabController,
+                tabs: const [
+                  Tab(text: 'Requested'),
+                  Tab(text: 'Approved/Rejected'),
+                ],
+              ),
             ),
+            body: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildRequestedTab(), // Tab for requested baks
+                      _buildProcessedTab(), // Tab for approved/rejected baks
+                    ],
+                  ),
+          );
+        } else {
+          // If no association is loaded, show error or empty state
+          return const Center(child: Text('No association selected'));
+        }
+      },
     );
   }
 
@@ -168,7 +205,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
     );
   }
 
-// Build the tab for approved/rejected Baks
+  // Build the tab for approved/rejected Baks
   Widget _buildProcessedTab() {
     if (_processedBaks.isEmpty) {
       return const Center(child: Text('No approved or rejected baks'));
@@ -193,7 +230,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-// Requested by
+              // Requested by
               Row(
                 children: [
                   Text(
@@ -206,7 +243,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
               ),
               const SizedBox(height: 8),
 
-// Amount and Status
+              // Amount and Status
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
