@@ -42,7 +42,7 @@ class NotificationsService {
     }
   }
 
-  Future<void> _setupFirebaseMessaging() async {
+  Future<void> setupFirebaseMessaging() async {
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
     // Request notification permissions

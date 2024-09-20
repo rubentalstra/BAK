@@ -211,6 +211,7 @@ class _BakScreenState extends State<BakScreen>
         title: const Text('Bak'),
         actions: [
           PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
             onSelected: (value) {
               if (value == 'transactions') {
                 Navigator.push(

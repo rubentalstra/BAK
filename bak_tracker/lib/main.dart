@@ -35,16 +35,20 @@ void main() async {
     ),
   );
 
+  // Initialize Local Notifications Plugin
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  // Initialize Notifications Service
   final NotificationsService notificationsService =
       NotificationsService(flutterLocalNotificationsPlugin);
 
+  // Initialize notifications (local notifications + Firebase messaging setup)
   await notificationsService.initializeNotifications();
 
   runApp(BakTrackerApp(
     flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
+    notificationsService: notificationsService, // Pass the service here
   ));
 
   FlutterNativeSplash.remove();
@@ -52,9 +56,13 @@ void main() async {
 
 class BakTrackerApp extends StatelessWidget {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+  final NotificationsService notificationsService;
 
-  const BakTrackerApp(
-      {super.key, required this.flutterLocalNotificationsPlugin});
+  const BakTrackerApp({
+    super.key,
+    required this.flutterLocalNotificationsPlugin,
+    required this.notificationsService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +86,7 @@ class BakTrackerApp extends StatelessWidget {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            home: const SplashScreen(),
+            home: SplashScreen(notificationsService: notificationsService),
           );
         },
       ),

@@ -1,11 +1,14 @@
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bak_tracker/services/notifications_service.dart';
 import 'package:bak_tracker/ui/home/main_screen.dart';
 import 'package:bak_tracker/ui/no_association/no_association_screen.dart';
 import 'package:bak_tracker/ui/login/login_screen.dart';
-import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  final NotificationsService notificationsService;
+
+  const SplashScreen({super.key, required this.notificationsService});
 
   @override
   _SplashScreenState createState() => _SplashScreenState();
@@ -22,6 +25,9 @@ class _SplashScreenState extends State<SplashScreen> {
     final session = Supabase.instance.client.auth.currentSession;
 
     if (session != null) {
+      // Set up Firebase Messaging and FCM token handling for the authenticated user
+      await widget.notificationsService.setupFirebaseMessaging();
+
       final associations = await _getAssociations();
       if (associations.isNotEmpty) {
         _navigateToHomeScreen();
