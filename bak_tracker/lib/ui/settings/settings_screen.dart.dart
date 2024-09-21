@@ -1,11 +1,11 @@
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/ui/no_association/association_request_screen.dart';
+import 'package:bak_tracker/ui/settings/user_profile/profile_screen.dart';
 import 'package:bak_tracker/ui/widgets/invite_code_input_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/ui/settings/association_settings/association_settings_screen.dart';
-import 'package:bak_tracker/ui/settings/change_display_name_screen.dart';
 import 'package:bak_tracker/ui/login/login_screen.dart';
 import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
 
@@ -22,14 +22,16 @@ class SettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         children: [
           // Change Display Name Option
+
+          // Option to go to Profile Settings
           ListTile(
-            title: const Text('Display Name'),
-            subtitle: const Text('Change your display name'),
+            title: const Text('Profile Settings'),
+            subtitle: const Text('Update your profile information'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const ChangeDisplayNameScreen(),
+                  builder: (context) => const ProfileScreen(),
                 ),
               );
             },
