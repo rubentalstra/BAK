@@ -1,19 +1,31 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Light theme colors
+  // Primary colors based on your main color and accent from the logo
   static const Color lightPrimary =
       Color.fromARGB(255, 29, 40, 45); // Main color
   static const Color lightPrimaryVariant =
-      Color(0xFF4A5A63); // Muted version of main color for variants
+      Color(0xFF3D4A51); // Slightly lighter variant for contrast
   static const Color lightSecondary =
-      Color.fromARGB(255, 218, 164, 66); // Accent color from logo
+      Color.fromARGB(255, 218, 164, 66); // Accent color from the logo
   static const Color lightAccent =
-      Color.fromARGB(255, 218, 164, 66); // Same accent
+      Color(0xFFF5C76E); // Lighter accent to complement the logo accent
+
+  // Background and surface colors
   static const Color lightBackground =
-      Color(0xFFF0F3F4); // Very light grey for backgrounds
+      Color(0xFFE1E5E7); // Soft neutral background
   static const Color lightSurface =
-      Color(0xFFFFFFFF); // White for surfaces like cards
+      Color(0xFFFFFFFF); // Pure white for clean surfaces like cards
+
+  // Text and icon colors
   static const Color lightOnPrimary =
-      Color(0xFF1D1D1D); // Dark color for text on primary surfaces
+      Color(0xFFFAFAFA); // Light color for text/icons on primary backgrounds
+  static const Color lightOnSecondary = Color(
+      0xFF1D1D1D); // Dark color for text/icons on secondary or accent backgrounds
+
+  // Additional accent tones
+  static const Color lightAccentVariant =
+      Color(0xFFD98C4B); // Slightly darker variant of the accent for highlights
+  static const Color lightDivider =
+      Color(0xFFB0BEC5); // Subtle color for dividers
 }

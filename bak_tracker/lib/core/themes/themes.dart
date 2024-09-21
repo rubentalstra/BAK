@@ -44,11 +44,11 @@ class AppThemes {
     ),
     buttonTheme: const ButtonThemeData(
       buttonColor: AppColors.lightPrimary,
-      textTheme: ButtonTextTheme.accent,
+      textTheme: ButtonTextTheme.normal,
     ),
     dividerColor: Colors.grey.shade300,
 
-//tab bar theme
+    // Tab bar theme
     tabBarTheme: const TabBarTheme(
       labelColor: AppColors.lightSecondary,
       unselectedLabelColor: Colors.grey,
@@ -62,18 +62,35 @@ class AppThemes {
       ),
     ),
 
-    // Add DropdownMenu Theme
+    // DropdownMenuTheme for better readability
     dropdownMenuTheme: DropdownMenuThemeData(
       textStyle: const TextStyle(
-        color: AppColors.lightSecondary,
+        color: AppColors.lightAccent, // Text color for better contrast
         fontSize: 18.0,
       ),
       inputDecorationTheme: const InputDecorationTheme(
-        border: OutlineInputBorder(),
+        filled: true,
+        fillColor:
+            AppColors.lightPrimaryVariant, // Background color for input field
+        border: OutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.lightSecondary),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.lightSecondary),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.lightSecondary, width: 2.0),
+        ),
         contentPadding: EdgeInsets.all(12.0),
+        labelStyle: TextStyle(
+          color: AppColors.lightAccent, // Label text color for contrast
+        ),
+        hintStyle: TextStyle(
+          color: Colors.grey, // Hint text color for better readability
+        ),
       ),
       menuStyle: MenuStyle(
-        backgroundColor: WidgetStateProperty.all(AppColors.lightSurface),
+        backgroundColor: WidgetStateProperty.all(AppColors.lightAccent),
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8.0),
@@ -81,6 +98,16 @@ class AppThemes {
         ),
         elevation: WidgetStateProperty.all(8),
       ),
+    ),
+
+    popupMenuTheme: const PopupMenuThemeData(
+      color: AppColors.lightPrimaryVariant,
+      textStyle: TextStyle(color: AppColors.lightAccent),
+    ),
+
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.all(AppColors.lightPrimary),
+      overlayColor: WidgetStateProperty.all(AppColors.lightAccentVariant),
     ),
   );
 }

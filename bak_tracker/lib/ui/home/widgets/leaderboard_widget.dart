@@ -1,3 +1,4 @@
+import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -64,7 +65,7 @@ class LeaderboardWidget extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(vertical: 8.0),
                 padding: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: AppColors.lightBackground,
                   borderRadius: BorderRadius.circular(8.0),
                 ),
                 child: Row(

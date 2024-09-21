@@ -1,3 +1,4 @@
+import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/ui/home/bak/transactions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -291,6 +292,7 @@ class _BakScreenState extends State<BakScreen>
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                color: AppColors.lightPrimary,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: DropdownButton<String>(
@@ -309,7 +311,7 @@ class _BakScreenState extends State<BakScreen>
                     }).toList(),
                     isExpanded: true,
                     underline: Container(),
-                    dropdownColor: Colors.white,
+                    dropdownColor: AppColors.lightPrimary,
                   ),
                 ),
               ),
@@ -328,6 +330,7 @@ class _BakScreenState extends State<BakScreen>
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                color: AppColors.lightPrimary,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: TextField(
@@ -421,6 +424,7 @@ class _BakScreenState extends State<BakScreen>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
+              color: AppColors.lightPrimary,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: TextField(

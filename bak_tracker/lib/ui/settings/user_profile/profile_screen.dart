@@ -1,3 +1,5 @@
+import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/ui/settings/widgets/full_screen_image.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -182,6 +184,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _showFullScreenImage() {
+    if (_profileImageUrl != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FullScreenImage(imageUrl: _profileImageUrl!),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,19 +211,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  CircleAvatar(
-                    radius: 80,
-                    backgroundColor: Colors.grey[200],
-                    backgroundImage: _profileImageUrl != null
-                        ? NetworkImage(_profileImageUrl!)
-                        : null,
-                    child: _profileImageUrl == null
-                        ? const Icon(
-                            Icons.person,
-                            size: 80,
-                            color: Colors.grey,
-                          )
-                        : null,
+                  GestureDetector(
+                    onTap:
+                        _showFullScreenImage, // Add gesture to show full image
+                    child: CircleAvatar(
+                      radius: 80,
+                      backgroundColor: Colors.grey[200],
+                      backgroundImage: _profileImageUrl != null
+                          ? NetworkImage(_profileImageUrl!)
+                          : null,
+                      child: _profileImageUrl == null
+                          ? const Icon(
+                              Icons.person,
+                              size: 80,
+                              color: Colors.grey,
+                            )
+                          : null,
+                    ),
                   ),
                   if (_isUploadingImage)
                     const Positioned(
@@ -219,37 +236,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Positioned(
                     right: 10,
                     bottom: 0,
-                    child: PopupMenuButton<String>(
-                      onSelected: (value) {
-                        if (value == 'Upload') {
-                          _pickProfileImage();
-                        } else if (value == 'Delete') {
-                          _deleteProfileImage();
-                        }
-                      },
-                      icon: const Icon(Icons.more_vert, color: Colors.blue),
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'Upload',
-                          child: Row(
-                            children: const [
-                              Icon(Icons.camera_alt, color: Colors.blue),
-                              SizedBox(width: 10),
-                              Text('Upload Image'),
-                            ],
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.lightPrimary, // Background color
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            spreadRadius: 2,
+                            blurRadius: 4,
+                            offset: const Offset(0, 2), // Shadow position
                           ),
+                        ],
+                      ),
+                      child: PopupMenuButton<String>(
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'Upload':
+                              _pickProfileImage();
+                              break;
+                            case 'Delete':
+                              _deleteProfileImage();
+                              break;
+                          }
+                        },
+                        icon: const Icon(
+                          Icons.more_vert,
                         ),
-                        PopupMenuItem(
-                          value: 'Delete',
-                          child: Row(
-                            children: const [
-                              Icon(Icons.delete, color: Colors.redAccent),
-                              SizedBox(width: 10),
-                              Text('Delete Image'),
-                            ],
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'Upload',
+                            child: Row(
+                              children: [
+                                Icon(Icons.camera_alt,
+                                    color: AppColors.lightSecondary),
+                                SizedBox(width: 10),
+                                Text('Upload Image',
+                                    style: TextStyle(
+                                        color: AppColors.lightOnPrimary)),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                          if (_profileImageUrl != null)
+                            const PopupMenuItem(
+                              value: 'Delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.redAccent),
+                                  SizedBox(width: 10),
+                                  Text('Delete Image',
+                                      style: TextStyle(
+                                          color: AppColors.lightOnPrimary)),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
