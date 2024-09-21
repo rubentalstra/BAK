@@ -1,28 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:bak_tracker/services/image_upload_service.dart';
 
 class LeaderboardEntry {
   final int rank;
-  final String username;
+  final String name;
+  final String? profileImagePath;
   final int baksConsumed;
   final int baksDebt;
 
   LeaderboardEntry({
     required this.rank,
-    required this.username,
+    required this.name,
+    this.profileImagePath,
     required this.baksConsumed,
     required this.baksDebt,
   });
 
-  // Add the copyWith method to create a new instance with modified values
   LeaderboardEntry copyWith({
     int? rank,
-    String? username,
+    String? name,
+    String? profileImagePath,
     int? baksConsumed,
     int? baksDebt,
   }) {
     return LeaderboardEntry(
       rank: rank ?? this.rank,
-      username: username ?? this.username,
+      name: name ?? this.name,
+      profileImagePath: profileImagePath ?? this.profileImagePath,
       baksConsumed: baksConsumed ?? this.baksConsumed,
       baksDebt: baksDebt ?? this.baksDebt,
     );
@@ -31,83 +37,208 @@ class LeaderboardEntry {
 
 class LeaderboardWidget extends StatelessWidget {
   final List<LeaderboardEntry> entries;
+  final ImageUploadService imageUploadService;
+  final bool isLoading;
 
-  const LeaderboardWidget({super.key, required this.entries});
+  const LeaderboardWidget({
+    super.key,
+    required this.entries,
+    required this.imageUploadService,
+    required this.isLoading,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      itemCount: entries.length,
-      separatorBuilder: (context, index) => Divider(
-        height: 1.0,
-        color: Colors.grey[300],
-      ),
-      itemBuilder: (context, index) {
-        final entry = entries[index];
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8.0),
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
-                radius: 20.0,
-                child: Text(
-                  entry.rank.toString(),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+    return isLoading
+        ? _buildLoadingSkeleton()
+        : ListView.separated(
+            itemCount: entries.length,
+            separatorBuilder: (context, index) => Divider(
+              height: 1.0,
+              color: Colors.grey[300],
+            ),
+            itemBuilder: (context, index) {
+              final entry = entries[index];
+
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8.0),
                 ),
-              ),
-              const SizedBox(width: 16.0),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      entry.username,
-                      style: const TextStyle(
-                        fontSize: 16.0,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                    _buildProfileImage(entry, context),
+                    const SizedBox(width: 16.0),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            entry.name,
+                            style: const TextStyle(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4.0),
+                          Row(
+                            children: [
+                              Text(
+                                'Chucked: ${entry.baksConsumed}',
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: Colors.green[700],
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                              const SizedBox(width: 16.0),
+                              Text(
+                                'BAK: ${entry.baksDebt}',
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: Colors.red[700],
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4.0),
-                    Row(
+                    Column(
                       children: [
                         Text(
-                          'Consumed: ${entry.baksConsumed}',
-                          style: TextStyle(
-                            fontSize: 14.0,
-                            color: Colors.green[700],
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        const SizedBox(width: 16.0),
-                        Text(
-                          'Debt: ${entry.baksDebt}',
-                          style: TextStyle(
-                            fontSize: 14.0,
-                            color: Colors.red[700],
-                            fontWeight: FontWeight.w400,
+                          entry.rank.toString(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16.0,
+                            color: Colors.black87,
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 16.0),
-              Icon(
-                Icons.military_tech,
-                color: Colors.amber[700],
-                size: 28.0,
-              ),
-            ],
+              );
+            },
+          );
+  }
+
+  // Skeleton loading for the entire list item
+  Widget _buildLoadingSkeleton() {
+    return ListView.separated(
+      itemCount: 6, // Loading skeleton for 6 items
+      separatorBuilder: (context, index) => Divider(
+        height: 1.0,
+        color: Colors.grey[300],
+      ),
+      itemBuilder: (context, index) {
+        return Skeletonizer(
+          enabled: true,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 8.0),
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 24.0,
+                  backgroundColor: Colors.grey,
+                ),
+                SizedBox(width: 16.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Skeletonizer(
+                        child: SizedBox(
+                          height: 16.0,
+                          width: 100.0,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.grey,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(4.0)),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 4.0),
+                      Skeletonizer(
+                        child: SizedBox(
+                          height: 14.0,
+                          width: 150.0,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.grey,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(4.0)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProfileImage(LeaderboardEntry entry, BuildContext context) {
+    if (entry.profileImagePath == null) {
+      // Show default icon if no profile image
+      return const CircleAvatar(
+        radius: 24.0,
+        backgroundColor: Colors.grey,
+        child: Icon(
+          Icons.person,
+          color: Colors.white,
+        ),
+      );
+    }
+
+    return FutureBuilder<String?>(
+      future: imageUploadService.getSignedUrl(entry.profileImagePath!),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // Show skeleton while loading
+          return const Skeletonizer(
+            enabled: true,
+            child: CircleAvatar(
+              radius: 24.0,
+              backgroundColor: Colors.grey,
+            ),
+          );
+        }
+
+        if (snapshot.hasData) {
+          // Show the cached network image
+          return CircleAvatar(
+            radius: 24.0,
+            backgroundColor: Colors.grey[300],
+            backgroundImage: CachedNetworkImageProvider(snapshot.data!),
+          );
+        }
+
+        // Show icon in case of error or if the profile image is missing
+        return const CircleAvatar(
+          radius: 24.0,
+          backgroundColor: Colors.grey,
+          child: Icon(
+            Icons.person,
+            color: Colors.white,
           ),
         );
       },

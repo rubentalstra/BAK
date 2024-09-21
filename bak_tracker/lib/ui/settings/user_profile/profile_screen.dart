@@ -17,9 +17,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = false;
   File? _profileImageFile;
   String? _profileImageUrl;
-  String? _profileImagePath; // Store file path here
+  String? _profileImagePath;
+  bool _isUploadingImage = false;
 
-  // Initialize ImageUploadService
   final ImageUploadService _imageUploadService =
       ImageUploadService(Supabase.instance.client);
 
@@ -46,7 +46,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _profileImagePath = response['profile_image_path'];
         });
 
-        // Fetch signed URL for profile image
         if (_profileImagePath != null) {
           _fetchProfileImage(_profileImagePath!);
         }
@@ -109,7 +108,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (pickedFile != null) {
       setState(() {
         _profileImageFile = File(pickedFile.path);
+        _isUploadingImage = true; // Show upload indicator
       });
+      _uploadProfileImage(); // Automatically upload image after picking
     }
   }
 
@@ -118,25 +119,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final userId = Supabase.instance.client.auth.currentUser!.id;
 
-    setState(() {
-      _isLoading = true;
-    });
-
     try {
-      // Upload the new profile image, passing the existing image's file path to delete it first
       final newFilePath = await _imageUploadService.uploadProfileImage(
         _profileImageFile!,
         userId,
-        _profileImagePath, // Existing file path to be deleted
+        _profileImagePath,
       );
 
       if (newFilePath != null) {
-        // Update the profile image path in the database
         await Supabase.instance.client
             .from('users')
             .update({'profile_image_path': newFilePath}).eq('id', userId);
 
-        // Fetch signed URL for the newly uploaded image
         _fetchProfileImage(newFilePath);
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -151,7 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       print('Error uploading profile image: $e');
     } finally {
       setState(() {
-        _isLoading = false;
+        _isUploadingImage = false; // Hide upload indicator
       });
     }
   }
@@ -164,10 +158,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      // Use the ImageUploadService to delete the profile image
       await _imageUploadService.deleteProfileImage(_profileImagePath!);
 
-      // Clear the profile image path in the database
       final userId = Supabase.instance.client.auth.currentUser!.id;
       await Supabase.instance.client
           .from('users')
@@ -195,107 +187,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Profile'),
-        elevation: 0,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              const SizedBox(height: 40),
               Stack(
+                alignment: Alignment.center,
                 children: [
-                  _profileImageUrl != null
-                      ? CircleAvatar(
-                          radius: 60,
-                          backgroundImage: NetworkImage(_profileImageUrl!),
-                        )
-                      : CircleAvatar(
-                          radius: 60,
-                          backgroundColor: Colors.grey[300],
-                          child: Icon(
+                  CircleAvatar(
+                    radius: 80,
+                    backgroundColor: Colors.grey[200],
+                    backgroundImage: _profileImageUrl != null
+                        ? NetworkImage(_profileImageUrl!)
+                        : null,
+                    child: _profileImageUrl == null
+                        ? const Icon(
                             Icons.person,
-                            size: 60,
-                            color: Colors.grey[800],
+                            size: 80,
+                            color: Colors.grey,
+                          )
+                        : null,
+                  ),
+                  if (_isUploadingImage)
+                    const Positioned(
+                      child: CircularProgressIndicator(),
+                    ),
+                  Positioned(
+                    right: 10,
+                    bottom: 0,
+                    child: PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'Upload') {
+                          _pickProfileImage();
+                        } else if (value == 'Delete') {
+                          _deleteProfileImage();
+                        }
+                      },
+                      icon: const Icon(Icons.more_vert, color: Colors.blue),
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'Upload',
+                          child: Row(
+                            children: const [
+                              Icon(Icons.camera_alt, color: Colors.blue),
+                              SizedBox(width: 10),
+                              Text('Upload Image'),
+                            ],
                           ),
                         ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: InkWell(
-                      onTap: _pickProfileImage,
-                      child: const CircleAvatar(
-                        backgroundColor: Colors.blue,
-                        radius: 20,
-                        child: Icon(Icons.camera_alt, color: Colors.white),
-                      ),
+                        PopupMenuItem(
+                          value: 'Delete',
+                          child: Row(
+                            children: const [
+                              Icon(Icons.delete, color: Colors.redAccent),
+                              SizedBox(width: 10),
+                              Text('Delete Image'),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              if (_profileImageFile != null)
-                ElevatedButton(
-                  onPressed: _uploadProfileImage,
-                  child: const Text('Upload Profile Image'),
-                ),
-              const SizedBox(height: 20),
-              _buildInputField(
-                context,
-                controller: _displayNameController,
-                label: 'Display Name',
-                icon: Icons.person,
-              ),
-              const SizedBox(height: 20),
-              _buildInputField(
-                context,
-                controller: _bioController,
-                label: 'Bio',
-                icon: Icons.edit,
-                maxLines: 3,
-              ),
               const SizedBox(height: 30),
+              _buildProfileForm(),
+              const SizedBox(height: 20),
               ElevatedButton.icon(
                 onPressed: _isLoading ? null : _updateProfile,
-                icon: const Icon(Icons.save),
-                label: _isLoading
+                icon: _isLoading
                     ? const CircularProgressIndicator(
                         strokeWidth: 2,
                         color: Colors.white,
                       )
-                    : const Text('Save Changes'),
+                    : const Icon(Icons.save),
+                label: const Text('Save Changes'),
                 style: ElevatedButton.styleFrom(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   textStyle: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-              const SizedBox(height: 20),
-              if (_profileImagePath != null)
-                ElevatedButton.icon(
-                  onPressed: _deleteProfileImage,
-                  icon: const Icon(Icons.delete),
-                  label: _isLoading
-                      ? const CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        )
-                      : const Text('Delete Profile Image'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    textStyle: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
             ],
           ),
         ),
@@ -303,19 +283,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildInputField(BuildContext context,
-      {required TextEditingController controller,
-      required String label,
-      required IconData icon,
-      int maxLines = 1}) {
+  Widget _buildProfileForm() {
+    return Column(
+      children: [
+        _buildInputField(
+          controller: _displayNameController,
+          label: 'Display Name',
+          icon: Icons.person,
+        ),
+        const SizedBox(height: 20),
+        _buildInputField(
+          controller: _bioController,
+          label: 'Bio',
+          icon: Icons.info,
+          maxLines: 3,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    int maxLines = 1,
+  }) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon),
+        prefixIcon: Icon(icon, color: Colors.blueAccent),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.blueAccent),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
         ),
       ),
     );

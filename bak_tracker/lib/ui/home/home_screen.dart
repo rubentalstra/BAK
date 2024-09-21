@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/models/association_model.dart';
@@ -12,11 +13,11 @@ class HomeScreen extends StatefulWidget {
   final ValueChanged<AssociationModel?> onAssociationChanged;
 
   const HomeScreen({
-    Key? key,
+    super.key,
     required this.associations,
     required this.selectedAssociation,
     required this.onAssociationChanged,
-  }) : super(key: key);
+  });
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -24,11 +25,16 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<LeaderboardEntry> _leaderboardEntries = [];
+
+  final supabase = Supabase.instance.client;
+  late ImageUploadService _imageUploadService;
+
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _imageUploadService = ImageUploadService(supabase);
     _fetchLeaderboard(); // Initial fetch for the leaderboard
   }
 
@@ -45,8 +51,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchLeaderboard() async {
     if (widget.selectedAssociation == null) return;
 
-    final supabase = Supabase.instance.client;
-
     setState(() {
       _isLoading = true;
       _leaderboardEntries = []; // Clear leaderboard while loading
@@ -56,16 +60,18 @@ class _HomeScreenState extends State<HomeScreen> {
     final List<dynamic> memberResponse = await supabase
         .from('association_members')
         .select(
-            'user_id (id, name), association_id, role, permissions, joined_at, baks_received, baks_consumed')
+            'user_id (id, name, profile_image_path), association_id, role, permissions, joined_at, baks_received, baks_consumed')
         .eq('association_id', widget.selectedAssociation!.id);
 
     if (memberResponse.isNotEmpty) {
       List<AssociationMemberModel> members = memberResponse.map((data) {
         final userMap = data['user_id'] as Map<String, dynamic>;
 
+        // Fetch the signed URL for each user's profile image
         return AssociationMemberModel(
           userId: userMap['id'],
-          name: userMap['name'] ?? 'Unknown User',
+          name: userMap['name'],
+          profileImagePath: userMap['profile_image_path'],
           associationId: data['association_id'],
           role: data['role'],
           permissions: data['permissions'] is String
@@ -81,7 +87,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _leaderboardEntries = members.map((member) {
           return LeaderboardEntry(
             rank: 0,
-            username: member.name ?? member.userId,
+            name: member.name!,
+            profileImagePath: member.profileImagePath,
             baksConsumed: member.baksConsumed,
             baksDebt: member.baksReceived,
           );
@@ -101,10 +108,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // Trigger reload when the association changes
   void _handleAssociationChange(AssociationModel? newAssociation) {
     widget.onAssociationChanged(newAssociation); // Inform the parent widget
-    // No need to call _fetchLeaderboard here as didUpdateWidget will handle it
   }
 
   @override
@@ -133,22 +138,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: Theme.of(context).dropdownMenuTheme.textStyle,
               ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (widget.selectedAssociation != null)
-                    Expanded(
-                      child: LeaderboardWidget(
-                        entries: _leaderboardEntries,
-                      ),
-                    ),
-                ],
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.selectedAssociation != null)
+              Expanded(
+                child: LeaderboardWidget(
+                  entries: _leaderboardEntries,
+                  imageUploadService: _imageUploadService,
+                  isLoading: _isLoading, // Pass the isLoading flag here
+                ),
               ),
-            ),
+          ],
+        ),
+      ),
     );
   }
 }
