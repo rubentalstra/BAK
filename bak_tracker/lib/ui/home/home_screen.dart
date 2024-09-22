@@ -25,7 +25,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<LeaderboardEntry> _leaderboardEntries = [];
-
   final supabase = Supabase.instance.client;
   late ImageUploadService _imageUploadService;
 
@@ -53,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() {
       _isLoading = true;
-      _leaderboardEntries = []; // Clear leaderboard while loading
+      _leaderboardEntries = [];
     });
 
     // Fetch association members for the selected association
@@ -67,7 +66,6 @@ class _HomeScreenState extends State<HomeScreen> {
       List<AssociationMemberModel> members = memberResponse.map((data) {
         final userMap = data['user_id'] as Map<String, dynamic>;
 
-        // Fetch the signed URL for each user's profile image
         return AssociationMemberModel(
           userId: userMap['id'],
           name: userMap['name'],

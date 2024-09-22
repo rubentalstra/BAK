@@ -86,7 +86,7 @@ class AppThemes {
           color: AppColors.lightAccent, // Label text color for contrast
         ),
         hintStyle: TextStyle(
-          color: Colors.grey, // Hint text color for better readability
+          color: Colors.grey, // Hint text color is now grey
         ),
       ),
       menuStyle: MenuStyle(

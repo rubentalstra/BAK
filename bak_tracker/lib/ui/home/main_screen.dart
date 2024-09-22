@@ -23,7 +23,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  int _pendingBaks = 0;
   bool _canApproveBaks = false;
   List<AssociationModel> _associations = [];
   AssociationModel? _selectedAssociation;
@@ -34,6 +33,7 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _fetchAssociations();
+    // only if the user has the permission to approve baks
     _startPollingPendingBaks(); // Start polling for pending baks
 
     // Listen for changes from the AssociationBloc
@@ -41,7 +41,6 @@ class _MainScreenState extends State<MainScreen> {
       if (state is AssociationLoaded) {
         _canApproveBaks = state.memberData.canApproveBaks ||
             state.memberData.hasAllPermissions;
-        _fetchPendingBaks(state.selectedAssociation.id);
         _setPages();
       }
     });
@@ -53,11 +52,15 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
-  // Poll for pending baks every 10 seconds
+  // Poll for pending baks every 30 seconds and refresh using Bloc
   void _startPollingPendingBaks() {
     _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (_selectedAssociation != null) {
-        _fetchPendingBaks(_selectedAssociation!.id);
+        print('Refreshing pending baks...');
+        // Call RefreshPendingBaks event every 30 seconds
+        context
+            .read<AssociationBloc>()
+            .add(RefreshPendingBaks(_selectedAssociation!.id));
       }
     });
   }
@@ -117,28 +120,6 @@ class _MainScreenState extends State<MainScreen> {
     _setPages();
   }
 
-  Future<void> _fetchPendingBaks(String associationId) async {
-    try {
-      final supabase = Supabase.instance.client;
-      final response = await supabase
-          .from('bak_consumed')
-          .select()
-          .eq('association_id', associationId)
-          .eq('status', 'pending');
-
-      // print('Pending baks: ${response.length}');
-
-      if (mounted) {
-        setState(() {
-          _pendingBaks = response.length;
-        });
-      }
-    } catch (e) {
-      print('Error fetching pending baks: $e');
-      // Handle error (optional)
-    }
-  }
-
   void _setPages() {
     _pages = [
       HomeScreen(
@@ -182,16 +163,26 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _pages.isNotEmpty
-          ? _pages[_selectedIndex]
-          : const Center(child: CircularProgressIndicator()),
-      bottomNavigationBar: BottomNavBar(
-        selectedIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        pendingBaks: _pendingBaks,
-        canApproveBaks: _canApproveBaks,
-      ),
+    return BlocBuilder<AssociationBloc, AssociationState>(
+      builder: (context, state) {
+        int pendingBaksCount = 0;
+
+        if (state is AssociationLoaded) {
+          pendingBaksCount = state.pendingBaksCount;
+        }
+
+        return Scaffold(
+          body: _pages.isNotEmpty
+              ? _pages[_selectedIndex]
+              : const Center(child: CircularProgressIndicator()),
+          bottomNavigationBar: BottomNavBar(
+            selectedIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            pendingBaks: pendingBaksCount, // Pass the pending baks count
+            canApproveBaks: _canApproveBaks,
+          ),
+        );
+      },
     );
   }
 }

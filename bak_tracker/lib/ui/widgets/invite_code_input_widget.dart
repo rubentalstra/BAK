@@ -1,3 +1,4 @@
+import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:bak_tracker/services/join_association_service.dart';
@@ -92,7 +93,10 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
           children: [
             const Text(
               'Enter 6-Digit Invitation Code',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.lightPrimary),
             ),
             const SizedBox(height: 20),
             Row(
@@ -123,7 +127,7 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
     );
   }
 
-  // Method to build each individual text field
+// Method to build each individual text field
   Widget _buildCodeField(int index) {
     return SizedBox(
       width: 40, // Fixed width for each code box
@@ -132,9 +136,33 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
         focusNode: _focusNodes[index],
         textAlign: TextAlign.center,
         maxLength: 1, // Limit to 1 character per field
-        decoration: const InputDecoration(
+        textCapitalization:
+            TextCapitalization.characters, // Auto capitalize letters
+        style: const TextStyle(
+          color: AppColors.lightPrimary, // Set the text color to primary
+          fontWeight: FontWeight.bold, // Optionally make the text bold
+          fontSize: 18, // Adjust font size for better visibility
+        ),
+        decoration: InputDecoration(
           counterText: '', // Hide the character counter
-          border: OutlineInputBorder(),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8), // Rounded corners
+          ),
+          hoverColor: AppColors.lightPrimary,
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(
+              color: AppColors.lightPrimary, // Border color when focused
+              width: 2.0,
+            ),
+            borderRadius: BorderRadius.circular(8), // Rounded corners
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: const BorderSide(
+              color: AppColors.lightPrimary, // Border color when not focused
+              width: 1.5,
+            ),
+            borderRadius: BorderRadius.circular(8), // Rounded corners
+          ),
         ),
         keyboardType: TextInputType.text,
         textInputAction:
@@ -155,7 +183,8 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
           }
         },
         inputFormatters: [
-          FilteringTextInputFormatter.singleLineFormatter,
+          FilteringTextInputFormatter.allow(RegExp(
+              r'[A-Z0-9]')), // Only uppercase letters and numbers allowed
           LengthLimitingTextInputFormatter(1), // Only 1 char allowed
           TextInputFormatter.withFunction(
             (oldValue, newValue) {

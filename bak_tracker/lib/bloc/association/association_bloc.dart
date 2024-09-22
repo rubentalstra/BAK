@@ -30,6 +30,12 @@ class LeaveAssociation extends AssociationEvent {
   List<Object?> get props => [associationId];
 }
 
+class RefreshPendingBaks extends AssociationEvent {
+  final String associationId;
+
+  RefreshPendingBaks(this.associationId);
+}
+
 // Association States
 abstract class AssociationState extends Equatable {
   @override
@@ -43,16 +49,26 @@ class AssociationLoading extends AssociationState {}
 class AssociationLoaded extends AssociationState {
   final AssociationModel selectedAssociation;
   final AssociationMemberModel memberData;
-  final String? errorMessage; // New property for holding error messages
+  final List<AssociationMemberModel> members;
+  final int pendingBaksCount; // Track the number of pending baks
+  final String? errorMessage;
 
   AssociationLoaded({
     required this.selectedAssociation,
     required this.memberData,
-    this.errorMessage, // Optional error message
+    required this.members,
+    required this.pendingBaksCount, // Include the pending baks count
+    this.errorMessage,
   });
 
   @override
-  List<Object?> get props => [selectedAssociation, memberData, errorMessage];
+  List<Object?> get props => [
+        selectedAssociation,
+        memberData,
+        members,
+        pendingBaksCount,
+        errorMessage
+      ];
 }
 
 class AssociationError extends AssociationState {
@@ -69,6 +85,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
   AssociationBloc() : super(AssociationInitial()) {
     on<SelectAssociation>(_onSelectAssociation);
     on<LeaveAssociation>(_onLeaveAssociation);
+    on<RefreshPendingBaks>(_onRefreshPendingBaks); // Register the event handler
     _loadSelectedAssociation(); // Load from storage when initialized
   }
 
@@ -95,6 +112,34 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         'selected_association', jsonEncode(association.toMap()));
   }
 
+  // Fetch members for the selected association
+  Future<List<AssociationMemberModel>> _fetchMembers(
+      String associationId) async {
+    final supabase = Supabase.instance.client;
+    final List<dynamic> response = await supabase
+        .from('association_members')
+        .select(
+            'user_id (id, name, profile_image_path), association_id, role, permissions, joined_at, baks_received, baks_consumed')
+        .eq('association_id', associationId);
+
+    return response.map((data) {
+      final userMap = data['user_id'] as Map<String, dynamic>;
+      return AssociationMemberModel(
+        userId: userMap['id'],
+        name: userMap['name'],
+        profileImagePath: userMap['profile_image_path'],
+        associationId: data['association_id'],
+        role: data['role'],
+        permissions: data['permissions'] is String
+            ? jsonDecode(data['permissions']) as Map<String, dynamic>
+            : data['permissions'] as Map<String, dynamic>,
+        joinedAt: DateTime.parse(data['joined_at']),
+        baksReceived: data['baks_received'],
+        baksConsumed: data['baks_consumed'],
+      );
+    }).toList();
+  }
+
   Future<void> _onSelectAssociation(
       SelectAssociation event, Emitter<AssociationState> emit) async {
     emit(AssociationLoading());
@@ -103,7 +148,6 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       // Save the selected association to preferences
       await _saveSelectedAssociation(event.selectedAssociation);
 
-      // Fetch user ID from Supabase auth
       final supabase = Supabase.instance.client;
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) {
@@ -111,7 +155,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         return;
       }
 
-      // Fetch permissions from Supabase
+      // Fetch permissions for the current user
       final response = await supabase
           .from('association_members')
           .select()
@@ -126,10 +170,23 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
 
       final memberData = AssociationMemberModel.fromMap(response);
 
-      // Emit the loaded state with association and member data
+      // Fetch all members for the selected association
+      final members = await _fetchMembers(event.selectedAssociation.id);
+
+      // Fetch the updated pending baks count for the association
+      final responsePendingBaks = await supabase
+          .from('bak_consumed')
+          .select()
+          .eq('association_id', event.selectedAssociation.id)
+          .eq('status', 'pending');
+
+      final pendingCount = responsePendingBaks.length;
+
       emit(AssociationLoaded(
         selectedAssociation: event.selectedAssociation,
         memberData: memberData,
+        members: members, // Pass members list
+        pendingBaksCount: pendingCount, // Initialize pending baks count
       ));
     } catch (e) {
       emit(AssociationError(e.toString()));
@@ -176,6 +233,8 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
           emit(AssociationLoaded(
             selectedAssociation: currentState.selectedAssociation,
             memberData: currentState.memberData,
+            members: currentState.members,
+            pendingBaksCount: currentState.pendingBaksCount,
             errorMessage:
                 'You cannot leave the association as you are the only member with management permissions.',
           ));
@@ -202,10 +261,42 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         emit(AssociationLoaded(
           selectedAssociation: currentState.selectedAssociation,
           memberData: currentState.memberData,
+          members: currentState.members,
+          pendingBaksCount: currentState.pendingBaksCount,
           errorMessage: 'Failed to leave association: $e',
         ));
       } else {
         emit(AssociationError('Failed to leave association: $e'));
+      }
+    }
+  }
+
+  // Handler for RefreshPendingBaks event
+  Future<void> _onRefreshPendingBaks(
+      RefreshPendingBaks event, Emitter<AssociationState> emit) async {
+    final currentState = state;
+    if (currentState is AssociationLoaded) {
+      final supabase = Supabase.instance.client;
+
+      try {
+        // Fetch the updated pending baks count for the association
+        final response = await supabase
+            .from('bak_consumed')
+            .select()
+            .eq('association_id', event.associationId)
+            .eq('status', 'pending');
+
+        final pendingCount = response.length;
+
+        // Emit the new state with the updated pending baks count
+        emit(AssociationLoaded(
+          selectedAssociation: currentState.selectedAssociation,
+          memberData: currentState.memberData,
+          members: currentState.members,
+          pendingBaksCount: pendingCount, // Updated pending baks count
+        ));
+      } catch (e) {
+        emit(AssociationError('Failed to refresh pending baks: $e'));
       }
     }
   }

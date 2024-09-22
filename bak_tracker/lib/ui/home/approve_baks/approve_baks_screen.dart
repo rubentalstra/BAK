@@ -70,7 +70,6 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
     }
   }
 
-  // Approve or reject a Bak
   Future<void> _updateBakStatus(
       String bakId, String status, String takerId, int amount) async {
     final supabase = Supabase.instance.client;
@@ -92,7 +91,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
               .from('association_members')
               .select('baks_consumed')
               .eq('user_id', takerId)
-              .eq('association_id', associationId) // Ensure correct association
+              .eq('association_id', associationId)
               .single();
 
           final updatedConsumed = takerResponse['baks_consumed'] + amount;
@@ -101,16 +100,14 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
               .from('association_members')
               .update({'baks_consumed': updatedConsumed})
               .eq('user_id', takerId)
-              .eq('association_id',
-                  associationId); // Ensure correct association
-        }
-        // If rejected, increase the bak debt count
-        else if (status == 'rejected') {
+              .eq('association_id', associationId);
+        } else if (status == 'rejected') {
+          // If rejected, update the baks received count
           final takerResponse = await supabase
               .from('association_members')
               .select('baks_received')
               .eq('user_id', takerId)
-              .eq('association_id', associationId) // Ensure correct association
+              .eq('association_id', associationId)
               .single();
 
           final updatedReceived = takerResponse['baks_received'] + amount;
@@ -119,12 +116,18 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
               .from('association_members')
               .update({'baks_received': updatedReceived})
               .eq('user_id', takerId)
-              .eq('association_id',
-                  associationId); // Ensure correct association
+              .eq('association_id', associationId);
         }
 
-        // Refresh the list after approval/rejection
+        // After updating, refresh the list and badge count
         _fetchBaks(associationId);
+
+        // Trigger the refresh event for pending baks in the AssociationBloc
+        if (mounted) {
+          context
+              .read<AssociationBloc>()
+              .add(RefreshPendingBaks(associationId));
+        }
       }
     } catch (e) {
       print('Error updating bak status: $e');
