@@ -17,8 +17,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _displayNameController = TextEditingController();
   final _bioController = TextEditingController();
   bool _isLoading = false;
-  File? _profileImageFile;
-  String? _profileImageUrl;
   String? _profileImagePath;
   bool _isUploadingImage = false;
   File? _localImageFile;
@@ -34,7 +32,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserProfile() async {
     final userId = Supabase.instance.client.auth.currentUser!.id;
-
     try {
       final response = await Supabase.instance.client
           .from('users')
@@ -59,19 +56,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _fetchProfileImage(String filePath) async {
-    // Try to get the local image first
     final localImage = await _imageUploadService.getLocalImage(filePath);
     if (localImage != null) {
       setState(() {
         _localImageFile = localImage;
       });
     } else {
-      // If the local image doesn't exist, fetch and cache the image
       final imageUrl =
           await _imageUploadService.fetchOrDownloadProfileImage(filePath);
       if (imageUrl != null) {
         setState(() {
-          _profileImageUrl = imageUrl.path; // Using the local file path
           _localImageFile = imageUrl;
         });
       }
@@ -121,21 +115,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (pickedFile != null) {
       setState(() {
-        _profileImageFile = File(pickedFile.path);
-        _isUploadingImage = true; // Show upload indicator
+        _localImageFile = File(pickedFile.path);
+        _isUploadingImage = true;
       });
-      _uploadProfileImage(); // Automatically upload image after picking
+      _uploadProfileImage();
     }
   }
 
   Future<void> _uploadProfileImage() async {
-    if (_profileImageFile == null) return;
+    if (_localImageFile == null) return;
 
     final userId = Supabase.instance.client.auth.currentUser!.id;
 
     try {
       final newFilePath = await _imageUploadService.uploadProfileImage(
-        _profileImageFile!,
+        _localImageFile!,
         userId,
         _profileImagePath,
       );
@@ -146,7 +140,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             .update({'profile_image_path': newFilePath}).eq('id', userId);
 
         _fetchProfileImage(newFilePath);
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile image updated successfully!')),
         );
@@ -159,7 +152,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       print('Error uploading profile image: $e');
     } finally {
       setState(() {
-        _isUploadingImage = false; // Hide upload indicator
+        _isUploadingImage = false;
       });
     }
   }
@@ -180,8 +173,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .update({'profile_image_path': null}).eq('id', userId);
 
       setState(() {
-        _profileImageUrl = null;
-        _profileImagePath = null;
         _localImageFile = null;
       });
 
@@ -226,8 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 alignment: Alignment.center,
                 children: [
                   GestureDetector(
-                    onTap:
-                        _showFullScreenImage, // Add gesture to show full image
+                    onTap: _showFullScreenImage,
                     child: CircleAvatar(
                       radius: 80,
                       backgroundColor: Colors.grey[200],
@@ -253,13 +243,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.lightPrimary, // Background color
+                        color: AppColors.lightPrimary,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.1),
                             spreadRadius: 2,
                             blurRadius: 4,
-                            offset: const Offset(0, 2), // Shadow position
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
@@ -291,7 +281,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ],
                             ),
                           ),
-                          if (_profileImageUrl != null)
+                          if (_localImageFile != null)
                             const PopupMenuItem(
                               value: 'Delete',
                               child: Row(
