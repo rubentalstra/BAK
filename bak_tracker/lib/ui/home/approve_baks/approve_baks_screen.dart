@@ -128,9 +128,41 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
               .read<AssociationBloc>()
               .add(RefreshPendingBaks(associationId));
         }
+
+        // Insert notification for the requester
+        await _insertNotification(takerId, status);
       }
     } catch (e) {
       print('Error updating bak status: $e');
+    }
+  }
+
+  Future<void> _insertNotification(String userId, String status) async {
+    final supabase = Supabase.instance.client;
+
+    try {
+      String title;
+      String body;
+
+      // Customize the notification message based on the status
+      if (status == 'approved') {
+        title = 'Bak Request Approved';
+        body = 'Your bak request has been approved!';
+      } else {
+        title = 'Bak Request Rejected';
+        body = 'Your bak request has been rejected.';
+      }
+
+      // Insert the notification into the notifications table
+      await supabase.from('notifications').insert({
+        'user_id': userId,
+        'title': title,
+        'body': body,
+      });
+
+      print('Notification sent to $userId');
+    } catch (e) {
+      print('Error inserting notification: $e');
     }
   }
 
