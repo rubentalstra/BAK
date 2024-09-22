@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
         headers: { 'Content-Type': 'application/json' },
       });
     } catch (error) {
-      console.error('Error in webhook handler:', error); // Log the entire error object
+      console.error('Error in webhook handler:', error);
       return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
         headers: { 'Content-Type': 'application/json' },
         status: 400,
@@ -59,8 +59,6 @@ const handleRequestStatusUpdate = async (request: AssociationRequest) => {
     .eq('id', request.id)
     .single();
 
-
-    
   // Handle approval
   if (request.status === 'Approved') {
     // Generate a UUID for the association
@@ -69,54 +67,40 @@ const handleRequestStatusUpdate = async (request: AssociationRequest) => {
     // Create the association
     await supabase
       .from('associations')
-      .insert({ id: associationId ,name: request.name, website_url: request.website_url })
-      .select()
+      .insert({ id: associationId, name: request.name, website_url: request.website_url })
+      .select();
 
-
-
-    // Assign the requester full permissions
+    // Assign the requester full permissions using the new structure
     const permissions = {
-      invite_members: true,
-      remove_members: true,
-      update_role: true,
-      update_bak_amount: true,
-      approve_bak_taken: true
+      hasAllPermissions: true,
+      canManagePermissions: false,
+      canInviteMembers: false,
+      canRemoveMembers: false,
+      canManageRoles: false,
+      canManageBaks: false,
+      canApproveBaks: false
     };
 
- await supabase.from('association_members').insert({
+    await supabase.from('association_members').insert({
       association_id: associationId,
       user_id: request.user_id,
       role: 'Admin',
       permissions: permissions
     });
 
-    // if (permError) {
-    //   console.error('Error assigning permissions:', permError); // Log the error
-    //   return;
-    // }
-
     // Insert into notifications table
-    const { error: notifError } = await supabase.from('notifications').insert({
+    await supabase.from('notifications').insert({
       user_id: request.user_id,
       title: 'Association Request Approved',
       body: `Your request to create the association "${request.name}" has been approved.`,
     });
 
-    // if (notifError) {
-    //   console.error('Error inserting notification:', notifError); // Log the error
-    //   return;
-    // }
   } else if (request.status === 'Declined') {
-    // Insert into notifications table
-    const { error: notifError } = await supabase.from('notifications').insert({
+    // Insert into notifications table for declined requests
+    await supabase.from('notifications').insert({
       user_id: request.user_id,
       title: 'Association Request Declined',
       body: 'Your request to create an association has been declined.',
     });
-
-    // if (notifError) {
-    //   console.error('Error inserting notification:', notifError); // Log the error
-    //   return;
-    // }
   }
 };
