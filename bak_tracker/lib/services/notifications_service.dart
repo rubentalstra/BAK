@@ -51,7 +51,7 @@ class NotificationsService {
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
     // Request notification permissions
-    NotificationSettings settings = await messaging.requestPermission(
+    await messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
@@ -63,13 +63,6 @@ class NotificationsService {
       badge: false,
       sound: false,
     );
-
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print('User granted notification permission');
-      await _handleFCMToken(messaging);
-    } else {
-      print('User declined or did not grant notification permission');
-    }
 
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
@@ -100,8 +93,38 @@ class NotificationsService {
     });
   }
 
+  // Background message handler
+  static Future<void> firebaseMessagingBackgroundHandler(
+      RemoteMessage message) async {
+    print('Handling a background/terminated message: ${message.messageId}');
+    if (message.data.isNotEmpty) {
+      String title = message.data['title'] ?? 'No title';
+      String body = message.data['body'] ?? 'No body';
+
+      // Initialize the notification plugin (if necessary) and show notification
+      final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+      const AndroidNotificationDetails androidPlatformChannelSpecifics =
+          AndroidNotificationDetails('your_channel_id', 'your_channel_name',
+              channelDescription: 'your_channel_description',
+              importance: Importance.max,
+              priority: Priority.high,
+              ticker: 'ticker');
+      const NotificationDetails platformChannelSpecifics = NotificationDetails(
+          android: androidPlatformChannelSpecifics,
+          iOS: DarwinNotificationDetails());
+
+      await flutterLocalNotificationsPlugin.show(
+        body.hashCode, // Use the body hash code as the notification ID to avoid duplicates
+        title,
+        body,
+        platformChannelSpecifics,
+        payload: body,
+      );
+    }
+  }
+
   // Handle Firebase Cloud Messaging (FCM) token and save it in the Supabase database
-  Future<void> _handleFCMToken(FirebaseMessaging messaging) async {
+  Future<void> handleFCMToken(FirebaseMessaging messaging) async {
     try {
       String? token = await messaging.getToken();
       if (token != null) {

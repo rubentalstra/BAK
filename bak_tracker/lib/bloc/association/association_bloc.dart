@@ -1,86 +1,12 @@
 import 'dart:convert';
-import 'package:equatable/equatable.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/models/association_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'association_event.dart';
+import 'association_state.dart';
 
-// Association Events
-abstract class AssociationEvent extends Equatable {
-  @override
-  List<Object?> get props => [];
-}
-
-class SelectAssociation extends AssociationEvent {
-  final AssociationModel selectedAssociation;
-
-  SelectAssociation({required this.selectedAssociation});
-
-  @override
-  List<Object?> get props => [selectedAssociation];
-}
-
-class LeaveAssociation extends AssociationEvent {
-  final String associationId;
-
-  LeaveAssociation({required this.associationId});
-
-  @override
-  List<Object?> get props => [associationId];
-}
-
-class RefreshPendingBaks extends AssociationEvent {
-  final String associationId;
-
-  RefreshPendingBaks(this.associationId);
-}
-
-// Association States
-abstract class AssociationState extends Equatable {
-  @override
-  List<Object?> get props => [];
-}
-
-class AssociationInitial extends AssociationState {}
-
-class AssociationLoading extends AssociationState {}
-
-class AssociationLoaded extends AssociationState {
-  final AssociationModel selectedAssociation;
-  final AssociationMemberModel memberData;
-  final List<AssociationMemberModel> members;
-  final int pendingBaksCount; // Track the number of pending baks
-  final String? errorMessage;
-
-  AssociationLoaded({
-    required this.selectedAssociation,
-    required this.memberData,
-    required this.members,
-    required this.pendingBaksCount, // Include the pending baks count
-    this.errorMessage,
-  });
-
-  @override
-  List<Object?> get props => [
-        selectedAssociation,
-        memberData,
-        members,
-        pendingBaksCount,
-        errorMessage
-      ];
-}
-
-class AssociationError extends AssociationState {
-  final String message;
-
-  AssociationError(this.message);
-
-  @override
-  List<Object?> get props => [message];
-}
-
-// Association Bloc
 class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
   AssociationBloc() : super(AssociationInitial()) {
     on<SelectAssociation>(_onSelectAssociation);
@@ -190,7 +116,6 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       ));
     } catch (e) {
       emit(AssociationError(e.toString()));
-      return;
     }
   }
 

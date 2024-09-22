@@ -6,6 +6,7 @@ import 'package:bak_tracker/services/notifications_service.dart';
 import 'package:bak_tracker/ui/splash/splash_screen.dart';
 import 'package:bak_tracker/core/utils/my_secure_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -53,13 +54,18 @@ void main() async {
 
     // Initialize notifications (local notifications + Firebase messaging setup)
     await notificationsService.initializeNotifications();
-    // await notificationsService.setupFirebaseMessaging();
+    await notificationsService
+        .setupFirebaseMessaging(); // Setup Firebase messaging
+
+    // Register the background message handler
+    FirebaseMessaging.onBackgroundMessage(
+        NotificationsService.firebaseMessagingBackgroundHandler);
+
     print('Notifications service initialized successfully');
 
     // Run the application
     runApp(BakTrackerApp(
-      // flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
-      notificationsService: notificationsService, // Pass the service here
+      notificationsService: notificationsService,
     ));
   } catch (e) {
     print('Error during app initialization: $e');
@@ -71,12 +77,10 @@ void main() async {
 }
 
 class BakTrackerApp extends StatelessWidget {
-  // final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   final NotificationsService notificationsService;
 
   const BakTrackerApp({
     super.key,
-    // required this.flutterLocalNotificationsPlugin,
     required this.notificationsService,
   });
 

@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/services/notifications_service.dart';
@@ -27,7 +28,22 @@ class _SplashScreenState extends State<SplashScreen> {
 
       if (session != null) {
         // Set up Firebase Messaging and FCM token handling for the authenticated user
-        await widget.notificationsService.setupFirebaseMessaging();
+
+        FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+        // Request notification permissions
+        NotificationSettings settings = await messaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+
+        if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+          print('User granted notification permission');
+          await widget.notificationsService.handleFCMToken(messaging);
+        } else {
+          print('User declined or did not grant notification permission');
+        }
 
         final associations = await _getAssociations();
         if (associations.isNotEmpty) {

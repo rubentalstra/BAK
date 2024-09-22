@@ -1,11 +1,14 @@
-import 'dart:convert';
+import 'dart:async';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/models/association_model.dart';
-import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/ui/home/widgets/leaderboard_widget.dart';
+import 'package:bak_tracker/bloc/association/association_bloc.dart';
+import 'package:bak_tracker/bloc/association/association_event.dart';
+import 'package:bak_tracker/bloc/association/association_state.dart';
 
 class HomeScreen extends StatefulWidget {
   final List<AssociationModel> associations;
@@ -27,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<LeaderboardEntry> _leaderboardEntries = [];
   final supabase = Supabase.instance.client;
   late ImageUploadService _imageUploadService;
+  StreamSubscription? _associationBlocSubscription;
 
   bool _isLoading = true;
 
@@ -46,6 +50,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _associationBlocSubscription
+        ?.cancel(); // Cancel subscription when the widget is disposed
+    super.dispose();
+  }
+
   // Fetch leaderboard for the selected association
   Future<void> _fetchLeaderboard() async {
     if (widget.selectedAssociation == null) return;
@@ -55,34 +66,23 @@ class _HomeScreenState extends State<HomeScreen> {
       _leaderboardEntries = [];
     });
 
-    // Fetch association members for the selected association
-    final List<dynamic> memberResponse = await supabase
-        .from('association_members')
-        .select(
-            'user_id (id, name, profile_image_path), association_id, role, permissions, joined_at, baks_received, baks_consumed')
-        .eq('association_id', widget.selectedAssociation!.id);
+    // Dispatch event to update the association in the bloc
+    context.read<AssociationBloc>().add(SelectAssociation(
+          selectedAssociation: widget.selectedAssociation!,
+        ));
 
-    if (memberResponse.isNotEmpty) {
-      List<AssociationMemberModel> members = memberResponse.map((data) {
-        final userMap = data['user_id'] as Map<String, dynamic>;
+    // Listen for the AssociationBloc updates
+    _associationBlocSubscription
+        ?.cancel(); // Cancel previous subscription if any
+    _associationBlocSubscription =
+        context.read<AssociationBloc>().stream.listen((state) {
+      if (state is AssociationLoaded) {
+        if (!mounted)
+          return; // Prevent setting state if the widget is not mounted
 
-        return AssociationMemberModel(
-          userId: userMap['id'],
-          name: userMap['name'],
-          profileImagePath: userMap['profile_image_path'],
-          associationId: data['association_id'],
-          role: data['role'],
-          permissions: data['permissions'] is String
-              ? jsonDecode(data['permissions']) as Map<String, dynamic>
-              : data['permissions'] as Map<String, dynamic>,
-          joinedAt: DateTime.parse(data['joined_at']),
-          baksReceived: data['baks_received'],
-          baksConsumed: data['baks_consumed'],
-        );
-      }).toList();
-
-      setState(() {
-        _leaderboardEntries = members.map((member) {
+        // Map the new state to leaderboard entries
+        List<LeaderboardEntry> newLeaderboardEntries =
+            state.members.map((member) {
           return LeaderboardEntry(
             rank: 0,
             name: member.name!,
@@ -92,18 +92,41 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }).toList();
 
-        _leaderboardEntries
+        // Sort the leaderboard entries
+        newLeaderboardEntries
             .sort((a, b) => b.baksConsumed.compareTo(a.baksConsumed));
 
-        for (int i = 0; i < _leaderboardEntries.length; i++) {
-          _leaderboardEntries[i] = _leaderboardEntries[i].copyWith(rank: i + 1);
+        // Assign ranks
+        for (int i = 0; i < newLeaderboardEntries.length; i++) {
+          newLeaderboardEntries[i] =
+              newLeaderboardEntries[i].copyWith(rank: i + 1);
         }
-      });
-    }
 
-    setState(() {
-      _isLoading = false;
+        // Update state only if the leaderboard entries have changed
+        if (!_areEntriesEqual(newLeaderboardEntries, _leaderboardEntries)) {
+          setState(() {
+            // _previousLeaderboardEntries = _leaderboardEntries;
+            _leaderboardEntries = newLeaderboardEntries;
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     });
+  }
+
+  // Helper method to check if two lists of leaderboard entries are equal
+  bool _areEntriesEqual(
+      List<LeaderboardEntry> newEntries, List<LeaderboardEntry> oldEntries) {
+    if (newEntries.length != oldEntries.length) return false;
+
+    for (int i = 0; i < newEntries.length; i++) {
+      if (newEntries[i] != oldEntries[i]) return false;
+    }
+    return true;
   }
 
   void _handleAssociationChange(AssociationModel? newAssociation) {

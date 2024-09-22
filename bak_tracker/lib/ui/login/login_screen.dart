@@ -1,8 +1,11 @@
+import 'package:bak_tracker/services/notifications_service.dart';
 import 'package:bak_tracker/ui/home/main_screen.dart';
 import 'package:bak_tracker/ui/no_association/no_association_screen.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_auth_ui/supabase_auth_ui.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -46,15 +49,23 @@ class LoginScreen extends StatelessWidget {
                 ? null
                 : 'https://iywlypvipqaibumbgsyf.supabase.co/auth/v1/callback',
             onSuccess: (Session session) async {
+              // Automatically handle FCM token after login
+              FirebaseMessaging messaging = FirebaseMessaging.instance;
+              // Initialize Local Notifications Plugin
+              final FlutterLocalNotificationsPlugin
+                  flutterLocalNotificationsPlugin =
+                  FlutterLocalNotificationsPlugin();
+              NotificationsService(flutterLocalNotificationsPlugin)
+                  .handleFCMToken(
+                      messaging); // Access global notification service
+
               bool isPartOfAssociation = await _checkUserAssociation();
 
               if (isPartOfAssociation) {
-                // Navigate to the HomeScreen if part of an association
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(builder: (context) => const MainScreen()),
                 );
               } else {
-                // Navigate to NoAssociationScreen if not part of any association
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
                       builder: (context) => const NoAssociationScreen()),
