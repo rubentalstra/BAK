@@ -22,19 +22,24 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAuthentication() async {
-    final session = Supabase.instance.client.auth.currentSession;
+    try {
+      final session = Supabase.instance.client.auth.currentSession;
 
-    if (session != null) {
-      // Set up Firebase Messaging and FCM token handling for the authenticated user
-      await widget.notificationsService.setupFirebaseMessaging();
+      if (session != null) {
+        // Set up Firebase Messaging and FCM token handling for the authenticated user
+        await widget.notificationsService.setupFirebaseMessaging();
 
-      final associations = await _getAssociations();
-      if (associations.isNotEmpty) {
-        _navigateToHomeScreen();
+        final associations = await _getAssociations();
+        if (associations.isNotEmpty) {
+          _navigateToHomeScreen();
+        } else {
+          _navigateToNoAssociationScreen();
+        }
       } else {
-        _navigateToNoAssociationScreen();
+        _navigateToLoginScreen();
       }
-    } else {
+    } catch (e) {
+      print('Error during authentication check: $e');
       _navigateToLoginScreen();
     }
   }
@@ -54,18 +59,21 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateToHomeScreen() {
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const MainScreen()),
     );
   }
 
   void _navigateToNoAssociationScreen() {
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
     );
   }
 
   void _navigateToLoginScreen() {
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const LoginScreen()),
     );

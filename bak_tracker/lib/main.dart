@@ -18,49 +18,65 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
+  // Keep splash screen visible while the app is initializing
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    // Initialize Firebase
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('Firebase initialized successfully');
 
-  await dotenv.load(fileName: ".env");
+    // Load environment variables
+    await dotenv.load(fileName: ".env");
+    print('.env file loaded successfully');
 
-  // Initialize Supabase using environment variables
-  await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-    authOptions: FlutterAuthClientOptions(
-      localStorage: MySecureStorage(), // Use custom secure storage
-    ),
-  );
+    // Initialize Supabase using environment variables
+    await Supabase.initialize(
+      url: dotenv.env['SUPABASE_URL']!,
+      anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+      authOptions: FlutterAuthClientOptions(
+        localStorage: MySecureStorage(), // Use custom secure storage
+      ),
+    );
+    print('Supabase initialized successfully');
 
-  // Initialize Local Notifications Plugin
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+    // Initialize Local Notifications Plugin
+    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+        FlutterLocalNotificationsPlugin();
 
-  // Initialize Notifications Service
-  final NotificationsService notificationsService =
-      NotificationsService(flutterLocalNotificationsPlugin);
+    // Initialize Notifications Service
+    final NotificationsService notificationsService =
+        NotificationsService(flutterLocalNotificationsPlugin);
 
-  // Initialize notifications (local notifications + Firebase messaging setup)
-  await notificationsService.initializeNotifications();
+    // Initialize notifications (local notifications + Firebase messaging setup)
+    await notificationsService.initializeNotifications();
+    // await notificationsService.setupFirebaseMessaging();
+    print('Notifications service initialized successfully');
 
-  runApp(BakTrackerApp(
-    flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
-    notificationsService: notificationsService, // Pass the service here
-  ));
+    // Run the application
+    runApp(BakTrackerApp(
+      // flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
+      notificationsService: notificationsService, // Pass the service here
+    ));
+  } catch (e) {
+    print('Error during app initialization: $e');
+    // Handle initialization error, possibly show an error screen
+  }
 
+  // Remove splash screen once the app has initialized
   FlutterNativeSplash.remove();
 }
 
 class BakTrackerApp extends StatelessWidget {
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+  // final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   final NotificationsService notificationsService;
 
   const BakTrackerApp({
     super.key,
-    required this.flutterLocalNotificationsPlugin,
+    // required this.flutterLocalNotificationsPlugin,
     required this.notificationsService,
   });
 
