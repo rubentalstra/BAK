@@ -1,20 +1,61 @@
 import 'dart:io';
-import 'package:bak_tracker/core/utils/signed_url_cache.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ImageUploadService {
   final SupabaseClient supabase;
+  final Dio dio = Dio();
 
   ImageUploadService(this.supabase);
 
-  // Constants
   static const int maxFileSizeInMB = 2;
   static const int maxFileSizeInBytes = maxFileSizeInMB * 1024 * 1024;
+  static const Duration signedUrlCacheDuration =
+      Duration(minutes: 30); // Reduced the expiration
 
-  // Cache duration for signed URLs (e.g., 24 hours)
-  static const Duration signedUrlCacheDuration = Duration(hours: 24);
+  // Get the local path to store images
+  Future<String> _getLocalPath() async {
+    final directory = await getApplicationDocumentsDirectory();
+    return directory.path;
+  }
 
-  // Upload profile image to 'user-profile-images' bucket
+  // Save image locally
+  Future<File> _saveImageLocally(String url, String fileName) async {
+    final path = await _getLocalPath();
+    final file = File('$path/$fileName');
+
+    // Download the image and save it locally
+    final response = await dio.download(url, file.path);
+    if (response.statusCode == 200) {
+      return file;
+    } else {
+      throw Exception('Error downloading image');
+    }
+  }
+
+  // Get local image path if it exists
+  Future<File?> getLocalImage(String fileName) async {
+    final path = await _getLocalPath();
+    final file = File('$path/$fileName');
+
+    if (await file.exists()) {
+      return file;
+    }
+    return null;
+  }
+
+  // Extract version number from the file path
+  int _extractVersion(String? filePath) {
+    if (filePath == null || !filePath.contains('-v')) {
+      return 0; // Default to 0 if no version found
+    }
+
+    final versionMatch = RegExp(r'-v(\d+)').firstMatch(filePath);
+    return versionMatch != null ? int.parse(versionMatch.group(1)!) : 0;
+  }
+
+  // Upload profile image to 'user-profile-images' bucket with version increment
   Future<String?> uploadProfileImage(
       File imageFile, String userId, String? existingFilePath) async {
     try {
@@ -22,51 +63,55 @@ class ImageUploadService {
         throw Exception('File size exceeds the 2MB limit');
       }
 
-      // Delete the existing profile image if it exists
-      if (existingFilePath != null && existingFilePath.isNotEmpty) {
-        // Clear the cache for the old image URL before removing the file
-        await SignedUrlCache.deleteCachedUrl(existingFilePath);
+      // Increment the version based on the current file path
+      int currentVersion = _extractVersion(existingFilePath);
+      int newVersion = currentVersion + 1;
 
-        // Remove the existing file from Supabase storage
-        await supabase.storage
-            .from('user-profile-images')
-            .remove([existingFilePath]);
-      }
-
-      // Generate new file path for the new image
+      // Generate new file path with incremented version
       final fileExt = imageFile.path.split('.').last;
-      final filePath = 'user-profile-images/$userId.$fileExt';
+      final newFilePath = 'user-profile-images/$userId-v$newVersion.$fileExt';
 
       // Upload the new image
       await supabase.storage
           .from('user-profile-images')
-          .upload(filePath, imageFile);
+          .upload(newFilePath, imageFile);
 
-      // Return the new file path
-      return filePath;
+      // Now that the new image is successfully uploaded, delete the old one
+      if (existingFilePath != null && existingFilePath.isNotEmpty) {
+        await deleteProfileImage(existingFilePath);
+      }
+
+      return newFilePath;
     } catch (e) {
       print('Error uploading profile image: $e');
       return null;
     }
   }
 
-  // Generate a signed URL for profile image with persistent caching
-  Future<String?> getSignedUrl(String filePath) async {
-    // Check if the URL is cached persistently
-    final cachedUrl = await SignedUrlCache.getCachedUrl(filePath);
-    if (cachedUrl != null) {
-      return cachedUrl;
+  // Fetch or download profile image
+  Future<File?> fetchOrDownloadProfileImage(String filePath,
+      {int version = 1}) async {
+    // Check if the image exists locally
+    final localImage = await getLocalImage('$filePath-v$version');
+    if (localImage != null) {
+      return localImage;
     }
 
+    // Fetch a new signed URL (with a short expiration) and download it
+    final signedUrl = await getSignedUrl(filePath, version: version);
+    if (signedUrl != null) {
+      return _saveImageLocally(signedUrl, '$filePath-v$version');
+    }
+    return null;
+  }
+
+  // Generate a signed URL for profile image with a short expiration time
+  Future<String?> getSignedUrl(String filePath, {int version = 1}) async {
     try {
-      // Generate a new signed URL
+      // Generate a new signed URL with short expiration
       final signedUrl = await supabase.storage
           .from('user-profile-images')
           .createSignedUrl(filePath, signedUrlCacheDuration.inSeconds);
-
-      // Cache the signed URL persistently
-      await SignedUrlCache.cacheUrl(
-          filePath, signedUrl, signedUrlCacheDuration);
 
       return signedUrl;
     } catch (e) {
@@ -75,11 +120,17 @@ class ImageUploadService {
     }
   }
 
-  // Delete the profile image for the user
+  // Delete profile image for user
   Future<void> deleteProfileImage(String filePath) async {
     try {
+      if (filePath.isEmpty) {
+        throw Exception("File path is empty, cannot delete image.");
+      }
+
+      // Attempt to delete the file from Supabase storage
       await supabase.storage.from('user-profile-images').remove([filePath]);
-      await SignedUrlCache.deleteCachedUrl(filePath);
+
+      print('Image deleted successfully: $filePath');
     } catch (e) {
       print('Error deleting profile image: $e');
     }

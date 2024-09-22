@@ -21,6 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _profileImageUrl;
   String? _profileImagePath;
   bool _isUploadingImage = false;
+  File? _localImageFile;
 
   final ImageUploadService _imageUploadService =
       ImageUploadService(Supabase.instance.client);
@@ -58,11 +59,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _fetchProfileImage(String filePath) async {
-    final imageUrl = await _imageUploadService.getSignedUrl(filePath);
-    if (imageUrl != null) {
+    // Try to get the local image first
+    final localImage = await _imageUploadService.getLocalImage(filePath);
+    if (localImage != null) {
       setState(() {
-        _profileImageUrl = imageUrl;
+        _localImageFile = localImage;
       });
+    } else {
+      // If the local image doesn't exist, fetch and cache the image
+      final imageUrl =
+          await _imageUploadService.fetchOrDownloadProfileImage(filePath);
+      if (imageUrl != null) {
+        setState(() {
+          _profileImageUrl = imageUrl.path; // Using the local file path
+          _localImageFile = imageUrl;
+        });
+      }
     }
   }
 
@@ -170,6 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _profileImageUrl = null;
         _profileImagePath = null;
+        _localImageFile = null;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -185,11 +198,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showFullScreenImage() {
-    if (_profileImageUrl != null) {
+    if (_localImageFile != null) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => FullScreenImage(imageUrl: _profileImageUrl!),
+          builder: (context) =>
+              FullScreenImage(imageUrl: _localImageFile!.path),
         ),
       );
     }
@@ -217,10 +231,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: CircleAvatar(
                       radius: 80,
                       backgroundColor: Colors.grey[200],
-                      backgroundImage: _profileImageUrl != null
-                          ? NetworkImage(_profileImageUrl!)
+                      backgroundImage: _localImageFile != null
+                          ? FileImage(_localImageFile!)
                           : null,
-                      child: _profileImageUrl == null
+                      child: _localImageFile == null
                           ? const Icon(
                               Icons.person,
                               size: 80,

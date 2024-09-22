@@ -1,6 +1,7 @@
+import 'dart:io';
+
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
 
@@ -129,6 +130,49 @@ class LeaderboardWidget extends StatelessWidget {
           );
   }
 
+  Widget _buildProfileImage(LeaderboardEntry entry, BuildContext context) {
+    if (entry.profileImagePath == null) {
+      return const CircleAvatar(
+        radius: 24.0,
+        backgroundColor: Colors.grey,
+        child: Icon(
+          Icons.person,
+          color: Colors.white,
+        ),
+      );
+    }
+
+    return FutureBuilder<File?>(
+      future: imageUploadService
+          .fetchOrDownloadProfileImage(entry.profileImagePath!, version: 1),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircleAvatar(
+            radius: 24.0,
+            backgroundColor: Colors.grey,
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        if (snapshot.hasData) {
+          return CircleAvatar(
+            radius: 24.0,
+            backgroundImage: FileImage(snapshot.data!),
+          );
+        }
+
+        return const CircleAvatar(
+          radius: 24.0,
+          backgroundColor: Colors.grey,
+          child: Icon(
+            Icons.person,
+            color: Colors.white,
+          ),
+        );
+      },
+    );
+  }
+
   // Skeleton loading for the entire list item
   Widget _buildLoadingSkeleton() {
     return ListView.separated(
@@ -191,55 +235,6 @@ class LeaderboardWidget extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildProfileImage(LeaderboardEntry entry, BuildContext context) {
-    if (entry.profileImagePath == null) {
-      // Show default icon if no profile image
-      return const CircleAvatar(
-        radius: 24.0,
-        backgroundColor: Colors.grey,
-        child: Icon(
-          Icons.person,
-          color: Colors.white,
-        ),
-      );
-    }
-
-    return FutureBuilder<String?>(
-      future: imageUploadService.getSignedUrl(entry.profileImagePath!),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          // Show skeleton while loading
-          return const Skeletonizer(
-            enabled: true,
-            child: CircleAvatar(
-              radius: 24.0,
-              backgroundColor: Colors.grey,
-            ),
-          );
-        }
-
-        if (snapshot.hasData) {
-          // Show the cached network image
-          return CircleAvatar(
-            radius: 24.0,
-            backgroundColor: Colors.grey[300],
-            backgroundImage: CachedNetworkImageProvider(snapshot.data!),
-          );
-        }
-
-        // Show icon in case of error or if the profile image is missing
-        return const CircleAvatar(
-          radius: 24.0,
-          backgroundColor: Colors.grey,
-          child: Icon(
-            Icons.person,
-            color: Colors.white,
           ),
         );
       },
