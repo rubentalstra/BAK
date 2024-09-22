@@ -56,6 +56,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _fetchProfileImage(String filePath) async {
+    if (filePath.isEmpty) {
+      setState(() {
+        _localImageFile = null;
+      });
+      return;
+    }
+
     final localImage = await _imageUploadService.getLocalImage(filePath);
     if (localImage != null) {
       setState(() {
@@ -139,7 +146,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             .from('users')
             .update({'profile_image_path': newFilePath}).eq('id', userId);
 
+        // Fetch and display the new image
         _fetchProfileImage(newFilePath);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile image updated successfully!')),
         );
@@ -173,7 +182,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .update({'profile_image_path': null}).eq('id', userId);
 
       setState(() {
-        _localImageFile = null;
+        _profileImagePath = null; // Clear the image path
+        _localImageFile = null; // Clear the local image file
       });
 
       ScaffoldMessenger.of(context).showSnackBar(

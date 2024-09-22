@@ -19,7 +19,7 @@ class ImageUploadService {
     return directory.path;
   }
 
-  // Save image locally
+  // Save image locally with the same name as on Supabase (including version)
   Future<File> _saveImageLocally(String url, String fileName) async {
     final path = await _getLocalPath();
     final file = File('$path/$fileName');
@@ -71,6 +71,7 @@ class ImageUploadService {
       // Delete the old image if the new one is uploaded successfully
       if (existingFilePath != null && existingFilePath.isNotEmpty) {
         await deleteProfileImage(existingFilePath);
+        await _deleteLocalImage(existingFilePath); // Delete local old version
       }
 
       return newFilePath;
@@ -80,23 +81,38 @@ class ImageUploadService {
     }
   }
 
-  // Fetch or download profile image
-  Future<File?> fetchOrDownloadProfileImage(String filePath,
-      {int version = 1}) async {
-    final localImage = await getLocalImage('$filePath-v$version');
-    if (localImage != null) {
+  // Delete old local image
+  Future<void> _deleteLocalImage(String filePath) async {
+    final localImage = await getLocalImage(filePath);
+    if (localImage != null && await localImage.exists()) {
+      await localImage.delete();
+      print('Deleted old local image: ${localImage.path}');
+    }
+  }
+
+  // Fetch or download profile image, only if version is changed
+  Future<File?> fetchOrDownloadProfileImage(String filePath) async {
+    final localImage = await getLocalImage(filePath);
+    int localVersion = _extractVersion(localImage?.path);
+    int serverVersion = _extractVersion(filePath);
+
+    // If local image version is the same as the server version, return local image
+    if (localVersion == serverVersion && localImage != null) {
+      print('Using cached local image version: $localVersion');
       return localImage;
     }
 
-    final signedUrl = await getSignedUrl(filePath, version: version);
+    // Fetch a new signed URL and download if the version has changed
+    final signedUrl = await getSignedUrl(filePath);
     if (signedUrl != null) {
-      return _saveImageLocally(signedUrl, '$filePath-v$version');
+      return _saveImageLocally(
+          signedUrl, filePath); // Save using the same file name
     }
     return null;
   }
 
   // Generate a signed URL for profile image
-  Future<String?> getSignedUrl(String filePath, {int version = 1}) async {
+  Future<String?> getSignedUrl(String filePath) async {
     try {
       final signedUrl = await supabase.storage
           .from('user-profile-images')
@@ -115,8 +131,13 @@ class ImageUploadService {
       if (filePath.isEmpty) {
         throw Exception("File path is empty, cannot delete image.");
       }
+
+      // Attempt to delete the file from Supabase storage
       await supabase.storage.from('user-profile-images').remove([filePath]);
-      print('Image deleted successfully: $filePath');
+      print('Image deleted successfully from Supabase: $filePath');
+
+      // Now delete the local file as well
+      await _deleteLocalImage(filePath);
     } catch (e) {
       print('Error deleting profile image: $e');
     }

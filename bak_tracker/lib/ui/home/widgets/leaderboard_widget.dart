@@ -144,7 +144,7 @@ class LeaderboardWidget extends StatelessWidget {
 
     return FutureBuilder<File?>(
       future: imageUploadService
-          .fetchOrDownloadProfileImage(entry.profileImagePath!, version: 1),
+          .fetchOrDownloadProfileImage(entry.profileImagePath!),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const CircleAvatar(

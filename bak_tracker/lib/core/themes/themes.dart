@@ -109,5 +109,11 @@ class AppThemes {
       thumbColor: WidgetStateProperty.all(AppColors.lightPrimary),
       overlayColor: WidgetStateProperty.all(AppColors.lightAccentVariant),
     ),
+
+    snackBarTheme: const SnackBarThemeData(
+      backgroundColor: AppColors.lightPrimary,
+      contentTextStyle: TextStyle(color: AppColors.lightAccent),
+      actionTextColor: AppColors.lightAccent,
+    ),
   );
 }
