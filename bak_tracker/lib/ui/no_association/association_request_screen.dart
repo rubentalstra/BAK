@@ -1,3 +1,4 @@
+import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -35,10 +36,10 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
     super.dispose();
   }
 
-  // Handle tab switching logic
+  // Handle tab switching
   void _handleTabSelection() {
     if (_tabController.index == 1 && _requests.isEmpty) {
-      _fetchRequests(); // Fetch requests only when the "View Requests" tab is selected
+      _fetchRequests();
     }
   }
 
@@ -47,6 +48,7 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
     setState(() {
       _isLoadingRequests = true;
     });
+
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
@@ -63,7 +65,7 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
         _isLoadingRequests = false;
       });
     } catch (e) {
-      print('Error fetching requests: $e');
+      _showSnackBar('Error fetching requests: $e');
       setState(() {
         _isLoadingRequests = false;
       });
@@ -72,14 +74,12 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
 
   // Submit a new request to join an association
   Future<void> _submitRequest() async {
-    final name = _nameController.text;
-    final websiteUrl = _websiteUrlController.text;
+    final name = _nameController.text.trim();
+    final websiteUrl = _websiteUrlController.text.trim();
     final userId = Supabase.instance.client.auth.currentUser?.id;
 
     if (name.isEmpty || websiteUrl.isEmpty || userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter all fields')),
-      );
+      _showSnackBar('Please fill in all the fields');
       return;
     }
 
@@ -94,25 +94,25 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
         'name': name,
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Request submitted successfully')),
-      );
-
+      _showSnackBar('Request submitted successfully');
       _nameController.clear();
       _websiteUrlController.clear();
 
       _tabController.animateTo(1); // Switch to the "View Requests" tab
-      _fetchRequests(); // Fetch requests after submitting
+      await _fetchRequests(); // Fetch requests after submitting
     } catch (e) {
-      print('Error submitting request: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to submit request: $e')),
-      );
+      _showSnackBar('Failed to submit request: $e');
     } finally {
       setState(() {
         _isSubmitting = false;
       });
     }
+  }
+
+  // Helper to show SnackBar messages
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -131,66 +131,95 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Tab 1: Submit New Association Request
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Request a New Association',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Association Name',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _websiteUrlController,
-                  decoration: const InputDecoration(
-                    labelText: 'Association Website URL',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitRequest,
-                  child: _isSubmitting
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Submit Request'),
-                ),
-              ],
-            ),
-          ),
-
-          // Tab 2: View Existing Requests
-          _isLoadingRequests
-              ? const Center(child: CircularProgressIndicator())
-              : _requests.isEmpty
-                  ? const Center(child: Text('No requests found.'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16.0),
-                      itemCount: _requests.length,
-                      itemBuilder: (context, index) {
-                        final request = _requests[index];
-                        final status = request['status'];
-                        final declineReason = request['decline_reason'];
-
-                        return Card(
-                          child: ListTile(
-                            title: Text(request['name']),
-                            subtitle: Text(
-                              'Status: $status${status == 'Declined' && declineReason != null ? '\nReason: $declineReason' : ''}',
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+          _buildRequestForm(),
+          _buildRequestsList(),
         ],
       ),
+    );
+  }
+
+  // Build the request form UI
+  Widget _buildRequestForm() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Request a New Association',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _nameController,
+            decoration: const InputDecoration(
+              labelText: 'Association Name',
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _websiteUrlController,
+            decoration: const InputDecoration(
+              labelText: 'Association Website URL',
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _isSubmitting ? null : _submitRequest,
+            child: _isSubmitting
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Text('Submit Request'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build the list of existing requests
+  Widget _buildRequestsList() {
+    if (_isLoadingRequests) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_requests.isEmpty) {
+      return const Center(
+        child: Text(
+          'No requests found.\nSubmit a new request or wait for approval.',
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16.0),
+      itemCount: _requests.length,
+      itemBuilder: (context, index) {
+        final request = _requests[index];
+        final status = request['status'];
+        final declineReason = request['decline_reason'];
+
+        return Card(
+          child: ListTile(
+            title: Text(
+              request['name'],
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.lightPrimary,
+              ),
+            ),
+            subtitle: Text(
+              'Status: $status${status == 'Declined' && declineReason != null ? '\nReason: $declineReason' : ''}',
+              style: TextStyle(
+                color: status == 'Approved'
+                    ? Colors.green
+                    : status == 'Declined'
+                        ? Colors.red
+                        : Colors.black,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

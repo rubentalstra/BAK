@@ -20,17 +20,15 @@ class NoAssociationHomeScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const AssociationRequestScreen()),
-                );
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            const AssociationRequestScreen()));
               },
               child: const Text('Request Association'),
             ),
             ElevatedButton(
-              onPressed: () {
-                _showInviteCodeInput(context); // Show modal bottom sheet
-              },
+              onPressed: () => _showInviteCodeInput(context),
               child: const Text('Join Association'),
             ),
           ],
@@ -39,15 +37,12 @@ class NoAssociationHomeScreen extends StatelessWidget {
     );
   }
 
-  // Function to show the InviteCodeInputWidget as a modal bottom sheet
+  // Helper to show the InviteCodeInputWidget as a modal bottom sheet
   void _showInviteCodeInput(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled:
-          true, // Makes the bottom sheet take full height if needed
-      builder: (BuildContext context) {
-        return const InviteCodeInputWidget();
-      },
+      isScrollControlled: true,
+      builder: (BuildContext context) => const InviteCodeInputWidget(),
     );
   }
 }

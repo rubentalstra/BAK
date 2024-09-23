@@ -14,8 +14,8 @@ class _NoAssociationScreenState extends State<NoAssociationScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    const NoAssociationHomeScreen(), // Home (No association)
-    const SettingsScreen(), // Settings (Join/Create Association)
+    const NoAssociationHomeScreen(),
+    const SettingsScreen(),
   ];
 
   void _onItemTapped(int index) {
