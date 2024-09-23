@@ -35,8 +35,6 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _fetchAssociations();
-    // only if the user has the permission to approve baks
-    _startPollingPendingBaks(); // Start polling for pending baks
 
     // Listen for changes from the AssociationBloc
     context.read<AssociationBloc>().stream.listen((state) {
@@ -44,6 +42,10 @@ class _MainScreenState extends State<MainScreen> {
         _canApproveBaks = state.memberData.canApproveBaks ||
             state.memberData.hasAllPermissions;
         _setPages();
+        // Only start polling for pending baks if the user has approval permissions
+        if (_canApproveBaks) {
+          _startPollingPendingBaks();
+        }
       }
     });
   }
@@ -56,8 +58,12 @@ class _MainScreenState extends State<MainScreen> {
 
   // Poll for pending baks every 30 seconds and refresh using Bloc
   void _startPollingPendingBaks() {
+    if (_timer != null) {
+      _timer?.cancel(); // Cancel any existing timer
+    }
+
     _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      if (_selectedAssociation != null) {
+      if (_selectedAssociation != null && _canApproveBaks) {
         print('Refreshing pending baks...');
         // Call RefreshPendingBaks event every 30 seconds
         context
