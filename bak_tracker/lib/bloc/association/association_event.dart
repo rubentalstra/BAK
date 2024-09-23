@@ -32,3 +32,12 @@ class RefreshPendingBaks extends AssociationEvent {
 }
 
 class ClearAssociationError extends AssociationEvent {}
+
+class JoinNewAssociation extends AssociationEvent {
+  final AssociationModel newAssociation;
+
+  JoinNewAssociation({required this.newAssociation});
+
+  @override
+  List<Object?> get props => [newAssociation];
+}

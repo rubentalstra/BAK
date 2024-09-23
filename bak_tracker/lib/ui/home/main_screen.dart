@@ -66,9 +66,12 @@ class _MainScreenState extends State<MainScreen> {
       if (_selectedAssociation != null && _canApproveBaks) {
         print('Refreshing pending baks...');
         // Call RefreshPendingBaks event every 30 seconds
-        context
-            .read<AssociationBloc>()
-            .add(RefreshPendingBaks(_selectedAssociation!.id));
+        if (mounted) {
+          // Check if the widget is still mounted
+          context
+              .read<AssociationBloc>()
+              .add(RefreshPendingBaks(_selectedAssociation!.id));
+        }
       }
     });
   }
@@ -94,13 +97,16 @@ class _MainScreenState extends State<MainScreen> {
           .select()
           .inFilter('id', associationIds);
 
-      setState(() {
-        _associations = response
-            .map((data) =>
-                AssociationModel.fromMap(data as Map<String, dynamic>))
-            .toList();
-        _loadSavedAssociation();
-      });
+      if (mounted) {
+        // Ensure the widget is still mounted before calling setState
+        setState(() {
+          _associations = response
+              .map((data) =>
+                  AssociationModel.fromMap(data as Map<String, dynamic>))
+              .toList();
+          _loadSavedAssociation();
+        });
+      }
     }
   }
 
@@ -125,41 +131,18 @@ class _MainScreenState extends State<MainScreen> {
           );
     }
 
-    _setPages();
-  }
-
-  void _setPages() {
-    _pages = [
-      HomeScreen(
-        associations: _associations,
-        selectedAssociation: _selectedAssociation,
-        onAssociationChanged: _onAssociationChanged,
-      ),
-      const BakScreen(),
-      const BetsScreen(),
-      if (_canApproveBaks) const ApproveBaksScreen(),
-      const SettingsScreen(),
-    ];
+    if (mounted) {
+      // Ensure the widget is still mounted before calling setState
+      _setPages();
+    }
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  void _onAssociationChanged(AssociationModel? newAssociation) {
-    setState(() {
-      _selectedAssociation = newAssociation;
-      _pages = [];
-    });
-
-    if (newAssociation != null) {
-      _saveSelectedAssociation(newAssociation);
-      context.read<AssociationBloc>().add(
-            SelectAssociation(selectedAssociation: newAssociation),
-          );
-      _setPages();
+    if (mounted) {
+      // Ensure the widget is still mounted before calling setState
+      setState(() {
+        _selectedIndex = index;
+      });
     }
   }
 
@@ -171,18 +154,35 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Ensure the selected index is valid and within the bounds of the pages list
+    if (_selectedIndex >= _pages.length && _pages.isNotEmpty) {
+      _selectedIndex = 0; // Reset to the first tab if out of bounds
+    }
+
     return BlocBuilder<AssociationBloc, AssociationState>(
       builder: (context, state) {
         int pendingBaksCount = 0;
 
+        // If the association is loaded, retrieve pending baks count
         if (state is AssociationLoaded) {
           pendingBaksCount = state.pendingBaksCount;
         }
 
         return Scaffold(
-          body: _pages.isNotEmpty
-              ? _pages[_selectedIndex]
-              : const Center(child: CircularProgressIndicator()),
+          body: RefreshIndicator(
+            onRefresh: () async {
+              // Manually trigger a refresh of the selected association
+              if (_selectedAssociation != null) {
+                context.read<AssociationBloc>().add(SelectAssociation(
+                    selectedAssociation: _selectedAssociation!));
+              }
+            },
+            child: (_pages.isNotEmpty)
+                ? _pages[_selectedIndex]
+                : const Center(
+                    child:
+                        CircularProgressIndicator()), // Handle empty pages scenario
+          ),
           bottomNavigationBar: BottomNavBar(
             selectedIndex: _selectedIndex,
             onTap: _onItemTapped,
@@ -192,5 +192,45 @@ class _MainScreenState extends State<MainScreen> {
         );
       },
     );
+  }
+
+  void _onAssociationChanged(AssociationModel? newAssociation) {
+    if (mounted) {
+      // Ensure the widget is still mounted before calling setState
+      setState(() {
+        _selectedAssociation = newAssociation;
+        _pages.clear(); // Clear the pages list before resetting
+      });
+    }
+
+    if (newAssociation != null) {
+      _saveSelectedAssociation(newAssociation);
+      context.read<AssociationBloc>().add(
+            SelectAssociation(selectedAssociation: newAssociation),
+          );
+      _setPages(); // Rebuild the pages after the association has been selected
+    }
+  }
+
+  void _setPages() {
+    // Only set pages if the selected association exists
+    if (_selectedAssociation != null) {
+      if (mounted) {
+        // Ensure the widget is still mounted before calling setState
+        setState(() {
+          _pages = [
+            HomeScreen(
+              associations: _associations,
+              selectedAssociation: _selectedAssociation,
+              onAssociationChanged: _onAssociationChanged,
+            ),
+            const BakScreen(),
+            const BetsScreen(),
+            if (_canApproveBaks) const ApproveBaksScreen(),
+            const SettingsScreen(),
+          ];
+        });
+      }
+    }
   }
 }

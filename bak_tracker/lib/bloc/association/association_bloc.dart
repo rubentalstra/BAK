@@ -15,6 +15,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     on<LeaveAssociation>(_onLeaveAssociation);
     on<ClearAssociationError>(_onClearAssociationError);
     on<RefreshPendingBaks>(_onRefreshPendingBaks);
+    on<JoinNewAssociation>(_onJoinNewAssociation);
     _loadSelectedAssociation(); // Load from storage when initialized
   }
 
@@ -120,6 +121,50 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       ));
     } catch (e) {
       _emitError(emit, 'Failed to select association: $e');
+    }
+  }
+
+  // Add this method in AssociationBloc class
+  Future<AssociationMemberModel> _fetchMemberData(String associationId) async {
+    final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
+
+    if (userId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    // Fetch member data for the current user
+    final response = await supabase
+        .from('association_members')
+        .select()
+        .eq('user_id', userId)
+        .eq('association_id', associationId)
+        .single();
+
+    if (response.isEmpty) {
+      throw Exception('Failed to load association member data.');
+    }
+
+    return AssociationMemberModel.fromMap(response);
+  }
+
+  // Handle joining a new association in AssociationBloc
+  Future<void> _onJoinNewAssociation(
+      JoinNewAssociation event, Emitter<AssociationState> emit) async {
+    emit(AssociationLoading());
+    try {
+      await _saveSelectedAssociation(event.newAssociation);
+      final members = await _fetchMembers(event.newAssociation.id);
+      final memberData = await _fetchMemberData(event.newAssociation.id);
+
+      emit(AssociationLoaded(
+        selectedAssociation: event.newAssociation,
+        memberData: memberData,
+        members: members,
+        pendingBaksCount: 0,
+      ));
+    } catch (e) {
+      emit(AssociationError('Failed to join association: $e'));
     }
   }
 

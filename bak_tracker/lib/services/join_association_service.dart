@@ -1,13 +1,16 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bak_tracker/models/association_model.dart';
 
 class JoinAssociationService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   // Method to join the association using an invite code
-  Future<String?> joinAssociation(String inviteCode) async {
+  Future<AssociationModel> joinAssociation(String inviteCode) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
-      return 'User not authenticated.';
+      // Throw an error if the user is not authenticated
+
+      throw 'User not authenticated.';
     }
 
     try {
@@ -20,7 +23,7 @@ class JoinAssociationService {
           .maybeSingle();
 
       if (inviteResponse == null) {
-        return 'Invalid or expired invite code.';
+        throw 'Invalid or expired invite code.';
       }
 
       final associationId = inviteResponse['association_id'];
@@ -34,7 +37,7 @@ class JoinAssociationService {
           .maybeSingle();
 
       if (isMember != null) {
-        return 'You are already a member of this association.';
+        throw 'You are already a member of this association.';
       }
 
       // Add the user to the association
@@ -46,9 +49,16 @@ class JoinAssociationService {
         'joined_at': DateTime.now().toIso8601String(),
       });
 
-      return null; // Success, no error
+      // Fetch and return the newly joined association details
+      final associationResponse = await _supabase
+          .from('associations')
+          .select()
+          .eq('id', associationId)
+          .single();
+
+      return AssociationModel.fromMap(associationResponse);
     } catch (e) {
-      return 'Error joining association: $e';
+      throw 'Error joining association: $e';
     }
   }
 }

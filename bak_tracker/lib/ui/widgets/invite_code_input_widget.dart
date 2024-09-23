@@ -1,7 +1,11 @@
+import 'package:bak_tracker/bloc/association/association_bloc.dart';
+import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/ui/home/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:bak_tracker/services/join_association_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class InviteCodeInputWidget extends StatefulWidget {
   const InviteCodeInputWidget({super.key});
@@ -32,7 +36,7 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
   }
 
   // Method to handle submission when code is fully entered
-  Future<void> _submitCode() async {
+  Future<void> _submitCode(BuildContext context) async {
     final inviteCode = _controllers.map((e) => e.text).join();
     if (inviteCode.length == 6) {
       setState(() {
@@ -40,23 +44,25 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
         _errorMessage = null; // Clear previous error message
       });
 
-      // Use the join association service
-      final result = await _joinAssociationService.joinAssociation(inviteCode);
-      setState(() {
-        _isSubmitting = false; // Reset loading state
-      });
+      try {
+        final newAssociation =
+            await _joinAssociationService.joinAssociation(inviteCode);
 
-      if (result != null) {
-        // Show error if there's a message from the service
-        setState(() {
-          _errorMessage = result;
-        });
-      } else {
-        // Close the modal and show success message
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Successfully joined the association.')),
+        // Dispatch event to update state with the new association
+        context
+            .read<AssociationBloc>()
+            .add(JoinNewAssociation(newAssociation: newAssociation));
+
+        // Navigate to MainScreen and remove all previous routes
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const MainScreen()),
+          (Route<dynamic> route) => false, // Remove all routes from the stack
         );
+      } catch (error) {
+        setState(() {
+          _isSubmitting = false;
+          _errorMessage = error.toString();
+        });
       }
     } else {
       setState(() {
@@ -72,7 +78,7 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
         _controllers[i].text = pastedText[i]; // Set each character
       }
       FocusScope.of(context).unfocus(); // Unfocus all text fields after paste
-      _submitCode(); // Submit the code automatically after pasting
+      _submitCode(context); // Submit the code automatically after pasting
     } else {
       setState(() {
         _errorMessage = 'The code must be exactly 6 characters long.';
@@ -117,8 +123,7 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
             _isSubmitting
                 ? const CircularProgressIndicator() // Show a loading indicator while submitting
                 : ElevatedButton(
-                    onPressed:
-                        _submitCode, // Submit the code when button is pressed
+                    onPressed: () => _submitCode(context),
                     child: const Text('Join Association'),
                   ),
           ],
@@ -173,13 +178,13 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
               FocusScope.of(context).requestFocus(
                   _focusNodes[index + 1]); // Move focus to next field
             } else {
-              _submitCode(); // Last field, submit the code
+              _submitCode(context); // Last field, submit the code
             }
           }
         },
         onSubmitted: (value) {
           if (index == 5) {
-            _submitCode();
+            _submitCode(context);
           }
         },
         inputFormatters: [
