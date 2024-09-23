@@ -1,7 +1,8 @@
 flutter_native_splash:
-  color: "#42a5f5"  # Set the splash background color
+  color: "#1d282d"  # Set the splash background color
   image: assets/icon/bak_tracker_logo.png  # Set the splash image (place the image in the assets folder)
   android_12:
-    image: assets/icon/bak_tracker_logo.png  # Image for Android 12+
-    icon_background_color: "#42a5f5"
+    image: assets/icon/bak_tracker_logo_android.png  # Image for Android 12+
+    icon_background_color: "#1d282d"
   fullscreen: true  # Enable fullscreen splash screen
+  web: false  # Disable web splash screen
