@@ -124,30 +124,6 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     }
   }
 
-  // Add this method in AssociationBloc class
-  Future<AssociationMemberModel> _fetchMemberData(String associationId) async {
-    final supabase = Supabase.instance.client;
-    final userId = supabase.auth.currentUser?.id;
-
-    if (userId == null) {
-      throw Exception('User not authenticated');
-    }
-
-    // Fetch member data for the current user
-    final response = await supabase
-        .from('association_members')
-        .select()
-        .eq('user_id', userId)
-        .eq('association_id', associationId)
-        .single();
-
-    if (response.isEmpty) {
-      throw Exception('Failed to load association member data.');
-    }
-
-    return AssociationMemberModel.fromMap(response);
-  }
-
   // Handle joining a new association in AssociationBloc
   Future<void> _onJoinNewAssociation(
       JoinNewAssociation event, Emitter<AssociationState> emit) async {

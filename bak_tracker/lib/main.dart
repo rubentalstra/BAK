@@ -46,6 +46,8 @@ void main() async {
 }
 
 class BakTrackerApp extends StatelessWidget {
+  const BakTrackerApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(

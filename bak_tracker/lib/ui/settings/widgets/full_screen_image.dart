@@ -6,9 +6,9 @@ class FullScreenImage extends StatelessWidget {
   final String localFileName;
 
   const FullScreenImage({
-    Key? key,
+    super.key,
     required this.localFileName,
-  }) : super(key: key);
+  });
 
   Future<File?> _getLocalImageFile() async {
     try {

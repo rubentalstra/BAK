@@ -140,7 +140,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
   void _copyInviteKey(String inviteKey) {
     Clipboard.setData(ClipboardData(text: inviteKey));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Invite key copied to clipboard!')),
+      const SnackBar(content: Text('Invite key copied to clipboard!')),
     );
   }
 
