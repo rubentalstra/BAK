@@ -43,9 +43,6 @@ void main() async {
   } catch (e) {
     print('Error during app initialization: $e');
   }
-
-  // Remove splash screen after initialization is complete
-  FlutterNativeSplash.remove();
 }
 
 class BakTrackerApp extends StatelessWidget {
@@ -110,7 +107,7 @@ class _AppStartupState extends State<AppStartup> {
           NotificationsService.firebaseMessagingBackgroundHandler);
 
       // Check for the initial screen after setting up services
-      _navigateToInitialScreen();
+      await _navigateToInitialScreen();
     } catch (e) {
       print('Error during secondary initialization: $e');
     }
@@ -120,32 +117,39 @@ class _AppStartupState extends State<AppStartup> {
     final session = Supabase.instance.client.auth.currentSession;
 
     if (session != null) {
-      // Fetch association data in the background
-      final Future<List<dynamic>> associationFuture = Supabase.instance.client
-          .from('association_members')
-          .select()
-          .eq('user_id', Supabase.instance.client.auth.currentUser!.id);
+      try {
+        // Fetch association data
+        final List<dynamic> associationData = await Supabase.instance.client
+            .from('association_members')
+            .select()
+            .eq('user_id', Supabase.instance.client.auth.currentUser!.id);
 
-      // Navigate to the appropriate screen based on the association data
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => FutureBuilder<List<dynamic>>(
-            future: associationFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+        // After all tasks are done, remove the splash screen
+        FlutterNativeSplash.remove();
 
-              if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                return const MainScreen(); // User has associations
-              } else {
-                return const NoAssociationScreen(); // User has no associations
-              }
-            },
-          ),
-        ),
-      );
+        if (associationData.isNotEmpty) {
+          // User has associations, navigate to MainScreen
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const MainScreen()),
+          );
+        } else {
+          // User has no associations, navigate to NoAssociationScreen
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+                builder: (context) => const NoAssociationScreen()),
+          );
+        }
+      } catch (e) {
+        print('Error fetching association data: $e');
+        // If there is an error, remove splash and navigate to NoAssociationScreen
+        FlutterNativeSplash.remove();
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
+        );
+      }
     } else {
+      // No session found, remove splash and navigate to LoginScreen
+      FlutterNativeSplash.remove();
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
@@ -154,9 +158,7 @@ class _AppStartupState extends State<AppStartup> {
 
   @override
   Widget build(BuildContext context) {
-    // Placeholder while initialization occurs
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    // Nothing needs to be shown as the splash screen is active during this phase
+    return const SizedBox.shrink();
   }
 }

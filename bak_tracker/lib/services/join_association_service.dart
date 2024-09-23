@@ -6,16 +6,15 @@ class JoinAssociationService {
   // Method to join the association using an invite code
   Future<String?> joinAssociation(String inviteCode) async {
     final userId = _supabase.auth.currentUser?.id;
-
     if (userId == null) {
       return 'User not authenticated.';
     }
 
     try {
-      // Check if the invite code is valid and not expired
+      // Check if the invite code is valid, not expired, and retrieve association id
       final inviteResponse = await _supabase
           .from('invites')
-          .select()
+          .select('association_id')
           .eq('invite_key', inviteCode)
           .eq('is_expired', false)
           .maybeSingle();
@@ -27,14 +26,14 @@ class JoinAssociationService {
       final associationId = inviteResponse['association_id'];
 
       // Check if the user is already a member of the association
-      final memberCheckResponse = await _supabase
+      final isMember = await _supabase
           .from('association_members')
-          .select()
+          .select('id')
           .eq('association_id', associationId)
           .eq('user_id', userId)
           .maybeSingle();
 
-      if (memberCheckResponse != null) {
+      if (isMember != null) {
         return 'You are already a member of this association.';
       }
 
@@ -42,14 +41,14 @@ class JoinAssociationService {
       await _supabase.from('association_members').insert({
         'user_id': userId,
         'association_id': associationId,
-        'role': 'member', // Default role, you can adjust as needed
+        'role': 'member', // Default role, can be adjusted
         'permissions': {}, // Default permissions
         'joined_at': DateTime.now().toIso8601String(),
       });
 
-      return null; // Success, return null (no error)
+      return null; // Success, no error
     } catch (e) {
-      return 'Error joining association: ${e.toString()}';
+      return 'Error joining association: $e';
     }
   }
 }

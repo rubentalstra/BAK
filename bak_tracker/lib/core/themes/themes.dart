@@ -65,7 +65,8 @@ class AppThemes {
     // DropdownMenuTheme for better readability
     dropdownMenuTheme: DropdownMenuThemeData(
       textStyle: const TextStyle(
-        color: AppColors.lightAccent, // Text color for better contrast
+        color: AppColors.lightSecondary, // Text color for better contrast
+        fontWeight: FontWeight.bold,
         fontSize: 18.0,
       ),
       inputDecorationTheme: const InputDecorationTheme(

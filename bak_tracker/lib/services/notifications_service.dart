@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NotificationsService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
-  bool _isInitialized = false;
+  // bool _isInitialized = false;
   final Set<String> _shownNotificationIds = {}; // Store notification IDs
 
   NotificationsService(this.flutterLocalNotificationsPlugin);
@@ -44,14 +44,14 @@ class NotificationsService {
 
   // Set up Firebase Messaging
   Future<void> setupFirebaseMessaging() async {
-    if (_isInitialized) return; // Prevent multiple initializations
+    // if (_isInitialized) return; // Prevent multiple initializations
 
-    _isInitialized = true; // Mark as initialized
+    // _isInitialized = true; // Mark as initialized
 
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
     // Request notification permissions
-    await messaging.requestPermission(
+    final NotificationSettings settings = await messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
@@ -63,6 +63,10 @@ class NotificationsService {
       badge: false,
       sound: false,
     );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      await handleFCMToken(messaging);
+    }
 
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {

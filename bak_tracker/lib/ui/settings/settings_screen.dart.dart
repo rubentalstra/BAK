@@ -1,10 +1,12 @@
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
+import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/ui/no_association/association_request_screen.dart';
 import 'package:bak_tracker/ui/settings/user_profile/profile_screen.dart';
 import 'package:bak_tracker/ui/widgets/invite_code_input_widget.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/ui/settings/association_settings/association_settings_screen.dart';
@@ -23,8 +25,14 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          ListTile(
+            title: const Text('Select Language'),
+            subtitle: const Text('Choose your preferred language'),
+            trailing: const Icon(Icons.language),
+            onTap: () => _showLanguageSelector(context),
+          ),
+          const Divider(),
           // Change Display Name Option
-
           // Option to go to Profile Settings
           ListTile(
             title: const Text('Profile Settings'),
@@ -202,5 +210,66 @@ class SettingsScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _showLanguageSelector(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900], // Dark background for contrast
+          title: const Text(
+            'Select Language',
+            style: TextStyle(color: Colors.white), // White text for title
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: _buildLanguageOptions(context),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  List<Widget> _buildLanguageOptions(BuildContext context) {
+    final currentLocale = context.read<LocaleBloc>().state.locale;
+
+    return AppLocalizations.supportedLocales.map((locale) {
+      // Get the native name of the language (you can use a mapping or a package)
+      String localeName = _getLocaleName(locale.languageCode);
+
+      return RadioListTile<Locale>(
+        title: Text(
+          localeName,
+          style:
+              const TextStyle(color: Colors.white), // White text for contrast
+        ),
+        activeColor: Colors.blueAccent, // Accent color for radio button
+        value: locale,
+        groupValue: currentLocale,
+        onChanged: (selectedLocale) {
+          if (selectedLocale != null) {
+            context
+                .read<LocaleBloc>()
+                .add(LocaleChanged(locale: selectedLocale));
+            Navigator.of(context).pop(); // Close the dialog
+          }
+        },
+      );
+    }).toList();
+  }
+
+  String _getLocaleName(String languageCode) {
+    switch (languageCode) {
+      case 'en':
+        return 'English';
+      case 'nl':
+        return 'Nederlands';
+      // Add more languages if necessary
+      default:
+        return languageCode;
+    }
   }
 }
