@@ -73,7 +73,7 @@
 		<key>UIStatusBarHidden</key>
 		<true/>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
-		<false/>
+		<true/>
 		<key>FirebaseAppDelegateProxyEnabled</key>
 		<false/>
 		<key>NSPhotoLibraryUsageDescription</key>
