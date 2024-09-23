@@ -1,6 +1,8 @@
 import 'package:bak_tracker/bloc/association/association_state.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 
@@ -36,16 +38,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       final sentResponse = await supabase
           .from('bak_send')
           .select(
-              'id, amount, status, created_at, receiver_id (id, name), giver_id (id, name)')
+              'id, amount, status, created_at, reason, receiver_id (id, name), giver_id (id, name)')
           .eq('giver_id', currentUserId)
           .eq('association_id', associationId)
+          .neq('status', 'pending')
           .order('created_at', ascending: false);
 
       // Fetch received baks by the current user (excluding pending ones)
       final receivedResponse = await supabase
           .from('bak_send')
           .select(
-              'id, amount, status, created_at, receiver_id (id, name), giver_id (id, name)')
+              'id, amount, status, created_at, reason, receiver_id (id, name), giver_id (id, name)')
           .eq('receiver_id', currentUserId)
           .eq('association_id', associationId)
           .neq('status', 'pending')
@@ -115,12 +118,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       itemCount: transactions.length,
       itemBuilder: (context, index) {
         final bak = transactions[index];
-        final date = DateTime.parse(bak['created_at']).toLocal();
-        final formattedDate =
-            '${date.day}/${date.month}/${date.year}'; // Format the date
+        final date = DateTime.parse(bak['created_at']);
 
         // Check if the current user sent or received the bak
         final isSent = bak['giver_id']['id'] == currentUserId;
+
+        // DateFormat.yMEd()
+
+        print(isSent);
 
         return ListTile(
           title: Text(
@@ -128,7 +133,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ? 'Sent to: ${bak['receiver_id']['name']}'
                 : 'Received from: ${bak['giver_id']['name']}',
           ),
-          subtitle: Text('Amount: ${bak['amount']} | Date: $formattedDate'),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Amount: ${bak['amount']}'),
+              Text('Reason: ${bak['reason']}'), // Add the reason field
+              Text(
+                  'Date: ${DateFormat.yMd('nl_NL').format(date)} ${DateFormat.Hm('nl_NL').format(date)}'),
+            ],
+          ),
           trailing: Text('Status: ${bak['status']}'),
         );
       },
