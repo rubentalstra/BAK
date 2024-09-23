@@ -182,28 +182,6 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         return;
       }
 
-      // Check if the user is the only one with management permissions
-      final otherAdminsResponse = await supabase
-          .from('association_members')
-          .select()
-          .eq('association_id', event.associationId)
-          .neq('user_id', userId); // Exclude current user
-
-      bool canLeave = false;
-      for (final admin in otherAdminsResponse) {
-        final permissions = Map<String, dynamic>.from(admin['permissions']);
-        if (permissions['hasAllPermissions'] == true) {
-          canLeave = true;
-          break;
-        }
-      }
-
-      if (!canLeave) {
-        _emitLeaveError(emit, currentState,
-            'You cannot leave the association as you are the only member with management permissions.');
-        return;
-      }
-
       // Proceed with removing the user from the association_members table
       await supabase
           .from('association_members')
@@ -211,12 +189,51 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
           .eq('user_id', userId)
           .eq('association_id', event.associationId);
 
+      // Check if the user is still part of any associations
+      final remainingAssociationsResponse = await supabase
+          .from('association_members')
+          .select('association_id')
+          .eq('user_id', userId);
+
       // Clear the saved association from SharedPreferences
       _prefs ??= await SharedPreferences.getInstance();
       await _prefs!.remove('selected_association');
 
-      // Emit a new state indicating the user has successfully left the association
-      emit(AssociationInitial());
+      if (remainingAssociationsResponse.isEmpty) {
+        // If no associations remain, emit a state to redirect to NoAssociationScreen
+        emit(NoAssociationsLeft());
+      } else {
+        // If there are remaining associations, select the first one
+        final newAssociationId =
+            remainingAssociationsResponse.first['association_id'];
+        final associationResponse = await supabase
+            .from('associations')
+            .select()
+            .eq('id', newAssociationId)
+            .single();
+
+        final newSelectedAssociation =
+            AssociationModel.fromMap(associationResponse);
+
+        // Save the new selected association
+        await _saveSelectedAssociation(newSelectedAssociation);
+
+        // Fetch updated member data and members list
+        final memberData = await _fetchMemberData(newSelectedAssociation.id);
+        final members = await _fetchMembers(newSelectedAssociation.id);
+
+        // Fetch pending baks count
+        final pendingBaksCount =
+            await _fetchPendingBaksCount(newSelectedAssociation.id);
+
+        // Emit updated state with the new association
+        emit(AssociationLoaded(
+          selectedAssociation: newSelectedAssociation,
+          memberData: memberData,
+          members: members,
+          pendingBaksCount: pendingBaksCount,
+        ));
+      }
     } catch (e) {
       _emitLeaveError(emit, currentState, 'Failed to leave association: $e');
     }
@@ -279,5 +296,17 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     } else {
       _emitError(emit, message);
     }
+  }
+
+// Helper method to fetch pending baks count
+  Future<int> _fetchPendingBaksCount(String associationId) async {
+    final supabase = Supabase.instance.client;
+    final pendingBaksResponse = await supabase
+        .from('bak_consumed')
+        .select('status')
+        .eq('association_id', associationId)
+        .eq('status', 'pending');
+
+    return pendingBaksResponse.length;
   }
 }

@@ -12,6 +12,8 @@ class AssociationInitial extends AssociationState {}
 
 class AssociationLoading extends AssociationState {}
 
+class NoAssociationsLeft extends AssociationState {}
+
 class AssociationLoaded extends AssociationState {
   final AssociationModel selectedAssociation;
   final AssociationMemberModel memberData;

@@ -4,7 +4,9 @@ import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/core/utils/locale_utils.dart';
+import 'package:bak_tracker/ui/home/main_screen.dart';
 import 'package:bak_tracker/ui/no_association/association_request_screen.dart';
+import 'package:bak_tracker/ui/no_association/no_association_screen.dart';
 import 'package:bak_tracker/ui/settings/user_profile/profile_screen.dart';
 import 'package:bak_tracker/ui/widgets/invite_code_input_widget.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -25,11 +27,21 @@ class SettingsScreen extends StatelessWidget {
       ),
       body: BlocListener<AssociationBloc, AssociationState>(
         listener: (context, state) {
-          if (state is AssociationLoaded && state.errorMessage != null) {
+          if (state is NoAssociationsLeft) {
+            // Navigate to NoAssociationScreen and remove all previous routes
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                  builder: (context) => const NoAssociationScreen()),
+            );
+          } else if (state is AssociationLoaded && state.errorMessage != null) {
             // Show error SnackBar when there is an error message in the state
             _showErrorSnackBar(context, state.errorMessage!);
-            // Dispatch the event to clear the error after showing the SnackBar
             context.read<AssociationBloc>().add(ClearAssociationError());
+          } else if (state is AssociationLoaded) {
+            // Navigate to MainScreen when an association is successfully selected
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const MainScreen()),
+            );
           }
         },
         child: ListView(
