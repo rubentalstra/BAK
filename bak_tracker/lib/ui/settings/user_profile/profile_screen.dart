@@ -204,7 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context,
         MaterialPageRoute(
           builder: (context) =>
-              FullScreenImage(imageUrl: _localImageFile!.path),
+              FullScreenImage(localFileName: _profileImagePath!),
         ),
       );
     }

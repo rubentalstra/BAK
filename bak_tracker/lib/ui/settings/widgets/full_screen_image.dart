@@ -1,9 +1,32 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
 class FullScreenImage extends StatelessWidget {
-  final String imageUrl;
+  final String localFileName;
 
-  const FullScreenImage({Key? key, required this.imageUrl}) : super(key: key);
+  const FullScreenImage({
+    Key? key,
+    required this.localFileName,
+  }) : super(key: key);
+
+  Future<File?> _getLocalImageFile() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final localImagePath = '${directory.path}/$localFileName';
+      final file = File(localImagePath);
+
+      // Check if the local file exists
+      if (await file.exists()) {
+        return file;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print('Error loading local image: $e');
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,12 +41,25 @@ class FullScreenImage extends StatelessWidget {
         ),
       ),
       body: Center(
-        child: Hero(
-          tag: imageUrl,
-          child: Image.network(
-            imageUrl,
-            fit: BoxFit.contain,
-          ),
+        child: FutureBuilder<File?>(
+          future: _getLocalImageFile(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator(); // Show loading indicator
+            }
+            if (snapshot.hasData && snapshot.data != null) {
+              return Hero(
+                tag: localFileName, // Use local file name as Hero tag
+                child: Image.file(
+                  snapshot.data!,
+                  fit: BoxFit.contain,
+                ),
+              );
+            } else {
+              return const Text('No image found',
+                  style: TextStyle(color: Colors.white));
+            }
+          },
         ),
       ),
     );
