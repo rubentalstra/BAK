@@ -51,83 +51,92 @@ class LeaderboardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return isLoading
-        ? _buildLoadingSkeleton()
-        : ListView.separated(
-            itemCount: entries.length,
-            separatorBuilder: (context, index) => Divider(
-              height: 1.0,
-              color: Colors.grey[300],
-            ),
-            itemBuilder: (context, index) {
-              final entry = entries[index];
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 500),
+      switchInCurve: Curves.easeIn,
+      switchOutCurve: Curves.easeOut,
+      child: isLoading
+          ? _buildLoadingSkeleton()
+          : _buildLeaderboardList(), // Smooth transition between loading and data
+    );
+  }
 
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 8.0),
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: AppColors.lightBackground,
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+  Widget _buildLeaderboardList() {
+    return ListView.separated(
+      itemCount: entries.length,
+      separatorBuilder: (context, index) => Divider(
+        height: 1.0,
+        color: Colors.grey[300],
+      ),
+      itemBuilder: (context, index) {
+        final entry = entries[index];
+
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 8.0),
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: AppColors.lightBackground,
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildProfileImage(entry, context),
+              const SizedBox(width: 16.0),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildProfileImage(entry, context),
-                    const SizedBox(width: 16.0),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            entry.name,
-                            style: const TextStyle(
-                              fontSize: 16.0,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 4.0),
-                          Row(
-                            children: [
-                              Text(
-                                'Chucked: ${entry.baksConsumed}',
-                                style: TextStyle(
-                                  fontSize: 14.0,
-                                  color: Colors.green[700],
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                              const SizedBox(width: 16.0),
-                              Text(
-                                'BAK: ${entry.baksDebt}',
-                                style: TextStyle(
-                                  fontSize: 14.0,
-                                  color: Colors.red[700],
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                    Text(
+                      entry.name,
+                      style: const TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
                       ),
                     ),
-                    Column(
+                    const SizedBox(height: 4.0),
+                    Row(
                       children: [
                         Text(
-                          entry.rank.toString(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16.0,
-                            color: Colors.black87,
+                          'Chucked: ${entry.baksConsumed}',
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            color: Colors.green[700],
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        const SizedBox(width: 16.0),
+                        Text(
+                          'BAK: ${entry.baksDebt}',
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            color: Colors.red[700],
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-              );
-            },
-          );
+              ),
+              Column(
+                children: [
+                  Text(
+                    entry.rank.toString(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.0,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildProfileImage(LeaderboardEntry entry, BuildContext context) {
@@ -150,7 +159,7 @@ class LeaderboardWidget extends StatelessWidget {
           return const CircleAvatar(
             radius: 24.0,
             backgroundColor: Colors.grey,
-            child: CircularProgressIndicator(),
+            child: CircularProgressIndicator(strokeWidth: 2),
           );
         }
 
@@ -173,7 +182,7 @@ class LeaderboardWidget extends StatelessWidget {
     );
   }
 
-  // Skeleton loading for the entire list item
+  // Skeleton loading for the entire list item with shimmer effect
   Widget _buildLoadingSkeleton() {
     return ListView.separated(
       itemCount: 6, // Loading skeleton for 6 items
@@ -183,51 +192,45 @@ class LeaderboardWidget extends StatelessWidget {
       ),
       itemBuilder: (context, index) {
         return Skeletonizer(
-          enabled: true,
+          effect: const ShimmerEffect(
+            baseColor: Color(0xFFE0E0E0), // Equivalent to Colors.grey[300]
+            highlightColor: Color(0xFFF5F5F5), // Equivalent to Colors.grey[100]
+            duration: Duration(seconds: 1), // Adjust shimmer speed
+          ),
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 8.0),
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: Colors.grey[200], // Lighter grey for a softer feel
               borderRadius: BorderRadius.circular(8.0),
             ),
-            child: const Row(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 24.0,
                   backgroundColor: Colors.grey,
                 ),
-                SizedBox(width: 16.0),
+                const SizedBox(width: 16.0),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Skeletonizer(
-                        child: SizedBox(
-                          height: 16.0,
-                          width: 100.0,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: Colors.grey,
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(4.0)),
-                            ),
-                          ),
+                      Container(
+                        height: 16.0,
+                        width: 100.0,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(4.0),
                         ),
                       ),
-                      SizedBox(height: 4.0),
-                      Skeletonizer(
-                        child: SizedBox(
-                          height: 14.0,
-                          width: 150.0,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: Colors.grey,
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(4.0)),
-                            ),
-                          ),
+                      const SizedBox(height: 8.0),
+                      Container(
+                        height: 14.0,
+                        width: 150.0,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(4.0),
                         ),
                       ),
                     ],

@@ -3,6 +3,7 @@ import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/core/utils/locale_utils.dart';
 import 'package:bak_tracker/ui/no_association/association_request_screen.dart';
 import 'package:bak_tracker/ui/settings/user_profile/profile_screen.dart';
 import 'package:bak_tracker/ui/widgets/invite_code_input_widget.dart';
@@ -22,177 +23,143 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Settings'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          ListTile(
-            title: const Text('Select Language'),
-            subtitle: const Text('Choose your preferred language'),
-            trailing: const Icon(Icons.language),
-            onTap: () => _showLanguageSelector(context),
-          ),
-          const Divider(),
-          // Change Display Name Option
-          // Option to go to Profile Settings
-          ListTile(
-            title: const Text('Profile Settings'),
-            subtitle: const Text('Update your profile information'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const ProfileScreen(),
-                ),
-              );
-            },
-          ),
-          const Divider(),
+      body: BlocListener<AssociationBloc, AssociationState>(
+        listener: (context, state) {
+          if (state is AssociationLoaded && state.errorMessage != null) {
+            // Show error SnackBar when there is an error message in the state
+            _showErrorSnackBar(context, state.errorMessage!);
+            // Dispatch the event to clear the error after showing the SnackBar
+            context.read<AssociationBloc>().add(ClearAssociationError());
+          }
+        },
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            ListTile(
+              title: const Text('Select Language'),
+              subtitle: const Text('Choose your preferred language'),
+              trailing: const Icon(Icons.language),
+              onTap: () => _showLanguageSelector(context),
+            ),
+            const Divider(),
+            ListTile(
+              title: const Text('Profile Settings'),
+              subtitle: const Text('Update your profile information'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
+              },
+            ),
+            const Divider(),
+            // BlocBuilder to conditionally show association-related settings
+            BlocBuilder<AssociationBloc, AssociationState>(
+              builder: (context, state) {
+                if (state is AssociationLoaded) {
+                  final memberData = state.memberData;
+                  bool hasAssociationPermissions =
+                      memberData.canManagePermissions ||
+                          memberData.canInviteMembers ||
+                          memberData.canRemoveMembers ||
+                          memberData.canManageRoles ||
+                          memberData.canManageBaks ||
+                          memberData.canApproveBaks;
 
-          // BlocBuilder to conditionally show association-related settings
-          BlocBuilder<AssociationBloc, AssociationState>(
-            builder: (context, state) {
-              if (state is AssociationLoaded) {
-                final memberData = state.memberData;
-
-                bool hasAssociationPermissions =
-                    memberData.canManagePermissions ||
-                        memberData.canInviteMembers ||
-                        memberData.canRemoveMembers ||
-                        memberData.canManageRoles ||
-                        memberData.canManageBaks ||
-                        memberData.canApproveBaks;
-
-                return Column(
-                  children: [
-                    // Display error message if any
-                    if (state.errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Text(
-                          state.errorMessage!,
-                          style:
-                              const TextStyle(color: AppColors.lightSecondary),
+                  return Column(
+                    children: [
+                      if (hasAssociationPermissions)
+                        ListTile(
+                          title: const Text('Association Settings'),
+                          subtitle: const Text('Manage association settings'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => AssociationSettingsScreen(
+                                  memberData: memberData,
+                                  associationId: state.selectedAssociation.id,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ),
-                    // Conditionally display the Association Settings option
-                    if (hasAssociationPermissions)
+                      if (hasAssociationPermissions) const Divider(),
                       ListTile(
-                        title: const Text('Association Settings'),
-                        subtitle: const Text('Manage association settings'),
+                        title: const Text('Join Another Association'),
+                        subtitle: const Text('Enter an invite code to join'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          _showInviteCodeModal(context);
+                        },
+                      ),
+                      const Divider(),
+                      ListTile(
+                        title: const Text('Create Association'),
+                        subtitle: const Text('Create a new association'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => AssociationSettingsScreen(
-                                memberData: memberData,
-                                associationId: state.selectedAssociation.id,
-                              ),
+                              builder: (context) =>
+                                  const AssociationRequestScreen(),
                             ),
                           );
                         },
                       ),
-                    if (hasAssociationPermissions) const Divider(),
-
-                    // Option to Join Another Association
-                    ListTile(
-                      title: const Text('Join Another Association'),
-                      subtitle: const Text('Enter an invite code to join'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        _showInviteCodeModal(context);
-                      },
-                    ),
-                    const Divider(),
-
-                    // Option to Create Association
-                    ListTile(
-                      title: const Text('Create Association'),
-                      subtitle: const Text('Create a new association'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const AssociationRequestScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    const Divider(),
-
-                    // Option to Leave Association
-                    ListTile(
-                      title: const Text('Leave Association'),
-                      subtitle: const Text('Leave the current association'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        // Show a confirmation dialog before leaving
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Confirm Leave'),
-                            content: const Text(
-                                'Are you sure you want to leave this association? This action cannot be undone.'),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context)
-                                      .pop(); // Close the dialog
-                                },
-                                child: const Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  // Dispatch the leave association event
-                                  context.read<AssociationBloc>().add(
-                                      LeaveAssociation(
-                                          associationId:
-                                              state.selectedAssociation.id));
-
-                                  Navigator.of(context)
-                                      .pop(); // Close the dialog
-                                },
-                                child: const Text('Leave'),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                      const Divider(),
+                      ListTile(
+                        title: const Text('Leave Association'),
+                        subtitle: const Text('Leave the current association'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          _showConfirmLeaveDialog(context, state);
+                        },
+                      ),
+                    ],
+                  );
+                } else if (state is AssociationLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                } else {
+                  return Column(
+                    children: [
+                      ListTile(
+                        title: const Text('Join Association'),
+                        subtitle: const Text('Enter an invite code to join'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          _showInviteCodeModal(context);
+                        },
+                      ),
+                      const Divider(),
+                    ],
+                  );
+                }
+              },
+            ),
+            ElevatedButton(
+              onPressed: () {
+                context.read<AuthenticationBloc>().signOut();
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
                 );
-              } else if (state is AssociationLoading) {
-                return const Center(child: CircularProgressIndicator());
-              } else {
-                return Column(
-                  children: [
-                    // Option to Join Association
-                    ListTile(
-                      title: const Text('Join Association'),
-                      subtitle: const Text('Enter an invite code to join'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        _showInviteCodeModal(context);
-                      },
-                    ),
-                    const Divider(),
-                  ],
-                );
-              }
-            },
-          ),
+              },
+              child: const Text('Logout'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-          // Logout Button (always available)
-          ElevatedButton(
-            onPressed: () {
-              context.read<AuthenticationBloc>().signOut();
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-              );
-            },
-            child: const Text('Logout'),
-          ),
-        ],
+  // Show error messages using SnackBar
+  void _showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -217,11 +184,7 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.grey[900], // Dark background for contrast
-          title: const Text(
-            'Select Language',
-            style: TextStyle(color: Colors.white), // White text for title
-          ),
+          title: const Text('Select Language'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -235,18 +198,10 @@ class SettingsScreen extends StatelessWidget {
 
   List<Widget> _buildLanguageOptions(BuildContext context) {
     final currentLocale = context.read<LocaleBloc>().state.locale;
-
     return AppLocalizations.supportedLocales.map((locale) {
-      // Get the native name of the language (you can use a mapping or a package)
-      String localeName = _getLocaleName(locale.languageCode);
-
+      String localeName = LocaleUtils.getLocaleName(locale.languageCode);
       return RadioListTile<Locale>(
-        title: Text(
-          localeName,
-          style:
-              const TextStyle(color: Colors.white), // White text for contrast
-        ),
-        activeColor: Colors.blueAccent, // Accent color for radio button
+        title: Text(localeName),
         value: locale,
         groupValue: currentLocale,
         onChanged: (selectedLocale) {
@@ -261,15 +216,34 @@ class SettingsScreen extends StatelessWidget {
     }).toList();
   }
 
-  String _getLocaleName(String languageCode) {
-    switch (languageCode) {
-      case 'en':
-        return 'English';
-      case 'nl':
-        return 'Nederlands';
-      // Add more languages if necessary
-      default:
-        return languageCode;
-    }
+  void _showConfirmLeaveDialog(BuildContext context, AssociationLoaded state) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Leave'),
+        content: const Text(
+            'Are you sure you want to leave this association? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close the dialog
+            },
+            child: const Text('Cancel',
+                style: TextStyle(color: AppColors.lightSecondary)),
+          ),
+          TextButton(
+            onPressed: () {
+              context.read<AssociationBloc>().add(LeaveAssociation(
+                  associationId: state.selectedAssociation.id));
+              Navigator.of(context).pop(); // Close the dialog
+            },
+            child: const Text(
+              'Leave',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

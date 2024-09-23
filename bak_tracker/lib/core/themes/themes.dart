@@ -116,5 +116,27 @@ class AppThemes {
       contentTextStyle: TextStyle(color: AppColors.lightAccent),
       actionTextColor: AppColors.lightAccent,
     ),
+
+    dialogTheme: const DialogTheme(
+      backgroundColor: AppColors.lightPrimaryVariant,
+      titleTextStyle: TextStyle(
+        color: AppColors.lightSecondary,
+        fontSize: 20.0,
+        fontWeight: FontWeight.bold,
+      ),
+      contentTextStyle: TextStyle(
+        color: AppColors.lightOnPrimary,
+        fontSize: 16.0,
+      ),
+    ),
+
+    radioTheme: RadioThemeData(
+      fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.selected)) {
+          return AppColors.lightSecondary; // Active color (selected)
+        }
+        return Colors.white; // Inactive color (unselected)
+      }),
+    ),
   );
 }

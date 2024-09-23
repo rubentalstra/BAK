@@ -35,6 +35,23 @@ class AssociationLoaded extends AssociationState {
         pendingBaksCount,
         errorMessage
       ];
+
+  // Implementing the copyWith method
+  AssociationLoaded copyWith({
+    AssociationModel? selectedAssociation,
+    AssociationMemberModel? memberData,
+    List<AssociationMemberModel>? members,
+    int? pendingBaksCount,
+    String? errorMessage,
+  }) {
+    return AssociationLoaded(
+      selectedAssociation: selectedAssociation ?? this.selectedAssociation,
+      memberData: memberData ?? this.memberData,
+      members: members ?? this.members,
+      pendingBaksCount: pendingBaksCount ?? this.pendingBaksCount,
+      errorMessage: errorMessage, // Explicitly set to null or new value
+    );
+  }
 }
 
 class AssociationError extends AssociationState {

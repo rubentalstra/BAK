@@ -8,18 +8,21 @@ import 'association_event.dart';
 import 'association_state.dart';
 
 class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
+  SharedPreferences? _prefs; // Cached SharedPreferences instance
+
   AssociationBloc() : super(AssociationInitial()) {
     on<SelectAssociation>(_onSelectAssociation);
     on<LeaveAssociation>(_onLeaveAssociation);
-    on<RefreshPendingBaks>(_onRefreshPendingBaks); // Register the event handler
+    on<ClearAssociationError>(_onClearAssociationError);
+    on<RefreshPendingBaks>(_onRefreshPendingBaks);
     _loadSelectedAssociation(); // Load from storage when initialized
   }
 
   // Load saved association from SharedPreferences
   Future<void> _loadSelectedAssociation() async {
-    final prefs = await SharedPreferences.getInstance();
+    _prefs ??= await SharedPreferences.getInstance();
     final String? selectedAssociationData =
-        prefs.getString('selected_association');
+        _prefs?.getString('selected_association');
 
     if (selectedAssociationData != null) {
       final associationMap =
@@ -33,9 +36,9 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
 
   // Save selected association to SharedPreferences
   Future<void> _saveSelectedAssociation(AssociationModel association) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-        'selected_association', jsonEncode(association.toMap()));
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!
+        .setString('selected_association', jsonEncode(association.toMap()));
   }
 
   // Fetch members for the selected association
@@ -66,6 +69,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     }).toList();
   }
 
+  // Handle selection of an association
   Future<void> _onSelectAssociation(
       SelectAssociation event, Emitter<AssociationState> emit) async {
     emit(AssociationLoading());
@@ -115,7 +119,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         pendingBaksCount: pendingCount, // Initialize pending baks count
       ));
     } catch (e) {
-      emit(AssociationError(e.toString()));
+      _emitError(emit, 'Failed to select association: $e');
     }
   }
 
@@ -126,11 +130,10 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     emit(AssociationLoading());
 
     try {
-      // Get user and association information
       final supabase = Supabase.instance.client;
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) {
-        emit(AssociationError('User not authenticated'));
+        _emitError(emit, 'User not authenticated');
         return;
       }
 
@@ -142,7 +145,6 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
           .neq('user_id', userId); // Exclude current user
 
       bool canLeave = false;
-
       for (final admin in otherAdminsResponse) {
         final permissions = Map<String, dynamic>.from(admin['permissions']);
         if (permissions['hasAllPermissions'] == true) {
@@ -152,18 +154,8 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       }
 
       if (!canLeave) {
-        // The user cannot leave because they are the only one with management permissions
-        if (currentState is AssociationLoaded) {
-          // Keep the state and show an error message
-          emit(AssociationLoaded(
-            selectedAssociation: currentState.selectedAssociation,
-            memberData: currentState.memberData,
-            members: currentState.members,
-            pendingBaksCount: currentState.pendingBaksCount,
-            errorMessage:
-                'You cannot leave the association as you are the only member with management permissions.',
-          ));
-        }
+        _emitLeaveError(emit, currentState,
+            'You cannot leave the association as you are the only member with management permissions.');
         return;
       }
 
@@ -175,24 +167,13 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
           .eq('association_id', event.associationId);
 
       // Clear the saved association from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('selected_association');
+      _prefs ??= await SharedPreferences.getInstance();
+      await _prefs!.remove('selected_association');
 
       // Emit a new state indicating the user has successfully left the association
       emit(AssociationInitial());
     } catch (e) {
-      if (currentState is AssociationLoaded) {
-        // Keep the state and show an error message
-        emit(AssociationLoaded(
-          selectedAssociation: currentState.selectedAssociation,
-          memberData: currentState.memberData,
-          members: currentState.members,
-          pendingBaksCount: currentState.pendingBaksCount,
-          errorMessage: 'Failed to leave association: $e',
-        ));
-      } else {
-        emit(AssociationError('Failed to leave association: $e'));
-      }
+      _emitLeaveError(emit, currentState, 'Failed to leave association: $e');
     }
   }
 
@@ -221,8 +202,37 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
           pendingBaksCount: pendingCount, // Updated pending baks count
         ));
       } catch (e) {
-        emit(AssociationError('Failed to refresh pending baks: $e'));
+        _emitError(emit, 'Failed to refresh pending baks: $e');
       }
+    }
+  }
+
+  // Handler for ClearAssociationError event
+  void _onClearAssociationError(
+      ClearAssociationError event, Emitter<AssociationState> emit) {
+    if (state is AssociationLoaded) {
+      emit((state as AssociationLoaded).copyWith(errorMessage: null));
+    }
+  }
+
+  // Common function to emit error
+  void _emitError(Emitter<AssociationState> emit, String message) {
+    emit(AssociationError(message));
+  }
+
+  // Common function to emit leave error with the current state
+  void _emitLeaveError(Emitter<AssociationState> emit,
+      AssociationState currentState, String message) {
+    if (currentState is AssociationLoaded) {
+      emit(AssociationLoaded(
+        selectedAssociation: currentState.selectedAssociation,
+        memberData: currentState.memberData,
+        members: currentState.members,
+        pendingBaksCount: currentState.pendingBaksCount,
+        errorMessage: message,
+      ));
+    } else {
+      _emitError(emit, message);
     }
   }
 }

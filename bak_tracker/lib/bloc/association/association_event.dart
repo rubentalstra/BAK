@@ -30,3 +30,5 @@ class RefreshPendingBaks extends AssociationEvent {
 
   RefreshPendingBaks(this.associationId);
 }
+
+class ClearAssociationError extends AssociationEvent {}
