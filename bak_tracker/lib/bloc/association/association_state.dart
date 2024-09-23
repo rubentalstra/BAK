@@ -64,3 +64,13 @@ class AssociationError extends AssociationState {
   @override
   List<Object?> get props => [message];
 }
+
+class AssociationLeave extends AssociationState {
+  @override
+  List<Object?> get props => [];
+}
+
+class AssociationJoined extends AssociationState {
+  @override
+  List<Object?> get props => [];
+}

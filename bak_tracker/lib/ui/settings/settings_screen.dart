@@ -27,21 +27,49 @@ class SettingsScreen extends StatelessWidget {
       ),
       body: BlocListener<AssociationBloc, AssociationState>(
         listener: (context, state) {
+          // Handle no associations remaining
           if (state is NoAssociationsLeft) {
-            // Navigate to NoAssociationScreen and remove all previous routes
-            Navigator.of(context).pushReplacement(
+            Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
-                  builder: (context) => const NoAssociationScreen()),
+                builder: (context) => const NoAssociationScreen(),
+              ),
+              (Route<dynamic> route) => false,
             );
-          } else if (state is AssociationLoaded && state.errorMessage != null) {
-            // Show error SnackBar when there is an error message in the state
-            _showErrorSnackBar(context, state.errorMessage!);
-            context.read<AssociationBloc>().add(ClearAssociationError());
-          } else if (state is AssociationLoaded) {
-            // Navigate to MainScreen when an association is successfully selected
-            Navigator.of(context).pushReplacement(
+          }
+          // Handle successful leave (go to MainScreen)
+          else if (state is AssociationLeave) {
+            Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => const MainScreen()),
+              (Route<dynamic> route) => false,
             );
+          }
+          // Handle successful join (go to MainScreen)
+          else if (state is AssociationJoined) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const MainScreen()),
+              (Route<dynamic> route) => false,
+            );
+          }
+          // Handle AssociationLoaded with error message
+          else if (state is AssociationLoaded && state.errorMessage != null) {
+            // Show the error message via Snackbar
+            Future.delayed(Duration.zero, () {
+              _showErrorSnackBar(context, state.errorMessage!);
+            });
+
+            // Clear the error to avoid repeated showing
+            context.read<AssociationBloc>().add(ClearAssociationError());
+          }
+
+          // Handle error state (show error and do not navigate)
+          else if (state is AssociationError) {
+            // Ensure error message is shown via Snackbar
+            Future.delayed(Duration.zero, () {
+              _showErrorSnackBar(context, state.message);
+            });
+
+            // Clear the error to avoid repeated showing
+            context.read<AssociationBloc>().add(ClearAssociationError());
           }
         },
         child: ListView(
@@ -246,8 +274,9 @@ class SettingsScreen extends StatelessWidget {
           TextButton(
             onPressed: () {
               context.read<AssociationBloc>().add(LeaveAssociation(
-                  associationId: state.selectedAssociation.id));
-              Navigator.of(context).pop(); // Close the dialog
+                    associationId: state.selectedAssociation.id,
+                  ));
+              Navigator.of(context).pop();
             },
             child: const Text(
               'Leave',

@@ -3,7 +3,7 @@ import 'dart:async'; // For polling
 
 import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
-import 'package:bak_tracker/ui/settings/settings_screen.dart.dart';
+import 'package:bak_tracker/ui/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/ui/home/bak/bak_screen.dart';

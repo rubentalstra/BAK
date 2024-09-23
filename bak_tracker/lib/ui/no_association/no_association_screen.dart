@@ -1,5 +1,5 @@
 import 'package:bak_tracker/ui/no_association/no_association_home_screen.dart';
-import 'package:bak_tracker/ui/settings/settings_screen.dart.dart';
+import 'package:bak_tracker/ui/settings/settings_screen.dart';
 import 'package:bak_tracker/ui/widgets/bottem_nav_bar_no_association.dart';
 import 'package:flutter/material.dart';
 

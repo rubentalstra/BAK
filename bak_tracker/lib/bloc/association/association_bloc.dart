@@ -152,23 +152,18 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
   Future<void> _onJoinNewAssociation(
       JoinNewAssociation event, Emitter<AssociationState> emit) async {
     emit(AssociationLoading());
+
     try {
       await _saveSelectedAssociation(event.newAssociation);
-      final members = await _fetchMembers(event.newAssociation.id);
-      final memberData = await _fetchMemberData(event.newAssociation.id);
 
-      emit(AssociationLoaded(
-        selectedAssociation: event.newAssociation,
-        memberData: memberData,
-        members: members,
-        pendingBaksCount: 0,
-      ));
+      // Emit join success state
+      emit(AssociationJoined());
     } catch (e) {
       emit(AssociationError('Failed to join association: $e'));
     }
   }
 
-  // Handle leaving the association
+// Handle leaving the association
   Future<void> _onLeaveAssociation(
       LeaveAssociation event, Emitter<AssociationState> emit) async {
     final currentState = state;
@@ -177,8 +172,45 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     try {
       final supabase = Supabase.instance.client;
       final userId = supabase.auth.currentUser?.id;
+
       if (userId == null) {
-        _emitError(emit, 'User not authenticated');
+        _emitLeaveError(emit, currentState, 'User not authenticated');
+        return;
+      }
+
+      // Fetch all members of the association excluding the current user
+      final otherAdminsResponse = await supabase
+          .from('association_members')
+          .select('user_id, permissions')
+          .eq('association_id', event.associationId)
+          .neq('user_id', userId); // Exclude current user
+
+      // Fetch current user's permissions
+      final currentUserResponse = await supabase
+          .from('association_members')
+          .select('permissions')
+          .eq('association_id', event.associationId)
+          .eq('user_id', userId)
+          .single();
+
+      final currentUserPermissions =
+          Map<String, dynamic>.from(currentUserResponse['permissions']);
+
+      // Check if the current user has all permissions
+      bool currentUserHasAllPermissions =
+          currentUserPermissions['hasAllPermissions'] == true;
+
+      // Check if other members have all permissions
+      bool otherMembersHaveAllPermissions = otherAdminsResponse.any((admin) {
+        final permissions = Map<String, dynamic>.from(admin['permissions']);
+        return permissions['hasAllPermissions'] == true;
+      });
+
+      // If the current user has all permissions and no other members have all permissions
+      if (currentUserHasAllPermissions && !otherMembersHaveAllPermissions) {
+        // Emit error without changing the current state
+        _emitLeaveError(emit, currentState,
+            'You cannot leave the association as you are the only member with management permissions.');
         return;
       }
 
@@ -203,40 +235,43 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         // If no associations remain, emit a state to redirect to NoAssociationScreen
         emit(NoAssociationsLeft());
       } else {
-        // If there are remaining associations, select the first one
-        final newAssociationId =
-            remainingAssociationsResponse.first['association_id'];
-        final associationResponse = await supabase
-            .from('associations')
-            .select()
-            .eq('id', newAssociationId)
-            .single();
-
-        final newSelectedAssociation =
-            AssociationModel.fromMap(associationResponse);
-
-        // Save the new selected association
-        await _saveSelectedAssociation(newSelectedAssociation);
-
-        // Fetch updated member data and members list
-        final memberData = await _fetchMemberData(newSelectedAssociation.id);
-        final members = await _fetchMembers(newSelectedAssociation.id);
-
-        // Fetch pending baks count
-        final pendingBaksCount =
-            await _fetchPendingBaksCount(newSelectedAssociation.id);
-
-        // Emit updated state with the new association
-        emit(AssociationLoaded(
-          selectedAssociation: newSelectedAssociation,
-          memberData: memberData,
-          members: members,
-          pendingBaksCount: pendingBaksCount,
-        ));
+        // Emit leave success state
+        emit(AssociationLeave());
       }
     } catch (e) {
-      _emitLeaveError(emit, currentState, 'Failed to leave association: $e');
+      // Emit the error and keep the current state unchanged
+      _emitLeaveError(
+          emit, currentState, 'Failed to leave association: ${e.toString()}');
     }
+  }
+
+// Updated emitLeaveError method to preserve current state
+  void _emitLeaveError(Emitter<AssociationState> emit,
+      AssociationState currentState, String message) {
+    // Log the error message to ensure it's being captured
+    // print('Emitting leave error: $message');
+
+    // Check if the current state is AssociationLoaded to preserve it
+    if (currentState is AssociationLoaded) {
+      // Emit the error message but keep the current state unchanged
+      emit(AssociationLoaded(
+        selectedAssociation: currentState.selectedAssociation,
+        memberData: currentState.memberData,
+        members: currentState.members,
+        pendingBaksCount: currentState.pendingBaksCount,
+        errorMessage: message, // Ensure this error message is passed
+      ));
+    } else {
+      // Emit a generic error if not in AssociationLoaded state
+      emit(AssociationError(message)); // Ensure the message is passed
+    }
+  }
+
+  void _emitError(Emitter<AssociationState> emit, String message) {
+    // Log the error message to ensure it's being captured
+    // print('Emitting general error: $message');
+
+    emit(AssociationError(message));
   }
 
   // Handler for RefreshPendingBaks event
@@ -269,44 +304,12 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     }
   }
 
-  // Handler for ClearAssociationError event
+// Clear the error in ClearAssociationError event
   void _onClearAssociationError(
       ClearAssociationError event, Emitter<AssociationState> emit) {
+    // Clear the error without triggering other changes
     if (state is AssociationLoaded) {
       emit((state as AssociationLoaded).copyWith(errorMessage: null));
     }
-  }
-
-  // Common function to emit error
-  void _emitError(Emitter<AssociationState> emit, String message) {
-    emit(AssociationError(message));
-  }
-
-  // Common function to emit leave error with the current state
-  void _emitLeaveError(Emitter<AssociationState> emit,
-      AssociationState currentState, String message) {
-    if (currentState is AssociationLoaded) {
-      emit(AssociationLoaded(
-        selectedAssociation: currentState.selectedAssociation,
-        memberData: currentState.memberData,
-        members: currentState.members,
-        pendingBaksCount: currentState.pendingBaksCount,
-        errorMessage: message,
-      ));
-    } else {
-      _emitError(emit, message);
-    }
-  }
-
-// Helper method to fetch pending baks count
-  Future<int> _fetchPendingBaksCount(String associationId) async {
-    final supabase = Supabase.instance.client;
-    final pendingBaksResponse = await supabase
-        .from('bak_consumed')
-        .select('status')
-        .eq('association_id', associationId)
-        .eq('status', 'pending');
-
-    return pendingBaksResponse.length;
   }
 }
