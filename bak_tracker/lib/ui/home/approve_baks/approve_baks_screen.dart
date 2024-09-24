@@ -35,8 +35,9 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
     }
   }
 
-  // Fetch Baks from the database for a specific association
+// Fetch Baks from the database for a specific association
   Future<void> _fetchBaks(String associationId) async {
+    if (!mounted) return; // Ensure the widget is still mounted
     setState(() {
       _isLoading = true;
     });
@@ -59,6 +60,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
           .neq('status', 'pending')
           .eq('association_id', associationId); // Use associationId filter
 
+      if (!mounted) return; // Ensure the widget is still mounted
       setState(() {
         _requestedBaks = List<Map<String, dynamic>>.from(requestedResponse);
         _processedBaks = List<Map<String, dynamic>>.from(processedResponse);
@@ -66,6 +68,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
       });
     } catch (e) {
       print('Error fetching baks: $e');
+      if (!mounted) return; // Ensure the widget is still mounted
       setState(() {
         _isLoading = false;
       });
@@ -87,7 +90,6 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
       if (associationBloc is AssociationLoaded) {
         final associationId = associationBloc.selectedAssociation.id;
 
-        // If approved, increase the consumed count
         if (status == 'approved') {
           final takerResponse = await supabase
               .from('association_members')
@@ -104,7 +106,6 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
               .eq('user_id', takerId)
               .eq('association_id', associationId);
         } else if (status == 'rejected') {
-          // If rejected, update the baks received count
           final takerResponse = await supabase
               .from('association_members')
               .select('baks_received')
@@ -121,11 +122,11 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
               .eq('association_id', associationId);
         }
 
-        // After updating, refresh the list and badge count
-        _fetchBaks(associationId);
-
-        // Trigger the refresh event for pending baks in the AssociationBloc
+        // Refresh the list and badge count
         if (mounted) {
+          _fetchBaks(associationId);
+
+          // Trigger the refresh event for pending baks in the AssociationBloc
           context
               .read<AssociationBloc>()
               .add(RefreshPendingBaks(associationId));

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/models/association_model.dart';
+import 'package:bak_tracker/services/association_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +9,7 @@ import 'association_event.dart';
 import 'association_state.dart';
 
 class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
+  final AssociationService _associationService = AssociationService();
   SharedPreferences? _prefs; // Cached SharedPreferences instance
 
   AssociationBloc() : super(AssociationInitial()) {
@@ -42,34 +44,6 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         .setString('selected_association', jsonEncode(association.toMap()));
   }
 
-  // Fetch members for the selected association
-  Future<List<AssociationMemberModel>> _fetchMembers(
-      String associationId) async {
-    final supabase = Supabase.instance.client;
-    final List<dynamic> response = await supabase
-        .from('association_members')
-        .select(
-            'user_id (id, name, profile_image_path), association_id, role, permissions, joined_at, baks_received, baks_consumed')
-        .eq('association_id', associationId);
-
-    return response.map((data) {
-      final userMap = data['user_id'] as Map<String, dynamic>;
-      return AssociationMemberModel(
-        userId: userMap['id'],
-        name: userMap['name'],
-        profileImagePath: userMap['profile_image_path'],
-        associationId: data['association_id'],
-        role: data['role'],
-        permissions: data['permissions'] is String
-            ? jsonDecode(data['permissions']) as Map<String, dynamic>
-            : data['permissions'] as Map<String, dynamic>,
-        joinedAt: DateTime.parse(data['joined_at']),
-        baksReceived: data['baks_received'],
-        baksConsumed: data['baks_consumed'],
-      );
-    }).toList();
-  }
-
   // Handle selection of an association
   Future<void> _onSelectAssociation(
       SelectAssociation event, Emitter<AssociationState> emit) async {
@@ -102,7 +76,8 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       final memberData = AssociationMemberModel.fromMap(response);
 
       // Fetch all members for the selected association
-      final members = await _fetchMembers(event.selectedAssociation.id);
+      final members =
+          await _associationService.fetchMembers(event.selectedAssociation.id);
 
       // Fetch the updated pending baks count for the association
       final responsePendingBaks = await supabase
@@ -224,10 +199,6 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
 // Updated emitLeaveError method to preserve current state
   void _emitLeaveError(Emitter<AssociationState> emit,
       AssociationState currentState, String message) {
-    // Log the error message to ensure it's being captured
-    // print('Emitting leave error: $message');
-
-    // Check if the current state is AssociationLoaded to preserve it
     if (currentState is AssociationLoaded) {
       // Emit the error message but keep the current state unchanged
       emit(AssociationLoaded(
@@ -238,15 +209,11 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         errorMessage: message, // Ensure this error message is passed
       ));
     } else {
-      // Emit a generic error if not in AssociationLoaded state
       emit(AssociationError(message)); // Ensure the message is passed
     }
   }
 
   void _emitError(Emitter<AssociationState> emit, String message) {
-    // Log the error message to ensure it's being captured
-    // print('Emitting general error: $message');
-
     emit(AssociationError(message));
   }
 
@@ -255,24 +222,15 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       RefreshPendingBaks event, Emitter<AssociationState> emit) async {
     final currentState = state;
     if (currentState is AssociationLoaded) {
-      final supabase = Supabase.instance.client;
-
       try {
-        // Fetch the updated pending baks count for the association
-        final response = await supabase
-            .from('bak_consumed')
-            .select()
-            .eq('association_id', event.associationId)
-            .eq('status', 'pending');
+        final pendingBaksCount = await _associationService
+            .fetchPendingBaksCount(event.associationId);
 
-        final pendingCount = response.length;
-
-        // Emit the new state with the updated pending baks count
         emit(AssociationLoaded(
           selectedAssociation: currentState.selectedAssociation,
           memberData: currentState.memberData,
           members: currentState.members,
-          pendingBaksCount: pendingCount, // Updated pending baks count
+          pendingBaksCount: pendingBaksCount, // Updated pending baks count
         ));
       } catch (e) {
         _emitError(emit, 'Failed to refresh pending baks: $e');
@@ -280,7 +238,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     }
   }
 
-// Clear the error in ClearAssociationError event
+  // Clear the error in ClearAssociationError event
   void _onClearAssociationError(
       ClearAssociationError event, Emitter<AssociationState> emit) {
     // Clear the error without triggering other changes

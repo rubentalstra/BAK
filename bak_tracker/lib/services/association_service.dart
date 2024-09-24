@@ -7,6 +7,7 @@ import 'package:bak_tracker/models/association_member_model.dart';
 class AssociationService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  // Fetches members for a given association ID
   Future<List<AssociationMemberModel>> fetchMembers(
       String associationId) async {
     final List<dynamic> response = await _supabase
@@ -55,7 +56,6 @@ class AssociationService {
 
   Future<void> resetAllBaks(String associationId) async {
     try {
-      // Reset baks_received and baks_consumed for all members of the association
       final response = await _supabase
           .from('association_members')
           .update({'baks_received': 0, 'baks_consumed': 0}).eq(
