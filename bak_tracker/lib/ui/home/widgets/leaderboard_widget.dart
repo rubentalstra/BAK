@@ -40,7 +40,7 @@ class LeaderboardEntry {
 class LeaderboardWidget extends StatelessWidget {
   final List<LeaderboardEntry> entries;
   final ImageUploadService imageUploadService;
-  final bool isLoading;
+  final bool isLoading; // Indicates if it's in the loading state
 
   const LeaderboardWidget({
     super.key,
@@ -56,8 +56,8 @@ class LeaderboardWidget extends StatelessWidget {
       switchInCurve: Curves.easeIn,
       switchOutCurve: Curves.easeOut,
       child: isLoading
-          ? _buildLoadingSkeleton()
-          : _buildLeaderboardList(), // Smooth transition between loading and data
+          ? _buildLoadingSkeleton() // Show skeleton when loading
+          : _buildLeaderboardList(), // Show the leaderboard data when loaded
     );
   }
 

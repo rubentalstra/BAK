@@ -39,7 +39,7 @@ void main() async {
     print('Firebase, Supabase, and .env loaded successfully.');
 
     // After initialization, run the app
-    runApp(BakTrackerApp());
+    runApp(const BakTrackerApp());
   } catch (e) {
     print('Error during app initialization: $e');
   }

@@ -1,3 +1,4 @@
+import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -102,13 +103,17 @@ class _UpdateRolesScreenState extends State<UpdateRolesScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, null), // Cancel
-              child: const Text('Cancel'),
+              child: const Text(
+                'Cancel',
+              ),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(
-                  context, roleController.text), // Update with the new role
-              child: const Text('Update'),
-            ),
+                onPressed: () => Navigator.pop(
+                    context, roleController.text), // Update with the new role
+                child: const Text(
+                  'Update',
+                  style: TextStyle(color: AppColors.lightSecondary),
+                )),
           ],
         );
       },

@@ -52,4 +52,20 @@ class AssociationService {
 
     return AssociationModel.fromMap(response);
   }
+
+  Future<void> resetAllBaks(String associationId) async {
+    try {
+      // Reset baks_received and baks_consumed for all members of the association
+      final response = await _supabase
+          .from('association_members')
+          .update({'baks_received': 0, 'baks_consumed': 0}).eq(
+              'association_id', associationId);
+
+      if (response == null || response.error != null) {
+        throw Exception('Failed to reset BAKs');
+      }
+    } catch (e) {
+      throw Exception('Error resetting BAKs: ${e.toString()}');
+    }
+  }
 }

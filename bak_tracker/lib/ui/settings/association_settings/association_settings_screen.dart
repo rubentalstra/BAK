@@ -1,4 +1,6 @@
+import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
+import 'package:bak_tracker/services/association_service.dart';
 import 'package:bak_tracker/ui/settings/association_settings/invite_members_screen.dart';
 import 'package:bak_tracker/ui/settings/association_settings/remove_members_screen.dart';
 import 'package:bak_tracker/ui/settings/association_settings/permissions/list_permissions_screen.dart';
@@ -8,8 +10,9 @@ import 'package:flutter/material.dart';
 class AssociationSettingsScreen extends StatelessWidget {
   final AssociationMemberModel memberData;
   final String associationId;
+  final AssociationService associationService = AssociationService();
 
-  const AssociationSettingsScreen({
+  AssociationSettingsScreen({
     super.key,
     required this.memberData,
     required this.associationId,
@@ -76,7 +79,6 @@ class AssociationSettingsScreen extends StatelessWidget {
                 );
               },
             ),
-          // Show divider if the user has permission
           if (memberData.canManagePermissions) const Divider(),
 
           // Show Update Roles option if the user has permission
@@ -97,19 +99,88 @@ class AssociationSettingsScreen extends StatelessWidget {
             ),
           if (memberData.canManageRoles) const Divider(),
 
-          // Show Update Bak Amount option if the user has permission
+          // show update bak amout option if the user has permission
           if (memberData.canManageBaks)
             ListTile(
               title: const Text('Update Bak Amount'),
-              subtitle: const Text('Update the amount of baks consumed'),
+              subtitle:
+                  const Text('Update the amount of baks received and consumed'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                // Navigate to update bak amount screen, passing associationId
                 // Navigator.of(context).push(
                 //   MaterialPageRoute(
-                //     builder: (context) => UpdateBakAmountScreen(associationId: associationId),
+                //     builder: (context) => UpdateBakAmountScreen(
+                //       associationId: associationId,
+                //     ),
                 //   ),
                 // );
+              },
+            ),
+          if (memberData.canManageBaks) const Divider(),
+
+          // Show Reset Bak Amount option if the user has permission
+          if (memberData.canManageBaks)
+            ListTile(
+              title: Text('Reset Bak Amount',
+                  style: TextStyle(color: Colors.red.shade500)),
+              subtitle:
+                  const Text('Reset the amount of baks received and consumed'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: const Text('Reset Bak Amount'),
+                      content: const Text(
+                          'Are you sure you want to reset all BAKs consumed and received? This action cannot be undone.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            // Close the dialog without doing anything
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Cancel',
+                              style:
+                                  TextStyle(color: AppColors.lightSecondary)),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            try {
+                              // Call the reset method
+                              await associationService
+                                  .resetAllBaks(associationId);
+
+                              // Show success SnackBar
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content:
+                                      Text('BAKs have been reset successfully'),
+                                ),
+                              );
+                            } catch (e) {
+                              // Show error SnackBar
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: ${e.toString()}'),
+                                ),
+                              );
+                            }
+
+                            // Close the dialog after the action
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text(
+                            'Reset',
+                            style: TextStyle(
+                              color: Colors.red,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
               },
             ),
         ],

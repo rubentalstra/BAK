@@ -28,7 +28,6 @@ class _MainScreenState extends State<MainScreen> {
   bool _canApproveBaks = false;
   List<AssociationModel> _associations = [];
   AssociationModel? _selectedAssociation;
-  List<Widget> _pages = [];
   Timer? _timer; // Timer for periodic polling
 
   @override
@@ -41,11 +40,7 @@ class _MainScreenState extends State<MainScreen> {
       if (state is AssociationLoaded) {
         _canApproveBaks = state.memberData.canApproveBaks ||
             state.memberData.hasAllPermissions;
-        _setPages();
-        // Only start polling for pending baks if the user has approval permissions
-        if (_canApproveBaks) {
-          _startPollingPendingBaks();
-        }
+        _startPollingPendingBaks();
       }
     });
   }
@@ -58,28 +53,23 @@ class _MainScreenState extends State<MainScreen> {
 
   // Poll for pending baks every 30 seconds and refresh using Bloc
   void _startPollingPendingBaks() {
-    if (_timer != null) {
-      _timer?.cancel(); // Cancel any existing timer
+    _timer?.cancel(); // Ensure any previous timer is cancelled
+    if (_selectedAssociation != null && _canApproveBaks) {
+      _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+        context
+            .read<AssociationBloc>()
+            .add(RefreshPendingBaks(_selectedAssociation!.id));
+      });
     }
-
-    _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      if (_selectedAssociation != null && _canApproveBaks) {
-        print('Refreshing pending baks...');
-        // Call RefreshPendingBaks event every 30 seconds
-        if (mounted) {
-          // Check if the widget is still mounted
-          context
-              .read<AssociationBloc>()
-              .add(RefreshPendingBaks(_selectedAssociation!.id));
-        }
-      }
-    });
   }
 
-  Future<void> _fetchAssociations() async {
+  Future<void> _fetchAssociations({bool refresh = false}) async {
     final supabase = Supabase.instance.client;
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
+
+    // Save the currently selected association ID before refreshing
+    final currentSelectedAssociationId = _selectedAssociation?.id;
 
     // Fetch associations where the user is a member
     final List<dynamic> memberResponse = await supabase
@@ -98,13 +88,28 @@ class _MainScreenState extends State<MainScreen> {
           .inFilter('id', associationIds);
 
       if (mounted) {
-        // Ensure the widget is still mounted before calling setState
         setState(() {
           _associations = response
               .map((data) =>
                   AssociationModel.fromMap(data as Map<String, dynamic>))
               .toList();
-          _loadSavedAssociation();
+
+          // Check if the current association is still in the new associations list
+          if (currentSelectedAssociationId != null) {
+            _selectedAssociation = _associations.firstWhere(
+              (association) => association.id == currentSelectedAssociationId,
+              orElse: () =>
+                  _associations.first, // Fallback to the first if not found
+            );
+          } else {
+            _selectedAssociation = _associations.first;
+          }
+
+          if (refresh) {
+            _onAssociationChanged(_selectedAssociation);
+          } else {
+            _loadSavedAssociation();
+          }
         });
       }
     }
@@ -130,19 +135,17 @@ class _MainScreenState extends State<MainScreen> {
             SelectAssociation(selectedAssociation: _selectedAssociation!),
           );
     }
-
-    if (mounted) {
-      // Ensure the widget is still mounted before calling setState
-      _setPages();
-    }
   }
 
   void _onItemTapped(int index) {
-    if (mounted) {
-      // Ensure the widget is still mounted before calling setState
-      setState(() {
-        _selectedIndex = index;
-      });
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    // Trigger data refresh if switching to the homepage (index = 0)
+    if (index == 0) {
+      // Instead of using a key, pass a function to HomeScreen to trigger refresh
+      _fetchAssociations(refresh: true);
     }
   }
 
@@ -154,39 +157,34 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Ensure the selected index is valid and within the bounds of the pages list
-    if (_selectedIndex >= _pages.length && _pages.isNotEmpty) {
-      _selectedIndex = 0; // Reset to the first tab if out of bounds
-    }
-
     return BlocBuilder<AssociationBloc, AssociationState>(
       builder: (context, state) {
         int pendingBaksCount = 0;
 
-        // If the association is loaded, retrieve pending baks count
         if (state is AssociationLoaded) {
           pendingBaksCount = state.pendingBaksCount;
         }
 
-        return Scaffold(
-          body: RefreshIndicator(
-            onRefresh: () async {
-              // Manually trigger a refresh of the selected association
-              if (_selectedAssociation != null) {
-                context.read<AssociationBloc>().add(SelectAssociation(
-                    selectedAssociation: _selectedAssociation!));
-              }
-            },
-            child: (_pages.isNotEmpty)
-                ? _pages[_selectedIndex]
-                : const Center(
-                    child:
-                        CircularProgressIndicator()), // Handle empty pages scenario
+        final pages = [
+          HomeScreen(
+            associations: _associations,
+            selectedAssociation: _selectedAssociation,
+            onAssociationChanged: _onAssociationChanged,
+            onRefreshAssociations: () =>
+                _fetchAssociations(refresh: true), // Pass refresh logic
           ),
+          const BakScreen(),
+          const BetsScreen(),
+          if (_canApproveBaks) const ApproveBaksScreen(),
+          const SettingsScreen(),
+        ];
+
+        return Scaffold(
+          body: pages[_selectedIndex],
           bottomNavigationBar: BottomNavBar(
             selectedIndex: _selectedIndex,
             onTap: _onItemTapped,
-            pendingBaks: pendingBaksCount, // Pass the pending baks count
+            pendingBaks: pendingBaksCount,
             canApproveBaks: _canApproveBaks,
           ),
         );
@@ -195,42 +193,15 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onAssociationChanged(AssociationModel? newAssociation) {
-    if (mounted) {
-      // Ensure the widget is still mounted before calling setState
-      setState(() {
-        _selectedAssociation = newAssociation;
-        _pages.clear(); // Clear the pages list before resetting
-      });
-    }
+    setState(() {
+      _selectedAssociation = newAssociation;
+    });
 
     if (newAssociation != null) {
       _saveSelectedAssociation(newAssociation);
       context.read<AssociationBloc>().add(
             SelectAssociation(selectedAssociation: newAssociation),
           );
-      _setPages(); // Rebuild the pages after the association has been selected
-    }
-  }
-
-  void _setPages() {
-    // Only set pages if the selected association exists
-    if (_selectedAssociation != null) {
-      if (mounted) {
-        // Ensure the widget is still mounted before calling setState
-        setState(() {
-          _pages = [
-            HomeScreen(
-              associations: _associations,
-              selectedAssociation: _selectedAssociation,
-              onAssociationChanged: _onAssociationChanged,
-            ),
-            const BakScreen(),
-            const BetsScreen(),
-            if (_canApproveBaks) const ApproveBaksScreen(),
-            const SettingsScreen(),
-          ];
-        });
-      }
     }
   }
 }
