@@ -122,10 +122,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         // Check if the current user sent or received the bak
         final isSent = bak['giver_id']['id'] == currentUserId;
 
-        // DateFormat.yMEd()
-
-        print(isSent);
-
         return ListTile(
           title: Text(
             isSent

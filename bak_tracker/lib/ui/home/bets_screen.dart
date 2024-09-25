@@ -13,7 +13,7 @@ class BetsScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Bets'),
+            Text('Feature is coming soon!'),
             // Add list of bets
           ],
         ),

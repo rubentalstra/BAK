@@ -1,5 +1,5 @@
 import 'package:bak_tracker/core/themes/colors.dart';
-import 'package:bak_tracker/ui/settings/widgets/full_screen_image.dart';
+import 'package:bak_tracker/ui/widgets/full_screen_profile_image.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -204,7 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context,
         MaterialPageRoute(
           builder: (context) =>
-              FullScreenImage(localFileName: _profileImagePath!),
+              FullScreenImage(localImageFile: _localImageFile!),
         ),
       );
     }

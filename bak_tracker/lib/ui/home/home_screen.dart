@@ -86,6 +86,8 @@ class _HomeScreenState extends State<HomeScreen> {
           return LeaderboardEntry(
             rank: 0,
             name: member.name!,
+            bio: member.bio,
+            role: member.role,
             profileImagePath: member.profileImagePath,
             baksConsumed: member.baksConsumed,
             baksDebt: member.baksReceived,

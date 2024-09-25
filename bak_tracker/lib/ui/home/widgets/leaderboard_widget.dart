@@ -1,13 +1,15 @@
 import 'dart:io';
-
-import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:bak_tracker/ui/home/widgets/leaderboard_profile_screen.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
+import 'package:bak_tracker/core/themes/colors.dart';
 
 class LeaderboardEntry {
   final int rank;
   final String name;
+  final String? bio;
+  final String? role;
   final String? profileImagePath;
   final int baksConsumed;
   final int baksDebt;
@@ -15,6 +17,8 @@ class LeaderboardEntry {
   LeaderboardEntry({
     required this.rank,
     required this.name,
+    this.bio,
+    this.role,
     this.profileImagePath,
     required this.baksConsumed,
     required this.baksDebt,
@@ -23,6 +27,8 @@ class LeaderboardEntry {
   LeaderboardEntry copyWith({
     int? rank,
     String? name,
+    String? bio,
+    String? role,
     String? profileImagePath,
     int? baksConsumed,
     int? baksDebt,
@@ -30,6 +36,8 @@ class LeaderboardEntry {
     return LeaderboardEntry(
       rank: rank ?? this.rank,
       name: name ?? this.name,
+      bio: bio ?? this.bio,
+      role: role ?? this.role,
       profileImagePath: profileImagePath ?? this.profileImagePath,
       baksConsumed: baksConsumed ?? this.baksConsumed,
       baksDebt: baksDebt ?? this.baksDebt,
@@ -40,7 +48,7 @@ class LeaderboardEntry {
 class LeaderboardWidget extends StatelessWidget {
   final List<LeaderboardEntry> entries;
   final ImageUploadService imageUploadService;
-  final bool isLoading; // Indicates if it's in the loading state
+  final bool isLoading;
 
   const LeaderboardWidget({
     super.key,
@@ -57,11 +65,12 @@ class LeaderboardWidget extends StatelessWidget {
       switchOutCurve: Curves.easeOut,
       child: isLoading
           ? _buildLoadingSkeleton() // Show skeleton when loading
-          : _buildLeaderboardList(), // Show the leaderboard data when loaded
+          : _buildLeaderboardList(
+              context), // Show the leaderboard data when loaded
     );
   }
 
-  Widget _buildLeaderboardList() {
+  Widget _buildLeaderboardList(BuildContext context) {
     return ListView.separated(
       itemCount: entries.length,
       separatorBuilder: (context, index) => Divider(
@@ -71,76 +80,110 @@ class LeaderboardWidget extends StatelessWidget {
       itemBuilder: (context, index) {
         final entry = entries[index];
 
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8.0),
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: AppColors.lightBackground,
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _buildProfileImage(entry, context),
-              const SizedBox(width: 16.0),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.name,
-                      style: const TextStyle(
-                        fontSize: 16.0,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 4.0),
-                    Row(
-                      children: [
-                        Text(
-                          'Chucked: ${entry.baksConsumed}',
-                          style: TextStyle(
-                            fontSize: 14.0,
-                            color: Colors.green[700],
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        const SizedBox(width: 16.0),
-                        Text(
-                          'BAK: ${entry.baksDebt}',
-                          style: TextStyle(
-                            fontSize: 14.0,
-                            color: Colors.red[700],
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                children: [
-                  Text(
-                    entry.rank.toString(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.0,
-                      color: Colors.black87,
+        return FutureBuilder<File?>(
+          future: imageUploadService
+              .fetchOrDownloadProfileImage(entry.profileImagePath!),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return _buildLoadingEntry(
+                  entry); // Show skeleton or placeholder while loading
+            }
+
+            final imageFile = snapshot.data;
+
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LeaderboardProfileScreen(
+                      username: entry.name,
+                      localImageFile: imageFile, // Pass the File directly
+                      bio: entry.bio,
+                      role: entry.role,
+                      baksConsumed: entry.baksConsumed,
+                      baksDebt: entry.baksDebt,
                     ),
                   ),
-                ],
-              ),
-            ],
-          ),
+                );
+              },
+              child: _buildEntry(entry, imageFile),
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildProfileImage(LeaderboardEntry entry, BuildContext context) {
-    if (entry.profileImagePath == null) {
+  Widget _buildEntry(LeaderboardEntry entry, File? imageFile) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: AppColors.lightBackground,
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _buildProfileImage(imageFile),
+          const SizedBox(width: 16.0),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.name,
+                  style: const TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4.0),
+                Row(
+                  children: [
+                    Text(
+                      'Chucked: ${entry.baksConsumed}',
+                      style: TextStyle(
+                        fontSize: 14.0,
+                        color: Colors.green[700],
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(width: 16.0),
+                    Text(
+                      'BAK: ${entry.baksDebt}',
+                      style: TextStyle(
+                        fontSize: 14.0,
+                        color: Colors.red[700],
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Column(
+            children: [
+              Text(
+                entry.rank.toString(),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16.0,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileImage(File? imageFile) {
+    if (imageFile == null) {
       return const CircleAvatar(
         radius: 24.0,
         backgroundColor: Colors.grey,
@@ -151,38 +194,12 @@ class LeaderboardWidget extends StatelessWidget {
       );
     }
 
-    return FutureBuilder<File?>(
-      future: imageUploadService
-          .fetchOrDownloadProfileImage(entry.profileImagePath!),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircleAvatar(
-            radius: 24.0,
-            backgroundColor: Colors.grey,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          );
-        }
-
-        if (snapshot.hasData) {
-          return CircleAvatar(
-            radius: 24.0,
-            backgroundImage: FileImage(snapshot.data!),
-          );
-        }
-
-        return const CircleAvatar(
-          radius: 24.0,
-          backgroundColor: Colors.grey,
-          child: Icon(
-            Icons.person,
-            color: Colors.white,
-          ),
-        );
-      },
+    return CircleAvatar(
+      radius: 24.0,
+      backgroundImage: FileImage(imageFile),
     );
   }
 
-  // Skeleton loading for the entire list item with shimmer effect
   Widget _buildLoadingSkeleton() {
     return ListView.separated(
       itemCount: 6, // Loading skeleton for 6 items
@@ -241,6 +258,76 @@ class LeaderboardWidget extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildLoadingEntry(LeaderboardEntry entry) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: AppColors.lightBackground,
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const CircleAvatar(
+            radius: 24.0,
+            backgroundColor: Colors.grey,
+          ),
+          const SizedBox(width: 16.0),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.name,
+                  style: const TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4.0),
+                Row(
+                  children: [
+                    Text(
+                      'Chucked: ${entry.baksConsumed}',
+                      style: TextStyle(
+                        fontSize: 14.0,
+                        color: Colors.green[700],
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(width: 16.0),
+                    Text(
+                      'BAK: ${entry.baksDebt}',
+                      style: TextStyle(
+                        fontSize: 14.0,
+                        color: Colors.red[700],
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Column(
+            children: [
+              Text(
+                entry.rank.toString(),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16.0,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

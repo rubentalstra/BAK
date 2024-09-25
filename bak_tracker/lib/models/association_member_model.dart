@@ -3,6 +3,7 @@ import 'dart:convert';
 class AssociationMemberModel {
   final String userId;
   final String? name;
+  final String? bio;
   final String? profileImagePath;
   final String associationId;
   final String role;
@@ -14,6 +15,7 @@ class AssociationMemberModel {
   AssociationMemberModel({
     required this.userId,
     this.name,
+    this.bio,
     this.profileImagePath,
     required this.associationId,
     required this.role,
@@ -27,6 +29,7 @@ class AssociationMemberModel {
     return AssociationMemberModel(
       userId: map['user_id'],
       name: map['name'],
+      bio: map['bio'],
       profileImagePath: map['profile_image_path'],
       associationId: map['association_id'],
       role: map['role'],
@@ -43,6 +46,7 @@ class AssociationMemberModel {
     return {
       'user_id': userId,
       'name': name,
+      'bio': bio,
       'profile_image_path': profileImagePath,
       'association_id': associationId,
       'role': role,

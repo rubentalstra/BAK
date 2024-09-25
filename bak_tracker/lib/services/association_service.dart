@@ -13,7 +13,7 @@ class AssociationService {
     final List<dynamic> response = await _supabase
         .from('association_members')
         .select(
-            'user_id (id, name, profile_image_path), association_id, role, permissions, joined_at, baks_received, baks_consumed')
+            'user_id (id, name, profile_image_path, bio), association_id, role, permissions, joined_at, baks_received, baks_consumed')
         .eq('association_id', associationId);
 
     return response.map((data) {
@@ -21,6 +21,7 @@ class AssociationService {
       return AssociationMemberModel(
         userId: userMap['id'],
         name: userMap['name'],
+        bio: userMap['bio'],
         profileImagePath: userMap['profile_image_path'],
         associationId: data['association_id'],
         role: data['role'],
@@ -54,18 +55,16 @@ class AssociationService {
     return AssociationModel.fromMap(response);
   }
 
-  Future<void> resetAllBaks(String associationId) async {
+  Future<String> resetAllBaks(String associationId) async {
     try {
-      final response = await _supabase
+      await _supabase
           .from('association_members')
           .update({'baks_received': 0, 'baks_consumed': 0}).eq(
               'association_id', associationId);
 
-      if (response == null || response.error != null) {
-        throw Exception('Failed to reset BAKs');
-      }
+      return 'BAKs reset successfully';
     } catch (e) {
-      throw Exception('Error resetting BAKs: ${e.toString()}');
+      return 'Error resetting BAKs: ${e.toString()}';
     }
   }
 }
