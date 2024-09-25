@@ -169,20 +169,11 @@ class _MainScreenState extends State<MainScreen> {
         }
 
         return Scaffold(
-          body: RefreshIndicator(
-            onRefresh: () async {
-              // Manually trigger a refresh of the selected association
-              if (_selectedAssociation != null) {
-                context.read<AssociationBloc>().add(SelectAssociation(
-                    selectedAssociation: _selectedAssociation!));
-              }
-            },
-            child: (_pages.isNotEmpty)
-                ? _pages[_selectedIndex]
-                : const Center(
-                    child:
-                        CircularProgressIndicator()), // Handle empty pages scenario
-          ),
+          body: (_pages.isNotEmpty)
+              ? _pages[_selectedIndex]
+              : const Center(
+                  child:
+                      CircularProgressIndicator()), // Handle empty pages scenario
           bottomNavigationBar: BottomNavBar(
             selectedIndex: _selectedIndex,
             onTap: _onItemTapped,
@@ -196,27 +187,27 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onAssociationChanged(AssociationModel? newAssociation) {
     if (mounted) {
-      // Ensure the widget is still mounted before calling setState
-      setState(() {
-        _selectedAssociation = newAssociation;
-        _pages.clear(); // Clear the pages list before resetting
-      });
-    }
+      // Only change if the selected association is different
+      if (_selectedAssociation?.id != newAssociation?.id) {
+        setState(() {
+          _selectedAssociation = newAssociation;
+          _pages.clear(); // Clear the pages list before resetting
+        });
+      }
 
-    if (newAssociation != null) {
-      _saveSelectedAssociation(newAssociation);
-      context.read<AssociationBloc>().add(
-            SelectAssociation(selectedAssociation: newAssociation),
-          );
-      _setPages(); // Rebuild the pages after the association has been selected
+      if (newAssociation != null) {
+        _saveSelectedAssociation(newAssociation);
+        context
+            .read<AssociationBloc>()
+            .add(SelectAssociation(selectedAssociation: newAssociation));
+        _setPages(); // Rebuild the pages after the association has been selected
+      }
     }
   }
 
   void _setPages() {
-    // Only set pages if the selected association exists
     if (_selectedAssociation != null) {
       if (mounted) {
-        // Ensure the widget is still mounted before calling setState
         setState(() {
           _pages = [
             HomeScreen(

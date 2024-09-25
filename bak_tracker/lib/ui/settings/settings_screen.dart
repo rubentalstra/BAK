@@ -27,7 +27,6 @@ class SettingsScreen extends StatelessWidget {
       ),
       body: BlocListener<AssociationBloc, AssociationState>(
         listener: (context, state) {
-          // Handle no associations remaining
           if (state is NoAssociationsLeft) {
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
@@ -35,46 +34,32 @@ class SettingsScreen extends StatelessWidget {
               ),
               (Route<dynamic> route) => false,
             );
-          }
-          // Handle successful leave (go to MainScreen)
-          else if (state is AssociationLeave) {
+          } else if (state is AssociationLeave) {
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => const MainScreen()),
               (Route<dynamic> route) => false,
             );
-          }
-          // Handle successful join (go to MainScreen)
-          else if (state is AssociationJoined) {
+          } else if (state is AssociationJoined) {
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (context) => const MainScreen()),
               (Route<dynamic> route) => false,
             );
-          }
-          // Handle AssociationLoaded with error message
-          else if (state is AssociationLoaded && state.errorMessage != null) {
-            // Show the error message via Snackbar
+          } else if (state is AssociationLoaded && state.errorMessage != null) {
             Future.delayed(Duration.zero, () {
               _showErrorSnackBar(context, state.errorMessage!);
             });
-
-            // Clear the error to avoid repeated showing
             context.read<AssociationBloc>().add(ClearAssociationError());
-          }
-
-          // Handle error state (show error and do not navigate)
-          else if (state is AssociationError) {
-            // Ensure error message is shown via Snackbar
+          } else if (state is AssociationError) {
             Future.delayed(Duration.zero, () {
               _showErrorSnackBar(context, state.message);
             });
-
-            // Clear the error to avoid repeated showing
             context.read<AssociationBloc>().add(ClearAssociationError());
           }
         },
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
+            _buildSectionTitle('General'),
             ListTile(
               title: const Text('Select Language'),
               subtitle: const Text('Choose your preferred language'),
@@ -95,7 +80,8 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             const Divider(),
-            // BlocBuilder to conditionally show association-related settings
+
+            // Association settings section
             BlocBuilder<AssociationBloc, AssociationState>(
               builder: (context, state) {
                 if (state is AssociationLoaded) {
@@ -109,7 +95,9 @@ class SettingsScreen extends StatelessWidget {
                           memberData.canApproveBaks;
 
                   return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _buildSectionTitle('Association Settings'),
                       if (hasAssociationPermissions)
                         ListTile(
                           title: const Text('Association Settings'),
@@ -164,7 +152,9 @@ class SettingsScreen extends StatelessWidget {
                   return const Center(child: CircularProgressIndicator());
                 } else {
                   return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _buildSectionTitle('Association Actions'),
                       ListTile(
                         title: const Text('Join Association'),
                         subtitle: const Text('Enter an invite code to join'),
@@ -179,6 +169,7 @@ class SettingsScreen extends StatelessWidget {
                 }
               },
             ),
+            _buildSectionTitle('Account'),
             ElevatedButton(
               onPressed: () {
                 context.read<AuthenticationBloc>().signOut();
@@ -194,7 +185,20 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  // Show error messages using SnackBar
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey,
+        ),
+      ),
+    );
+  }
+
   void _showErrorSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -249,7 +253,7 @@ class SettingsScreen extends StatelessWidget {
             context
                 .read<LocaleBloc>()
                 .add(LocaleChanged(locale: selectedLocale));
-            Navigator.of(context).pop(); // Close the dialog
+            Navigator.of(context).pop();
           }
         },
       );
@@ -266,7 +270,7 @@ class SettingsScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Close the dialog
+              Navigator.of(context).pop();
             },
             child: const Text('Cancel',
                 style: TextStyle(color: AppColors.lightSecondary)),

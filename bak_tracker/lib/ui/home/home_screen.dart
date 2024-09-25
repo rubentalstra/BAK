@@ -44,8 +44,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void didUpdateWidget(covariant HomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Trigger leaderboard reload if the selected association has changed
-    if (oldWidget.selectedAssociation != widget.selectedAssociation) {
+    // Only reload the leaderboard if the selected association has actually changed
+    if (oldWidget.selectedAssociation?.id != widget.selectedAssociation?.id) {
       _fetchLeaderboard();
     }
   }
@@ -57,7 +57,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  // Fetch leaderboard for the selected association
   Future<void> _fetchLeaderboard() async {
     if (widget.selectedAssociation == null) return;
 
@@ -76,7 +75,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ?.cancel(); // Cancel previous subscription if any
     _associationBlocSubscription =
         context.read<AssociationBloc>().stream.listen((state) {
-      if (state is AssociationLoaded) {
+      if (state is AssociationLoaded &&
+          state.selectedAssociation.id == widget.selectedAssociation?.id) {
         if (!mounted)
           return; // Prevent setting state if the widget is not mounted
 
@@ -102,31 +102,16 @@ class _HomeScreenState extends State<HomeScreen> {
               newLeaderboardEntries[i].copyWith(rank: i + 1);
         }
 
-        // Update state only if the leaderboard entries have changed
-        if (!_areEntriesEqual(newLeaderboardEntries, _leaderboardEntries)) {
-          setState(() {
-            // _previousLeaderboardEntries = _leaderboardEntries;
-            _leaderboardEntries = newLeaderboardEntries;
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+        setState(() {
+          _leaderboardEntries = newLeaderboardEntries;
+          _isLoading = false;
+        });
       }
     });
   }
 
-  // Helper method to check if two lists of leaderboard entries are equal
-  bool _areEntriesEqual(
-      List<LeaderboardEntry> newEntries, List<LeaderboardEntry> oldEntries) {
-    if (newEntries.length != oldEntries.length) return false;
-
-    for (int i = 0; i < newEntries.length; i++) {
-      if (newEntries[i] != oldEntries[i]) return false;
-    }
-    return true;
+  Future<void> _handlePullToRefresh() async {
+    await _fetchLeaderboard();
   }
 
   void _handleAssociationChange(AssociationModel? newAssociation) {
@@ -141,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? DropdownButtonHideUnderline(
                 child: DropdownButton<AssociationModel>(
                   value: widget.selectedAssociation,
-                  onChanged: _handleAssociationChange, // Trigger reload
+                  onChanged: _handleAssociationChange,
                   dropdownColor: AppColors.lightPrimaryVariant,
                   icon: Icon(Icons.keyboard_arrow_down,
                       color: Theme.of(context).iconTheme.color),
@@ -166,10 +151,14 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             if (widget.selectedAssociation != null)
               Expanded(
-                child: LeaderboardWidget(
-                  entries: _leaderboardEntries,
-                  imageUploadService: _imageUploadService,
-                  isLoading: _isLoading, // Pass the isLoading flag here
+                // Wrap the leaderboard in Expanded to avoid unbounded height issues
+                child: RefreshIndicator(
+                  onRefresh: _handlePullToRefresh,
+                  child: LeaderboardWidget(
+                    entries: _leaderboardEntries,
+                    imageUploadService: _imageUploadService,
+                    isLoading: _isLoading,
+                  ),
                 ),
               ),
           ],
