@@ -58,6 +58,7 @@ dependencies:
   skeletonizer: ^1.4.2
   path_provider: ^2.1.4
   dio: ^5.7.0
+  app_links: ^6.3.2
 
 
 dev_dependencies:

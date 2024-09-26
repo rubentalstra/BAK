@@ -1,0 +1,20 @@
+{
+    "applinks": {
+        "apps": [],
+        "details": [
+            {
+                "appIDs": [
+                    "A8S2486A44.com.baktracker"
+                ],
+                "paths": [
+                    "/invite/*"
+                ]
+            }
+        ]
+    },
+    "webcredentials": {
+        "apps": [
+            "A8S2486A44.com.baktracker"
+        ]
+    }
+}

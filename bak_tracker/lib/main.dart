@@ -1,3 +1,4 @@
+import 'package:bak_tracker/services/deep_link_service.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
 import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
@@ -20,12 +21,11 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'firebase_options.dart';
 
 void main() async {
-  // Keep the splash screen visible while the app is initializing
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   try {
-    // Load environment variables, Firebase, and Supabase in parallel
+    // Load environment variables and initialize Firebase and Supabase
     await dotenv.load(fileName: ".env");
     await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform);
@@ -38,7 +38,7 @@ void main() async {
 
     print('Firebase, Supabase, and .env loaded successfully.');
 
-    // After initialization, run the app
+    // Run the main app
     runApp(const BakTrackerApp());
   } catch (e) {
     print('Error during app initialization: $e');
@@ -70,7 +70,7 @@ class BakTrackerApp extends StatelessWidget {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            home: const AppStartup(), // Delayed logic handled here
+            home: const AppStartup(),
           );
         },
       ),
@@ -88,6 +88,7 @@ class AppStartup extends StatefulWidget {
 class _AppStartupState extends State<AppStartup> {
   late NotificationsService notificationsService;
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+  late DeepLinkService deepLinkService;
 
   @override
   void initState() {
@@ -95,9 +96,18 @@ class _AppStartupState extends State<AppStartup> {
     _initializeApp();
   }
 
+  @override
+  void dispose() {
+    // Clean up services and handlers
+    deepLinkService.dispose();
+    flutterLocalNotificationsPlugin
+        .cancelAll(); // Ensure notifications are cancelled
+    super.dispose();
+  }
+
   Future<void> _initializeApp() async {
     try {
-      // Initialize Notifications and Firebase Messaging lazily
+      // Initialize Notifications
       flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
       notificationsService =
           NotificationsService(flutterLocalNotificationsPlugin);
@@ -108,7 +118,15 @@ class _AppStartupState extends State<AppStartup> {
       FirebaseMessaging.onBackgroundMessage(
           NotificationsService.firebaseMessagingBackgroundHandler);
 
-      // Check for the initial screen after setting up services
+      // Initialize deep link service
+      final associationBloc = BlocProvider.of<AssociationBloc>(context);
+      deepLinkService = DeepLinkService(
+        associationBloc: associationBloc,
+        navigateToMainScreen: _navigateToMainScreen,
+      );
+      await deepLinkService.initialize();
+
+      // Check the initial screen after setting up services
       await _navigateToInitialScreen();
     } catch (e) {
       print('Error during secondary initialization: $e');
@@ -120,47 +138,54 @@ class _AppStartupState extends State<AppStartup> {
 
     if (session != null) {
       try {
-        // Fetch association data
-        final List<dynamic> associationData = await Supabase.instance.client
+        final PostgrestList associationData = await Supabase.instance.client
             .from('association_members')
             .select()
             .eq('user_id', Supabase.instance.client.auth.currentUser!.id);
 
-        // After all tasks are done, remove the splash screen
-        FlutterNativeSplash.remove();
+        if (mounted) {
+          FlutterNativeSplash.remove();
 
-        if (associationData.isNotEmpty) {
-          // User has associations, navigate to MainScreen
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const MainScreen()),
-          );
-        } else {
-          // User has no associations, navigate to NoAssociationScreen
+          if (associationData.isNotEmpty) {
+            _navigateToMainScreen();
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                  builder: (context) => const NoAssociationScreen()),
+            );
+          }
+        }
+      } catch (e) {
+        print('Error fetching association data: $e');
+        if (mounted) {
+          FlutterNativeSplash.remove();
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
                 builder: (context) => const NoAssociationScreen()),
           );
         }
-      } catch (e) {
-        print('Error fetching association data: $e');
-        // If there is an error, remove splash and navigate to NoAssociationScreen
-        FlutterNativeSplash.remove();
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
-        );
       }
     } else {
-      // No session found, remove splash and navigate to LoginScreen
-      FlutterNativeSplash.remove();
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      if (mounted) {
+        FlutterNativeSplash.remove();
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
+    }
+  }
+
+  void _navigateToMainScreen() {
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+        (Route<dynamic> route) => false,
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Nothing needs to be shown as the splash screen is active during this phase
     return const SizedBox.shrink();
   }
 }

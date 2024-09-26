@@ -80,5 +80,20 @@
 		<string>We need access to your photo library to upload your profile image.</string>
 		<key>NSCameraUsageDescription</key>
 		<string>We need access to your camera to take a profile picture.</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>https</string>
+				</array>
+			</dict>
+		</array>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>https</string>
+		</array>
+		<key>FlutterDeepLinkingEnabled</key>
+		<false/>
 	</dict>
 </plist>
