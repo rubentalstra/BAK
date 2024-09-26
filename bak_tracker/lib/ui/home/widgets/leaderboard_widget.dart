@@ -80,6 +80,11 @@ class LeaderboardWidget extends StatelessWidget {
       itemBuilder: (context, index) {
         final entry = entries[index];
 
+        // If profileImagePath is null or empty, directly return the default icon.
+        if (entry.profileImagePath == null || entry.profileImagePath!.isEmpty) {
+          return _buildEntry(entry, null); // Pass null to show icon
+        }
+
         return FutureBuilder<File?>(
           future: imageUploadService
               .fetchOrDownloadProfileImage(entry.profileImagePath!),
@@ -91,6 +96,7 @@ class LeaderboardWidget extends StatelessWidget {
 
             final imageFile = snapshot.data;
 
+            // If there's an error or the image fetch fails, use the default icon.
             return GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -126,7 +132,8 @@ class LeaderboardWidget extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _buildProfileImage(imageFile),
+          _buildProfileImage(
+              imageFile), // Display profile image or default icon
           const SizedBox(width: 16.0),
           Expanded(
             child: Column(
@@ -182,8 +189,10 @@ class LeaderboardWidget extends StatelessWidget {
     );
   }
 
+  // Show profile image or default icon
   Widget _buildProfileImage(File? imageFile) {
     if (imageFile == null) {
+      // Default icon for missing image
       return const CircleAvatar(
         radius: 24.0,
         backgroundColor: Colors.grey,
@@ -194,6 +203,7 @@ class LeaderboardWidget extends StatelessWidget {
       );
     }
 
+    // Display the profile image
     return CircleAvatar(
       radius: 24.0,
       backgroundImage: FileImage(imageFile),
