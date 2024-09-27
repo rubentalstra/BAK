@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-class Bet extends Equatable {
+class BetModel extends Equatable {
   final String id;
   final String betCreatorId;
   final String betReceiverId;
@@ -10,10 +10,10 @@ class Bet extends Equatable {
   final String? betDescription;
   final String? winnerId;
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? updatedAt;
 
   // Constructor
-  const Bet({
+  const BetModel({
     required this.id,
     required this.betCreatorId,
     required this.betReceiverId,
@@ -23,27 +23,12 @@ class Bet extends Equatable {
     this.betDescription,
     this.winnerId,
     required this.createdAt,
-    required this.updatedAt,
+    this.updatedAt,
   });
 
-  // Equatable override to compare Bet objects
-  @override
-  List<Object?> get props => [
-        id,
-        betCreatorId,
-        betReceiverId,
-        associationId,
-        amount,
-        status,
-        betDescription,
-        winnerId,
-        createdAt,
-        updatedAt,
-      ];
-
   // Factory method to create Bet from a Map (e.g., from a database query)
-  factory Bet.fromMap(Map<String, dynamic> map) {
-    return Bet(
+  factory BetModel.fromMap(Map<String, dynamic> map) {
+    return BetModel(
       id: map['id'] as String,
       betCreatorId: map['bet_creator_id'] as String,
       betReceiverId: map['bet_receiver_id'] as String,
@@ -69,7 +54,22 @@ class Bet extends Equatable {
       'bet_description': betDescription,
       'winner_id': winnerId,
       'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
+
+  // Equatable override to compare Bet objects
+  @override
+  List<Object?> get props => [
+        id,
+        betCreatorId,
+        betReceiverId,
+        associationId,
+        amount,
+        status,
+        betDescription,
+        winnerId,
+        createdAt,
+        updatedAt,
+      ];
 }

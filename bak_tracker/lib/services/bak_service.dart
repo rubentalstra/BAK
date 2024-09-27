@@ -12,7 +12,7 @@ class BakService {
     final userId = supabase.auth.currentUser!.id;
 
     try {
-      // Fetch the giver's name for the notification
+      // Fetch the giver's data
       final userResponse =
           await supabase.from('users').select('name').eq('id', userId).single();
       final giverName = userResponse['name'];
@@ -118,13 +118,14 @@ class BakService {
     }
 
     try {
-      // Update the bet's status in the 'bets' table
+      // Update the bet's status
       await supabase.from('bets').update({'status': newStatus}).eq('id', betId);
 
       // Notify the creator about the bet's status change
       final notificationMessage = newStatus == 'accepted'
           ? 'Your bet has been accepted!'
           : 'Your bet has been rejected.';
+
       await _insertNotification(
         userId: creatorId,
         title: 'Bet $newStatus',
@@ -135,7 +136,7 @@ class BakService {
     }
   }
 
-// settle the bet
+  // Method to settle the bet
   static Future<void> settleBet({
     required String betId,
     required String winnerId,
