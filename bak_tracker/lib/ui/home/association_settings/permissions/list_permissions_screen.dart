@@ -1,4 +1,4 @@
-import 'package:bak_tracker/ui/settings/association_settings/permissions/edit_permissions_screen.dart';
+import 'package:bak_tracker/ui/home/association_settings/permissions/edit_permissions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
