@@ -101,9 +101,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .update({'name': displayName, 'bio': bio}).eq('id', userId);
 
       _showSnackBar('Profile updated successfully!');
+      setState(() {
+        _isLoading = false;
+      });
     } catch (e) {
       print('Error updating profile: $e');
       _showSnackBar('Error updating profile.');
+      setState(() {
+        _isLoading = false;
+      });
     } finally {
       setState(() {
         _isLoading = false;

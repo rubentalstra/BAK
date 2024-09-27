@@ -167,7 +167,9 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
             index < 5 ? TextInputAction.next : TextInputAction.done,
         onChanged: (value) {
           if (value.isNotEmpty && index < 5) {
-            FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
+            Future.delayed(const Duration(milliseconds: 50), () {
+              FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
+            });
           } else if (index == 5) {
             _submitCode(context);
           }
@@ -177,9 +179,13 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
           LengthLimitingTextInputFormatter(1),
           TextInputFormatter.withFunction(
             (oldValue, newValue) {
-              if (newValue.text.length > 1) {
-                _handlePaste(newValue.text);
-                return oldValue;
+              try {
+                if (newValue.text.length > 1) {
+                  _handlePaste(newValue.text);
+                  return oldValue;
+                }
+              } catch (e) {
+                print('Error handling paste: $e');
               }
               return newValue;
             },
