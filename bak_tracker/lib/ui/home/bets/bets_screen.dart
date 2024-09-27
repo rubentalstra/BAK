@@ -1,3 +1,4 @@
+import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:flutter/material.dart';
 import 'package:bak_tracker/ui/home/bets/create_bet_tab.dart';
 import 'package:bak_tracker/ui/home/bets/ongoing_bets_tab.dart';
@@ -5,6 +6,7 @@ import 'package:bak_tracker/ui/home/bets/bet_history_screen.dart'; // Import for
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BetsScreen extends StatefulWidget {
   const BetsScreen({Key? key}) : super(key: key);
@@ -16,6 +18,8 @@ class BetsScreen extends StatefulWidget {
 class _BetsScreenState extends State<BetsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final ImageUploadService _imageUploadService =
+      ImageUploadService(Supabase.instance.client);
 
   @override
   void initState() {
@@ -66,8 +70,13 @@ class _BetsScreenState extends State<BetsScreen>
               controller: _tabController,
               children: [
                 CreateBetTab(
-                    associationId: associationId, members: state.members),
-                OngoingBetsTab(associationId: associationId),
+                  associationId: associationId,
+                  members: state.members,
+                ),
+                OngoingBetsTab(
+                  associationId: associationId,
+                  imageUploadService: _imageUploadService,
+                ),
               ],
             );
           } else {

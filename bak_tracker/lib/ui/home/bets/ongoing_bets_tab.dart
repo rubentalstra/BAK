@@ -1,12 +1,16 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bak_tracker/services/image_upload_service.dart';
 
 class OngoingBetsTab extends StatefulWidget {
   final String associationId;
+  final ImageUploadService imageUploadService; // Add the service
 
   const OngoingBetsTab({
     Key? key,
     required this.associationId,
+    required this.imageUploadService, // Pass the service
   }) : super(key: key);
 
   @override
@@ -31,7 +35,8 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
       });
       final response = await supabase
           .from('bets')
-          .select()
+          .select(
+              'bet_creator_id(id, name, profile_image), bet_receiver_id(id, name, profile_image), amount, bet_description, status, association_id')
           .eq('association_id', widget.associationId)
           .inFilter('status', ['pending', 'accepted']).order('created_at',
               ascending: false);
@@ -112,6 +117,8 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildBetParticipants(bet),
+                const SizedBox(height: 12),
                 Text(
                   'Bet: ${bet['amount']} bakken',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -134,6 +141,72 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
         );
       },
     );
+  }
+
+  // Widget to show both bet participants (Creator and Receiver) with profile images
+  Widget _buildBetParticipants(Map<String, dynamic> bet) {
+    return Row(
+      children: [
+        Stack(
+          clipBehavior:
+              Clip.none, // Allow the second image to overflow the stack
+          children: [
+            FutureBuilder<File?>(
+              future: widget.imageUploadService.fetchOrDownloadProfileImage(
+                  bet['bet_creator_id']['profile_image']),
+              builder: (context, snapshot) {
+                final creatorImage = snapshot.data;
+                return _buildProfileImage(
+                    creatorImage, bet['bet_creator_id']['name']);
+              },
+            ),
+            Positioned(
+              left: 30, // Adjust the offset to ensure both images are visible
+              child: FutureBuilder<File?>(
+                future: widget.imageUploadService.fetchOrDownloadProfileImage(
+                    bet['bet_receiver_id']['profile_image']),
+                builder: (context, snapshot) {
+                  final receiverImage = snapshot.data;
+                  return _buildProfileImage(
+                      receiverImage, bet['bet_receiver_id']['name']);
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 40), // Space between the image stack and text
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Creator: ${bet['bet_creator_id']['name']}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Receiver: ${bet['bet_receiver_id']['name']}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Widget to display the profile image or a default avatar
+  Widget _buildProfileImage(File? imageFile, String userName) {
+    if (imageFile == null) {
+      return CircleAvatar(
+        radius: 24,
+        backgroundColor: Colors.grey[300],
+        child: Text(userName[0].toUpperCase(),
+            style: const TextStyle(color: Colors.white)),
+      );
+    } else {
+      return CircleAvatar(
+        radius: 24,
+        backgroundImage: FileImage(imageFile),
+      );
+    }
   }
 
   // Widget for bet status
@@ -205,19 +278,19 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
           hint: const Text('Choose'),
           items: [
             DropdownMenuItem<String>(
-              value: bet['bet_creator_id'],
+              value: bet['bet_creator_id']['id'],
               child: const Text('Bet Creator'),
             ),
             DropdownMenuItem<String>(
-              value: bet['bet_receiver_id'],
+              value: bet['bet_receiver_id']['id'],
               child: const Text('Bet Receiver'),
             ),
           ],
           onChanged: (value) {
             if (value != null) {
-              final loserId = value == bet['bet_creator_id']
-                  ? bet['bet_receiver_id']
-                  : bet['bet_creator_id'];
+              final loserId = value == bet['bet_creator_id']['id']
+                  ? bet['bet_receiver_id']['id']
+                  : bet['bet_creator_id']['id'];
               _settleBet(bet['id'], value, loserId, bet['amount']);
             }
           },
