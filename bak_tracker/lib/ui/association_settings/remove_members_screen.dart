@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
@@ -221,6 +222,14 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
         : permissionList.join(', ');
   }
 
+  // Pull to refresh functionality
+  Future<void> _handleRefresh() async {
+    setState(() {
+      _isLoading = true;
+    });
+    await _fetchMembers(); // Fetch members again
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -231,17 +240,21 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _members.isEmpty
               ? const Center(child: Text('No members to display'))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(8.0),
-                  itemCount: _members.length,
-                  itemBuilder: (context, index) {
-                    final member = _members[index];
-                    return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: _buildMemberTile(member),
-                    );
-                  },
+              : RefreshIndicator(
+                  color: AppColors.lightSecondary,
+                  onRefresh: _handleRefresh,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(8.0),
+                    itemCount: _members.length,
+                    itemBuilder: (context, index) {
+                      final member = _members[index];
+                      return Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: _buildMemberTile(member),
+                      );
+                    },
+                  ),
                 ),
     );
   }

@@ -205,6 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (widget.selectedAssociation != null)
               Expanded(
                 child: RefreshIndicator(
+                  color: AppColors.lightSecondary,
                   onRefresh: _handlePullToRefresh,
                   child: LeaderboardWidget(
                     entries: _leaderboardEntries,

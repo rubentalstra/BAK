@@ -1,4 +1,5 @@
 import 'package:bak_tracker/bloc/association/association_state.dart';
+import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -72,6 +73,7 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
             }
 
             return RefreshIndicator(
+              color: AppColors.lightSecondary,
               onRefresh: () => _fetchBetHistory(associationId),
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())

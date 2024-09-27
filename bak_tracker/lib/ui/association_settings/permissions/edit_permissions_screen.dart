@@ -8,11 +8,11 @@ class EditPermissionsScreen extends StatefulWidget {
   final Map<String, dynamic> currentPermissions;
 
   const EditPermissionsScreen({
-    super.key,
+    Key? key,
     required this.memberId,
     required this.associationId,
     required this.currentPermissions,
-  });
+  }) : super(key: key);
 
   @override
   _EditPermissionsScreenState createState() => _EditPermissionsScreenState();
@@ -22,6 +22,7 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
   late Map<String, bool> _permissions;
   bool _isSaving = false;
 
+  // Map of permission keys to their display labels
   final Map<String, String> _permissionLabels = {
     'hasAllPermissions': 'Has All Permissions',
     'canManagePermissions': 'Manage Permissions',
@@ -32,40 +33,57 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
     'canApproveBaks': 'Approve Baks',
   };
 
+  // Grouping permissions for better UI organization
+  final List<Map<String, dynamic>> _permissionGroups = [
+    {
+      'groupName': 'All Permissions',
+      'permissions': ['hasAllPermissions'],
+    },
+    {
+      'groupName': 'Specific Permissions',
+      'permissions': [
+        'canManagePermissions',
+        'canInviteMembers',
+        'canRemoveMembers',
+        'canManageRoles',
+        'canManageBaks',
+        'canApproveBaks',
+      ],
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
-    _permissions = {
-      'hasAllPermissions':
-          widget.currentPermissions['hasAllPermissions'] ?? false,
-      'canManagePermissions':
-          widget.currentPermissions['canManagePermissions'] ?? false,
-      'canInviteMembers':
-          widget.currentPermissions['canInviteMembers'] ?? false,
-      'canRemoveMembers':
-          widget.currentPermissions['canRemoveMembers'] ?? false,
-      'canManageRoles': widget.currentPermissions['canManageRoles'] ?? false,
-      'canManageBaks': widget.currentPermissions['canManageBaks'] ?? false,
-      'canApproveBaks': widget.currentPermissions['canApproveBaks'] ?? false,
-    };
+    _initializePermissions();
   }
 
+  // Initialize the permissions map based on current permissions
+  void _initializePermissions() {
+    _permissions = {};
+    for (var key in _permissionLabels.keys) {
+      _permissions[key] = widget.currentPermissions[key] ?? false;
+    }
+  }
+
+  // Save the updated permissions to Supabase
   Future<void> _savePermissions() async {
-    final supabase = Supabase.instance.client;
     setState(() {
       _isSaving = true;
     });
 
     try {
+      final supabase = Supabase.instance.client;
       await supabase
           .from('association_members')
           .update({'permissions': _permissions})
           .eq('user_id', widget.memberId)
           .eq('association_id', widget.associationId);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Permissions updated successfully')),
       );
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(); // Close the screen after saving
     } catch (e) {
       print('Error saving permissions: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -78,8 +96,39 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
     }
   }
 
+  // Update the permissions map when a switch is toggled
+  void _updatePermission(String permissionKey, bool value) {
+    setState(() {
+      if (permissionKey == 'hasAllPermissions') {
+        _permissions['hasAllPermissions'] = value;
+        if (value) {
+          // Deselect all other permissions
+          for (var key in _permissionLabels.keys) {
+            if (key != 'hasAllPermissions') {
+              _permissions[key] = false;
+            }
+          }
+        }
+      } else {
+        _permissions[permissionKey] = value;
+        if (value) {
+          // Deselect 'hasAllPermissions' if any other permission is selected
+          _permissions['hasAllPermissions'] = false;
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Build the permission groups
+    final List<Widget> permissionGroups = _permissionGroups.map((group) {
+      return _buildPermissionGroup(
+        groupName: group['groupName'],
+        permissionKeys: List<String>.from(group['permissions']),
+      );
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Permissions'),
@@ -89,16 +138,29 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
           : Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ..._permissionLabels.keys.map(
-                    (key) => _buildPermissionSwitch(
-                      _permissionLabels[key] ?? key,
-                      key,
+                  const Text(
+                    'Adjust Member Permissions',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.lightPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: ListView(
+                      children: permissionGroups,
                     ),
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _savePermissions,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      textStyle: const TextStyle(fontSize: 16),
+                    ),
                     child: const Text('Save Permissions'),
                   ),
                 ],
@@ -107,30 +169,49 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
     );
   }
 
-  Widget _buildPermissionSwitch(String label, String permissionKey) {
-    return SwitchListTile(
-      title: Text(label),
-      activeTrackColor: AppColors.lightSecondary,
-      value: _permissions[permissionKey] ?? false,
-      onChanged: (bool value) {
-        setState(() {
-          if (permissionKey == 'hasAllPermissions') {
-            _permissions = {
-              'hasAllPermissions': value,
-              'canManagePermissions': !value,
-              'canInviteMembers': !value,
-              'canRemoveMembers': !value,
-              'canManageRoles': !value,
-              'canManageBaks': !value,
-              'canApproveBaks': !value,
-            };
-          } else {
-            _permissions[permissionKey] = value;
-            // Disable all if specific is enabled
-            _permissions['hasAllPermissions'] = false;
-          }
-        });
-      },
+  // Build each permission group with its switches
+  Widget _buildPermissionGroup({
+    required String groupName,
+    required List<String> permissionKeys,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          groupName,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.lightPrimary,
+          ),
+        ),
+        const SizedBox(height: 10),
+        ...permissionKeys.map((key) {
+          return _buildPermissionSwitch(
+            label: _permissionLabels[key] ?? key,
+            permissionKey: key,
+          );
+        }),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  // Build each permission switch
+  Widget _buildPermissionSwitch({
+    required String label,
+    required String permissionKey,
+  }) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6.0),
+      child: SwitchListTile(
+        title: Text(label),
+        activeColor: AppColors.lightSecondary,
+        value: _permissions[permissionKey] ?? false,
+        onChanged: (bool value) {
+          _updatePermission(permissionKey, value);
+        },
+      ),
     );
   }
 }
