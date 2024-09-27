@@ -9,10 +9,10 @@ class OngoingBetsTab extends StatefulWidget {
   final ImageUploadService imageUploadService;
 
   const OngoingBetsTab({
-    Key? key,
+    super.key,
     required this.associationId,
     required this.imageUploadService,
-  }) : super(key: key);
+  });
 
   @override
   _OngoingBetsTabState createState() => _OngoingBetsTabState();
@@ -146,8 +146,12 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
           clipBehavior: Clip.none,
           children: [
             FutureBuilder<File?>(
-              future: widget.imageUploadService.fetchOrDownloadProfileImage(
-                  bet['bet_creator_id']['profile_image']),
+              future: (bet['bet_creator_id']['profile_image'] != null &&
+                      bet['bet_creator_id']['profile_image'] is String &&
+                      bet['bet_creator_id']['profile_image'].isNotEmpty)
+                  ? widget.imageUploadService.fetchOrDownloadProfileImage(
+                      bet['bet_creator_id']['profile_image'])
+                  : Future.value(null),
               builder: (context, snapshot) {
                 final creatorImage = snapshot.data;
                 return _buildProfileImage(
@@ -157,8 +161,12 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
             Positioned(
               left: 30,
               child: FutureBuilder<File?>(
-                future: widget.imageUploadService.fetchOrDownloadProfileImage(
-                    bet['bet_receiver_id']['profile_image']),
+                future: (bet['bet_receiver_id']['profile_image'] != null &&
+                        bet['bet_receiver_id']['profile_image'] is String &&
+                        bet['bet_receiver_id']['profile_image'].isNotEmpty)
+                    ? widget.imageUploadService.fetchOrDownloadProfileImage(
+                        bet['bet_receiver_id']['profile_image'])
+                    : Future.value(null),
                 builder: (context, snapshot) {
                   final receiverImage = snapshot.data;
                   return _buildProfileImage(
@@ -187,19 +195,21 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
   }
 
   Widget _buildProfileImage(File? imageFile, String userName) {
-    if (imageFile == null) {
-      return CircleAvatar(
-        radius: 24,
-        backgroundColor: Colors.grey[300],
-        child: Text(userName[0].toUpperCase(),
-            style: const TextStyle(color: Colors.white)),
-      );
-    } else {
-      return CircleAvatar(
-        radius: 24,
-        backgroundImage: FileImage(imageFile),
-      );
-    }
+    return CircleAvatar(
+      radius: 24,
+      backgroundColor: imageFile == null ? Colors.grey[300] : null,
+      backgroundImage: imageFile != null ? FileImage(imageFile) : null,
+      child: imageFile == null
+          ? Text(
+              userName[0].toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+              ),
+            )
+          : null,
+    );
   }
 
   Widget _buildStatusIndicator(String status) {
