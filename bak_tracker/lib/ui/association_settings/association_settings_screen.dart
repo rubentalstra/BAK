@@ -2,7 +2,7 @@ import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/services/association_service.dart';
 import 'package:bak_tracker/ui/association_settings/approve_baks/approve_baks_screen.dart';
-import 'package:bak_tracker/ui/association_settings/invite_members_screen.dart';
+import 'package:bak_tracker/ui/association_settings/invite_members/invite_members_screen.dart';
 import 'package:bak_tracker/ui/association_settings/remove_members_screen.dart';
 import 'package:bak_tracker/ui/association_settings/permissions/list_permissions_screen.dart';
 import 'package:bak_tracker/ui/association_settings/update_roles_screen.dart';

@@ -1,10 +1,14 @@
+import 'dart:io';
 import 'dart:math';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:intl/intl.dart'; // For date formatting
+import 'package:intl/intl.dart';
+import 'active_invites_tab.dart';
+import 'expired_invites_tab.dart';
 
 class InviteMembersScreen extends StatefulWidget {
   final String associationId;
@@ -20,7 +24,6 @@ class InviteMembersScreen extends StatefulWidget {
 
 class _InviteMembersScreenState extends State<InviteMembersScreen>
     with SingleTickerProviderStateMixin {
-  bool _isLoading = false;
   List<Map<String, dynamic>> _activeInvites = [];
   List<Map<String, dynamic>> _expiredInvites = [];
   bool _loadingInvites = true;
@@ -91,7 +94,8 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
           .from('invites')
           .select()
           .eq('association_id', widget.associationId)
-          .eq('is_expired', true);
+          .eq('is_expired', true)
+          .order('created_at', ascending: false);
 
       setState(() {
         _activeInvites = List<Map<String, dynamic>>.from(activeResponse);
@@ -138,70 +142,85 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
     );
   }
 
-  // UI to show active and expired invites
-  Widget _buildInviteList(List<Map<String, dynamic>> invites, bool isExpired) {
-    return invites.isEmpty
-        ? Center(
-            child: Text(
-              isExpired ? 'No expired invites.' : 'No active invites.',
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-          )
-        : ListView.separated(
-            itemCount: invites.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final invite = invites[index];
-              final inviteKey = invite['invite_key'];
-              final inviteId = invite['id'];
-
-              return ListTile(
-                title: Text(
-                  'Invite Key: $inviteKey',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  isExpired ? 'Expired' : 'Active',
-                  style: TextStyle(
-                      color: isExpired ? Colors.red : Colors.green,
-                      fontWeight: FontWeight.w600),
-                ),
-                trailing: isExpired
-                    ? null
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const FaIcon(FontAwesomeIcons.copy),
-                            onPressed: () => _copyInviteKey(inviteKey),
-                            tooltip: 'Copy Invite Key',
-                          ),
-                          IconButton(
-                            icon: const FaIcon(FontAwesomeIcons.share),
-                            onPressed: () => _shareInvite(inviteKey),
-                            tooltip: 'Share Invite',
-                          ),
-                          IconButton(
-                            icon: const FaIcon(FontAwesomeIcons.xmark),
-                            onPressed: () => _expireInvite(inviteId),
-                            tooltip: 'Expire Invite',
-                          ),
-                        ],
-                      ),
-              );
-            },
-          );
-  }
-
-  // Date picker for selecting expiration date
+// Date picker for selecting expiration date
   Future<DateTime?> _selectExpiryDate(BuildContext context) async {
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    return pickedDate; // Return the picked date directly
+    final DateTime now = DateTime.now();
+    final DateTime initialDate =
+        now.add(const Duration(seconds: 1)); // Add a small margin
+
+    DateTime selectedDate = initialDate;
+
+    if (Platform.isIOS) {
+      return await showCupertinoModalPopup<DateTime>(
+        context: context,
+        builder: (_) => SizedBox(
+          height: 300,
+          child: Column(
+            children: [
+              // The toolbar with Cancel and Done buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CupertinoButton(
+                    child: const Text('Cancel',
+                        style: TextStyle(color: Colors.red)),
+                    onPressed: () {
+                      Navigator.pop(
+                          context); // Close the picker without selecting a date
+                    },
+                  ),
+                  CupertinoButton(
+                    child: const Text('Done',
+                        style: TextStyle(color: Colors.blue)),
+                    onPressed: () {
+                      // Set the selected date to 23:59:59 for the chosen day
+                      selectedDate = DateTime(selectedDate.year,
+                          selectedDate.month, selectedDate.day, 23, 59, 59);
+                      Navigator.pop(context,
+                          selectedDate); // Return the selected date with end of day time
+                    },
+                  ),
+                ],
+              ),
+              SizedBox(
+                height: 180,
+                child: CupertinoTheme(
+                  data: const CupertinoThemeData(
+                    brightness: Brightness.dark, // Darker appearance
+                    primaryColor: Colors.black,
+                  ),
+                  child: CupertinoDatePicker(
+                    mode: CupertinoDatePickerMode.date,
+                    initialDateTime: selectedDate,
+                    minimumDate: now,
+                    maximumDate: now.add(const Duration(days: 365)),
+                    onDateTimeChanged: (DateTime dateTime) {
+                      // Update the selected date but keep it as a date with 23:59:59 time
+                      selectedDate = DateTime(dateTime.year, dateTime.month,
+                          dateTime.day, 23, 59, 59);
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // Default Android date picker
+      final DateTime? pickedDate = await showDatePicker(
+        context: context,
+        initialDate: initialDate,
+        firstDate: now,
+        lastDate: now.add(const Duration(days: 365)),
+      );
+
+      // Ensure the returned date is set to 23:59:59
+      return pickedDate != null
+          ? DateTime(
+              pickedDate.year, pickedDate.month, pickedDate.day, 23, 59, 59)
+          : null;
+    }
   }
 
 // Dialog for creating an invite with expiration date
@@ -300,22 +319,25 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
               ? const Center(child: CircularProgressIndicator())
               : Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: _buildInviteList(_activeInvites, false),
+                  child: ActiveInvitesTab(
+                    invites: _activeInvites,
+                    onCopyInviteKey: _copyInviteKey,
+                    onShareInvite: _shareInvite,
+                    onExpireInvite: _expireInvite,
+                  ),
                 ),
           _loadingInvites
               ? const Center(child: CircularProgressIndicator())
               : Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: _buildInviteList(_expiredInvites, true),
+                  child: ExpiredInvitesTab(invites: _expiredInvites),
                 ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _isLoading ? null : _showCreateInviteDialog,
+        onPressed: _showCreateInviteDialog,
         tooltip: 'Generate Invite',
-        child: _isLoading
-            ? const CircularProgressIndicator(color: Colors.white)
-            : const FaIcon(FontAwesomeIcons.plus),
+        child: const FaIcon(FontAwesomeIcons.plus),
       ),
     );
   }
