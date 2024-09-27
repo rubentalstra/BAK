@@ -9,7 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/ui/home/bak/bak_screen.dart';
 import 'package:bak_tracker/ui/home/approve_baks/approve_baks_screen.dart';
 import 'package:bak_tracker/ui/home/home_screen.dart';
-import 'package:bak_tracker/ui/home/bets_screen.dart';
+import 'package:bak_tracker/ui/home/chucked/chucked_screen.dart';
 import 'package:bak_tracker/ui/home/widgets/bottom_nav_bar.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -216,7 +216,7 @@ class _MainScreenState extends State<MainScreen> {
               onAssociationChanged: _onAssociationChanged,
             ),
             const BakScreen(),
-            const BetsScreen(),
+            const ChuckedScreen(),
             if (_canApproveBaks) const ApproveBaksScreen(),
             const SettingsScreen(),
           ];

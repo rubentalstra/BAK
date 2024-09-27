@@ -17,10 +17,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _displayNameController = TextEditingController();
   final _bioController = TextEditingController();
   bool _isLoading = false;
-  String? _profileImagePath;
-  bool _isUploadingImage = false;
+  String? _profileImage;
   File? _localImageFile;
+  // Placeholder for ImageUploadService and other logic
+  bool _isUploadingImage = false;
 
+  final SupabaseClient _supabaseClient = Supabase.instance.client;
   final ImageUploadService _imageUploadService =
       ImageUploadService(Supabase.instance.client);
 
@@ -31,23 +33,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadUserProfile() async {
-    final userId = Supabase.instance.client.auth.currentUser!.id;
+    final userId = _supabaseClient.auth.currentUser!.id;
     try {
-      final response = await Supabase.instance.client
+      // Fetch user profile data from Supabase
+      final response = await _supabaseClient
           .from('users')
-          .select('name, profile_image_path, bio')
+          .select('name, profile_image, bio')
           .eq('id', userId)
           .single();
 
       if (response.isNotEmpty) {
-        setState(() {
-          _displayNameController.text = response['name'];
-          _bioController.text = response['bio'] ?? '';
-          _profileImagePath = response['profile_image_path'];
-        });
+        // Update controllers with the fetched data
+        _displayNameController.text = response['name'];
+        _bioController.text = response['bio'] ?? '';
+        _profileImage = response['profile_image'];
 
-        if (_profileImagePath != null) {
-          _fetchProfileImage(_profileImagePath!);
+        // Check if profile image exists
+        if (_profileImage != null) {
+          // Fetch or download the profile image
+          final localImage = await _imageUploadService
+              .fetchOrDownloadProfileImage(_profileImage!);
+
+          // Update state with the local image file if it was successfully fetched
+          if (localImage != null) {
+            setState(() {
+              _localImageFile = localImage;
+            });
+          }
         }
       }
     } catch (e) {
@@ -56,19 +68,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _fetchProfileImage(String filePath) async {
-    if (filePath.isEmpty) {
-      setState(() {
-        _localImageFile = null;
-      });
-      return;
-    }
-
-    final localImage = await _imageUploadService.getLocalImage(filePath);
-    if (localImage != null) {
-      setState(() {
-        _localImageFile = localImage;
-      });
-    } else {
+    try {
       final imageUrl =
           await _imageUploadService.fetchOrDownloadProfileImage(filePath);
       if (imageUrl != null) {
@@ -76,18 +76,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _localImageFile = imageUrl;
         });
       }
+    } catch (e) {
+      print('Error fetching profile image: $e');
     }
   }
 
   Future<void> _updateProfile() async {
     final displayName = _displayNameController.text.trim();
     final bio = _bioController.text.trim();
-    final userId = Supabase.instance.client.auth.currentUser!.id;
+    final userId = _supabaseClient.auth.currentUser!.id;
 
     if (displayName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Display name cannot be empty.')),
-      );
+      _showSnackBar('Display name cannot be empty.');
       return;
     }
 
@@ -96,19 +96,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      await Supabase.instance.client.from('users').update({
-        'name': displayName,
-        'bio': bio,
-      }).eq('id', userId);
+      await _supabaseClient
+          .from('users')
+          .update({'name': displayName, 'bio': bio}).eq('id', userId);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully!')),
-      );
+      _showSnackBar('Profile updated successfully!');
     } catch (e) {
       print('Error updating profile: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      _showSnackBar('Error updating profile.');
     } finally {
       setState(() {
         _isLoading = false;
@@ -123,7 +118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (pickedFile != null) {
       setState(() {
         _localImageFile = File(pickedFile.path);
-        _isUploadingImage = true;
+        _isLoading = true;
       });
       _uploadProfileImage();
     }
@@ -132,30 +127,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _uploadProfileImage() async {
     if (_localImageFile == null) return;
 
-    final userId = Supabase.instance.client.auth.currentUser!.id;
+    final userId = _supabaseClient.auth.currentUser!.id;
 
     try {
-      final newFilePath = await _imageUploadService.uploadProfileImage(
+      final newImageHashExtension =
+          await _imageUploadService.uploadProfileImage(
         _localImageFile!,
-        userId,
-        _profileImagePath,
+        _profileImage,
       );
 
-      if (newFilePath != null) {
-        await Supabase.instance.client
+      if (newImageHashExtension != null) {
+        await _supabaseClient
             .from('users')
-            .update({'profile_image_path': newFilePath}).eq('id', userId);
+            .update({'profile_image': newImageHashExtension}).eq('id', userId);
 
-        // Fetch and display the new image
-        _fetchProfileImage(newFilePath);
+        setState(() {
+          _profileImage = newImageHashExtension;
+        });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile image updated successfully!')),
-        );
+        await _fetchProfileImage(newImageHashExtension);
+
+        _showSnackBar('Profile image updated successfully!');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error uploading profile image.')),
-        );
+        _showSnackBar('Image already up-to-date.');
       }
     } catch (e) {
       print('Error uploading profile image: $e');
@@ -167,28 +161,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _deleteProfileImage() async {
-    if (_profileImagePath == null) return;
+    if (_profileImage == null) return;
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      await _imageUploadService.deleteProfileImage(_profileImagePath!);
+      await _imageUploadService.deleteProfileImage(_profileImage!);
 
-      final userId = Supabase.instance.client.auth.currentUser!.id;
-      await Supabase.instance.client
+      final userId = _supabaseClient.auth.currentUser!.id;
+      await _supabaseClient
           .from('users')
-          .update({'profile_image_path': null}).eq('id', userId);
+          .update({'profile_image': null}).eq('id', userId);
 
       setState(() {
-        _profileImagePath = null; // Clear the image path
-        _localImageFile = null; // Clear the local image file
+        _profileImage = null;
+        _localImageFile = null;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile image deleted successfully!')),
-      );
+      _showSnackBar('Profile image deleted successfully!');
     } catch (e) {
       print('Error deleting profile image: $e');
     } finally {
@@ -208,6 +200,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -285,9 +282,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 Icon(Icons.camera_alt,
                                     color: AppColors.lightSecondary),
                                 SizedBox(width: 10),
-                                Text('Upload Image',
-                                    style: TextStyle(
-                                        color: AppColors.lightOnPrimary)),
+                                Text('Upload Image'),
                               ],
                             ),
                           ),
@@ -298,9 +293,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 children: [
                                   Icon(Icons.delete, color: Colors.redAccent),
                                   SizedBox(width: 10),
-                                  Text('Delete Image',
-                                      style: TextStyle(
-                                          color: AppColors.lightOnPrimary)),
+                                  Text('Delete Image'),
                                 ],
                               ),
                             ),
@@ -316,9 +309,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ElevatedButton.icon(
                 onPressed: _isLoading ? null : _updateProfile,
                 icon: _isLoading
-                    ? const CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.save),
                 label: const Text('Save Changes'),
@@ -329,7 +326,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   textStyle: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

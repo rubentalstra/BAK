@@ -13,7 +13,7 @@ class AssociationService {
     final List<dynamic> response = await _supabase
         .from('association_members')
         .select(
-            'user_id (id, name, profile_image_path, bio), association_id, role, permissions, joined_at, baks_received, baks_consumed')
+            'user_id (id, name, profile_image, bio), association_id, role, permissions, joined_at, baks_received, baks_consumed')
         .eq('association_id', associationId);
 
     return response.map((data) {
@@ -22,7 +22,7 @@ class AssociationService {
         userId: userMap['id'],
         name: userMap['name'],
         bio: userMap['bio'],
-        profileImagePath: userMap['profile_image_path'],
+        profileImage: userMap['profile_image'],
         associationId: data['association_id'],
         role: data['role'],
         permissions: data['permissions'] is String

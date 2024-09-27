@@ -1,6 +1,7 @@
 import 'package:badges/badges.dart' as badges;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -28,12 +29,12 @@ class BottomNavBar extends StatelessWidget {
         label: 'Home',
       ),
       const BottomNavigationBarItem(
-        icon: Icon(Icons.local_drink),
+        icon: FaIcon(FontAwesomeIcons.beerMugEmpty, size: 25),
         label: 'Bak',
       ),
       const BottomNavigationBarItem(
-        icon: Icon(Icons.handshake_outlined),
-        label: 'Bets',
+        icon: FaIcon(FontAwesomeIcons.wineBottle, size: 25),
+        label: 'Chucked',
       ),
       if (canApproveBaks) // Conditionally show Approve Baks tab
         BottomNavigationBarItem(
@@ -50,7 +51,7 @@ class BottomNavBar extends StatelessWidget {
             badgeStyle: const badges.BadgeStyle(
               badgeColor: Colors.red, // Customize badge color
             ),
-            child: const Icon(Icons.history),
+            child: const FaIcon(FontAwesomeIcons.thumbsUp, size: 25),
           ),
           label: 'Approve Baks',
         ),

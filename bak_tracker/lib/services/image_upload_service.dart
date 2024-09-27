@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -19,98 +20,110 @@ class ImageUploadService {
     return directory.path;
   }
 
-  // Save image locally from a URL
-  Future<File> _saveImageLocally(String url, String fileName) async {
+  // Compute hash of the image file
+  Future<String> _computeImageHash(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    return sha256.convert(bytes).toString();
+  }
+
+  // Check if the local image exists and matches the current filename
+  Future<File?> _getLocalImageIfUnchanged(String profileImage) async {
+    final fileHash = profileImage.split('.').first;
+    final fileExtension = profileImage.split('.').last;
+    final localImagePath = '${await _getLocalPath()}/$fileHash.$fileExtension';
+    final localImage = File(localImagePath);
+
+    // If local image exists, return it, otherwise return null
+    return (await localImage.exists()) ? localImage : null;
+  }
+
+  // Download and save image locally using hash.extension format
+  Future<File?> _saveImageLocally(
+      String signedUrl, String fileHash, String fileExtension) async {
     try {
-      final path = await _getLocalPath();
-      final file = File('$path/$fileName');
-      final response = await dio.download(url, file.path);
+      final path = '${await _getLocalPath()}/$fileHash.$fileExtension';
+      final file = File(path);
+      final response = await dio.download(signedUrl, file.path);
 
       if (response.statusCode == 200) {
         return file;
-      } else {
-        throw Exception('Error downloading image from $url');
       }
+      throw Exception('Failed to download image from $signedUrl');
     } catch (e) {
-      throw Exception('Failed to save image locally: $e');
+      print('Failed to save image locally: $e');
+      return null;
     }
   }
 
-  // Check if local image exists
-  Future<File?> getLocalImage(String fileName) async {
-    final file = File('${await _getLocalPath()}/$fileName');
-    return (await file.exists()) ? file : null;
-  }
-
-  // Extract version number from file path
-  int _extractVersion(String? filePath) {
-    final match = RegExp(r'-v(\d+)').firstMatch(filePath ?? '');
-    return match != null ? int.parse(match.group(1)!) : 0;
-  }
-
-  // Upload profile image with version increment
+  // Upload a profile image, compare hashes, and save with hash.extension format
   Future<String?> uploadProfileImage(
-      File imageFile, String userId, String? existingFilePath) async {
+      File imageFile, String? existingImage) async {
     try {
       if (imageFile.lengthSync() > maxFileSizeInBytes) {
         throw Exception('File size exceeds $maxFileSizeInMB MB limit');
       }
 
-      final newVersion = _extractVersion(existingFilePath) + 1;
+      final newImageHash = await _computeImageHash(imageFile);
       final fileExt = imageFile.path.split('.').last;
-      final newFilePath = 'user-profile-images/$userId-v$newVersion.$fileExt';
+      final newFilePath = 'user-profile-images/$newImageHash.$fileExt';
 
-      // Upload the new image
+      // If there's an existing image, compare hash and delete the old image
+      if (existingImage != null && existingImage.contains('.')) {
+        final existingImageHash = existingImage.split('.').first;
+        if (existingImageHash == newImageHash) {
+          print('Image hash matches, no need to upload.');
+          return null; // No upload needed, image is the same
+        }
+        await deleteProfileImage(existingImage);
+      }
+
+      // Upload the new image to Supabase storage
       await supabase.storage
           .from('user-profile-images')
           .upload(newFilePath, imageFile);
-
-      // Delete old image if new one is uploaded successfully
-      await _deletePreviousImage(existingFilePath);
-
-      return newFilePath;
+      return '$newImageHash.$fileExt'; // Return new hash and extension after successful upload
     } catch (e) {
       print('Error uploading profile image: $e');
       return null;
     }
   }
 
-  // Delete previous image both locally and on Supabase
-  Future<void> _deletePreviousImage(String? filePath) async {
-    if (filePath != null && filePath.isNotEmpty) {
-      await deleteProfileImage(filePath);
-      await _deleteLocalImage(filePath);
+  // Fetch or download a profile image, update it if needed
+  Future<File?> fetchOrDownloadProfileImage(String profileImage) async {
+    if (!profileImage.contains('.')) {
+      print('Invalid profile image format');
+      return null;
     }
-  }
 
-  // Delete local image
-  Future<void> _deleteLocalImage(String filePath) async {
-    final localImage = await getLocalImage(filePath);
+    // Check if the local image exists and has the same hash
+    final localImage = await _getLocalImageIfUnchanged(profileImage);
     if (localImage != null) {
-      await localImage.delete();
-      print('Deleted local image: ${localImage.path}');
-    }
-  }
-
-  // Fetch or download profile image if the version has changed
-  Future<File?> fetchOrDownloadProfileImage(String filePath) async {
-    final localImage = await getLocalImage(filePath);
-    final localVersion = _extractVersion(localImage?.path);
-    final serverVersion = _extractVersion(filePath);
-
-    if (localVersion == serverVersion && localImage != null) {
-      print('Using cached local image version: $localVersion');
+      // Return the local image if it exists
       return localImage;
     }
 
-    // Download new version if server version is newer
-    final signedUrl = await getSignedUrl(filePath);
-    return signedUrl != null ? _saveImageLocally(signedUrl, filePath) : null;
+    // Download and save the image if it has changed
+    return await _downloadAndSaveImage(profileImage);
+  }
+
+  // Download image and save locally
+  Future<File?> _downloadAndSaveImage(String profileImage) async {
+    final fileHash = profileImage.split('.').first;
+    final fileExtension = profileImage.split('.').last;
+    final signedUrl = await _getSignedUrl(profileImage);
+
+    if (signedUrl != null) {
+      return await _saveImageLocally(signedUrl, fileHash, fileExtension);
+    } else {
+      print('Failed to fetch signed URL for $profileImage');
+      return null;
+    }
   }
 
   // Generate signed URL for profile image
-  Future<String?> getSignedUrl(String filePath) async {
+  Future<String?> _getSignedUrl(String profileImage) async {
     try {
+      final filePath = 'user-profile-images/$profileImage';
       return await supabase.storage
           .from('user-profile-images')
           .createSignedUrl(filePath, signedUrlCacheDuration.inSeconds);
@@ -120,19 +133,32 @@ class ImageUploadService {
     }
   }
 
-  // Delete profile image from both Supabase and locally
-  Future<void> deleteProfileImage(String filePath) async {
-    if (filePath.isEmpty) return;
+  // Delete profile image from both Supabase and local storage
+  Future<void> deleteProfileImage(String profileImage) async {
+    if (!profileImage.contains('.')) {
+      print('Invalid profile image format');
+      return;
+    }
+
+    final fileHash = profileImage.split('.').first;
+    final fileExtension = profileImage.split('.').last;
+    final filePath = 'user-profile-images/$fileHash.$fileExtension';
 
     try {
-      // Delete from Supabase storage
+      // Delete the file from Supabase storage
       await supabase.storage.from('user-profile-images').remove([filePath]);
-      print('Image deleted from Supabase: $filePath');
+      print('Profile image deleted from Supabase: $filePath');
 
-      // Delete locally
-      await _deleteLocalImage(filePath);
+      // Delete the image locally
+      final localImagePath =
+          '${await _getLocalPath()}/$fileHash.$fileExtension';
+      final localFile = File(localImagePath);
+      if (await localFile.exists()) {
+        await localFile.delete();
+        print('Deleted local image: $localImagePath');
+      }
     } catch (e) {
-      print('Error deleting profile image: $e');
+      print('Error during profile image deletion: $e');
     }
   }
 }

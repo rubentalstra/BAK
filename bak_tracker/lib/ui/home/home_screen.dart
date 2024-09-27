@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
+import 'package:bak_tracker/ui/settings/association_settings/association_settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,6 +10,7 @@ import 'package:bak_tracker/ui/home/widgets/leaderboard_widget.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
+import 'package:badges/badges.dart' as badges; // Import badges
 
 class HomeScreen extends StatefulWidget {
   final List<AssociationModel> associations;
@@ -44,7 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void didUpdateWidget(covariant HomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Only reload the leaderboard if the selected association has actually changed
     if (oldWidget.selectedAssociation?.id != widget.selectedAssociation?.id) {
       _fetchLeaderboard();
     }
@@ -52,8 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _associationBlocSubscription
-        ?.cancel(); // Cancel subscription when the widget is disposed
+    _associationBlocSubscription?.cancel();
     super.dispose();
   }
 
@@ -71,16 +71,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ));
 
     // Listen for the AssociationBloc updates
-    _associationBlocSubscription
-        ?.cancel(); // Cancel previous subscription if any
+    _associationBlocSubscription?.cancel();
     _associationBlocSubscription =
         context.read<AssociationBloc>().stream.listen((state) {
       if (state is AssociationLoaded &&
           state.selectedAssociation.id == widget.selectedAssociation?.id) {
-        if (!mounted)
-          return; // Prevent setting state if the widget is not mounted
+        if (!mounted) return;
 
-        // Map the new state to leaderboard entries
         List<LeaderboardEntry> newLeaderboardEntries =
             state.members.map((member) {
           return LeaderboardEntry(
@@ -88,17 +85,15 @@ class _HomeScreenState extends State<HomeScreen> {
             name: member.name!,
             bio: member.bio,
             role: member.role,
-            profileImagePath: member.profileImagePath,
+            profileImage: member.profileImage,
             baksConsumed: member.baksConsumed,
             baksDebt: member.baksReceived,
           );
         }).toList();
 
-        // Sort the leaderboard entries
         newLeaderboardEntries
             .sort((a, b) => b.baksConsumed.compareTo(a.baksConsumed));
 
-        // Assign ranks
         for (int i = 0; i < newLeaderboardEntries.length; i++) {
           newLeaderboardEntries[i] =
               newLeaderboardEntries[i].copyWith(rank: i + 1);
@@ -117,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleAssociationChange(AssociationModel? newAssociation) {
-    widget.onAssociationChanged(newAssociation); // Inform the parent widget
+    widget.onAssociationChanged(newAssociation);
   }
 
   @override
@@ -145,6 +140,54 @@ class _HomeScreenState extends State<HomeScreen> {
                 widget.selectedAssociation?.name ?? 'Loading...',
                 style: Theme.of(context).dropdownMenuTheme.textStyle,
               ),
+        actions: [
+          BlocBuilder<AssociationBloc, AssociationState>(
+            builder: (context, state) {
+              if (state is AssociationLoaded) {
+                final memberData = state.memberData;
+                bool hasAssociationPermissions =
+                    memberData.canManagePermissions ||
+                        memberData.canInviteMembers ||
+                        memberData.canRemoveMembers ||
+                        memberData.canManageRoles ||
+                        memberData.canManageBaks ||
+                        memberData.canApproveBaks;
+
+                // Display a badge if there are pending approval baks
+                if (hasAssociationPermissions) {
+                  return badges.Badge(
+                    position: badges.BadgePosition.topEnd(top: 0, end: 3),
+                    showBadge: state.pendingBaksCount > 0,
+                    badgeContent: Text(
+                      state.pendingBaksCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                      ),
+                    ),
+                    badgeStyle: const badges.BadgeStyle(
+                      badgeColor: Colors.red, // Customize badge color
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.settings),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => AssociationSettingsScreen(
+                              memberData: memberData,
+                              associationId: state.selectedAssociation.id,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }
+              }
+              return const SizedBox(); // Return empty widget if no permission
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -153,7 +196,6 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             if (widget.selectedAssociation != null)
               Expanded(
-                // Wrap the leaderboard in Expanded to avoid unbounded height issues
                 child: RefreshIndicator(
                   onRefresh: _handlePullToRefresh,
                   child: LeaderboardWidget(

@@ -10,7 +10,7 @@ class LeaderboardEntry {
   final String name;
   final String? bio;
   final String? role;
-  final String? profileImagePath;
+  final String? profileImage;
   final int baksConsumed;
   final int baksDebt;
 
@@ -19,7 +19,7 @@ class LeaderboardEntry {
     required this.name,
     this.bio,
     this.role,
-    this.profileImagePath,
+    this.profileImage,
     required this.baksConsumed,
     required this.baksDebt,
   });
@@ -29,7 +29,7 @@ class LeaderboardEntry {
     String? name,
     String? bio,
     String? role,
-    String? profileImagePath,
+    String? profileImage,
     int? baksConsumed,
     int? baksDebt,
   }) {
@@ -38,7 +38,7 @@ class LeaderboardEntry {
       name: name ?? this.name,
       bio: bio ?? this.bio,
       role: role ?? this.role,
-      profileImagePath: profileImagePath ?? this.profileImagePath,
+      profileImage: profileImage ?? this.profileImage,
       baksConsumed: baksConsumed ?? this.baksConsumed,
       baksDebt: baksDebt ?? this.baksDebt,
     );
@@ -80,23 +80,16 @@ class LeaderboardWidget extends StatelessWidget {
       itemBuilder: (context, index) {
         final entry = entries[index];
 
-        // If profileImagePath is null or empty, directly return the default icon.
-        if (entry.profileImagePath == null || entry.profileImagePath!.isEmpty) {
-          return _buildEntry(entry, null); // Pass null to show icon
-        }
-
         return FutureBuilder<File?>(
-          future: imageUploadService
-              .fetchOrDownloadProfileImage(entry.profileImagePath!),
+          future: entry.profileImage == null || entry.profileImage!.isEmpty
+              ? Future.value(null) // If no profile image, return null
+              : imageUploadService.fetchOrDownloadProfileImage(
+                  entry.profileImage!,
+                ),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return _buildLoadingEntry(
-                  entry); // Show skeleton or placeholder while loading
-            }
-
             final imageFile = snapshot.data;
 
-            // If there's an error or the image fetch fails, use the default icon.
+            // Wrap the entry with GestureDetector to allow navigation to profile page
             return GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -104,7 +97,8 @@ class LeaderboardWidget extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (context) => LeaderboardProfileScreen(
                       username: entry.name,
-                      localImageFile: imageFile, // Pass the File directly
+                      localImageFile:
+                          imageFile, // Pass the local image if it exists
                       bio: entry.bio,
                       role: entry.role,
                       baksConsumed: entry.baksConsumed,
@@ -197,6 +191,7 @@ class LeaderboardWidget extends StatelessWidget {
         radius: 24.0,
         backgroundColor: Colors.grey,
         child: Icon(
+          size: 30.0,
           Icons.person,
           color: Colors.white,
         ),
@@ -268,76 +263,6 @@ class LeaderboardWidget extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildLoadingEntry(LeaderboardEntry entry) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: AppColors.lightBackground,
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const CircleAvatar(
-            radius: 24.0,
-            backgroundColor: Colors.grey,
-          ),
-          const SizedBox(width: 16.0),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  entry.name,
-                  style: const TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 4.0),
-                Row(
-                  children: [
-                    Text(
-                      'Chucked: ${entry.baksConsumed}',
-                      style: TextStyle(
-                        fontSize: 14.0,
-                        color: Colors.green[700],
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    const SizedBox(width: 16.0),
-                    Text(
-                      'BAK: ${entry.baksDebt}',
-                      style: TextStyle(
-                        fontSize: 14.0,
-                        color: Colors.red[700],
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Column(
-            children: [
-              Text(
-                entry.rank.toString(),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16.0,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

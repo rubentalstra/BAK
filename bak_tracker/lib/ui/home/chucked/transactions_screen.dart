@@ -5,16 +5,16 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 
-class TransactionsScreen extends StatefulWidget {
-  const TransactionsScreen({super.key});
+class ChuckedTransactionsScreen extends StatefulWidget {
+  const ChuckedTransactionsScreen({super.key});
 
   @override
-  _TransactionsScreenState createState() => _TransactionsScreenState();
+  _ChuckedTransactionsScreenState createState() =>
+      _ChuckedTransactionsScreenState();
 }
 
-class _TransactionsScreenState extends State<TransactionsScreen> {
-  List<Map<String, dynamic>> _sentBakken = [];
-  List<Map<String, dynamic>> _receivedBakkenTransaction = [];
+class _ChuckedTransactionsScreenState extends State<ChuckedTransactionsScreen> {
+  List<Map<String, dynamic>> _chuckedBakken = [];
   bool _isLoading = true;
   String? _selectedAssociationId;
 
@@ -24,7 +24,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     // Initial fetching is deferred until the association is loaded
   }
 
-  Future<void> _fetchTransactions(String associationId) async {
+  Future<void> _fetchChuckedTransactions(String associationId) async {
     setState(() {
       _isLoading = true;
     });
@@ -33,34 +33,22 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final currentUserId = supabase.auth.currentUser!.id;
 
     try {
-      // Fetch sent baks by the current user
-      final sentResponse = await supabase
-          .from('bak_send')
+      // Fetch chucked bakken transactions (those consumed by the current user)
+      final chuckedResponse = await supabase
+          .from('bak_consumed')
           .select(
-              'id, amount, status, created_at, reason, receiver_id (id, name), giver_id (id, name)')
-          .eq('giver_id', currentUserId)
-          .eq('association_id', associationId)
-          .neq('status', 'pending')
-          .order('created_at', ascending: false);
-
-      // Fetch received baks by the current user (excluding pending ones)
-      final receivedResponse = await supabase
-          .from('bak_send')
-          .select(
-              'id, amount, status, created_at, reason, receiver_id (id, name), giver_id (id, name)')
-          .eq('receiver_id', currentUserId)
+              'id, amount, status, created_at, association_id, reason, taker_id (id, name)')
+          .eq('taker_id', currentUserId)
           .eq('association_id', associationId)
           .neq('status', 'pending')
           .order('created_at', ascending: false);
 
       setState(() {
-        _sentBakken = List<Map<String, dynamic>>.from(sentResponse);
-        _receivedBakkenTransaction =
-            List<Map<String, dynamic>>.from(receivedResponse);
+        _chuckedBakken = List<Map<String, dynamic>>.from(chuckedResponse);
         _isLoading = false;
       });
     } catch (e) {
-      print('Error fetching transactions: $e');
+      print('Error fetching chucked transactions: $e');
       setState(() {
         _isLoading = false;
       });
@@ -71,7 +59,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Transactions'),
+        title: const Text('Chucked Transactions'),
       ),
       body: BlocBuilder<AssociationBloc, AssociationState>(
         builder: (context, state) {
@@ -80,9 +68,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             if (_selectedAssociationId != associationId) {
               _selectedAssociationId = associationId;
 
-              // Fetch transactions only when the association changes or on first load
+              // Fetch chucked transactions only when the association changes or on first load
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                _fetchTransactions(associationId);
+                _fetchChuckedTransactions(associationId);
               });
             }
 
@@ -97,54 +85,31 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  // Build the list of transactions (combined sent and received baks)
+// Build the list of chucked transactions
   Widget _buildTransactionsList() {
-    final currentUserId = Supabase.instance.client.auth.currentUser!.id;
-
-    // Combine sent and received baks into a single list
-    List<Map<String, dynamic>> transactions = [
-      ..._sentBakken,
-      ..._receivedBakkenTransaction
-    ];
-    transactions.sort((a, b) => DateTime.parse(b['created_at'])
-        .compareTo(DateTime.parse(a['created_at']))); // Sort by newest first
-
-    if (transactions.isEmpty) {
+    if (_chuckedBakken.isEmpty) {
       return const Center(child: Text('No transactions found.'));
     }
 
     return ListView.builder(
-      itemCount: transactions.length,
+      itemCount: _chuckedBakken.length,
       itemBuilder: (context, index) {
-        final bak = transactions[index];
+        final bak = _chuckedBakken[index];
         final date = DateTime.parse(bak['created_at']);
-
-        // Get the reason for the bak
-        final bakReason = bak['reason'] ?? 'No reason provided';
 
         // Check if the bak status is 'rejected' and get the reason if available
         final isRejected = bak['status'] == 'rejected';
-        final rejectionReason = bak['reason'] ?? 'No reason provided';
-
-        // Check if the current user sent or received the bak
-        final isSent = bak['giver_id']['id'] == currentUserId;
-        final recipientName = bak['receiver_id']['name'];
-        final senderName = bak['giver_id']['name'];
+        final rejectionReason = bak['reason'] ??
+            'No reason provided'; // Assuming 'reason' field exists
 
         return ListTile(
           title: Text(
-            isSent ? 'Sent to: $recipientName' : 'Received from: $senderName',
+            'Amount: ${bak['amount']}',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Amount: ${bak['amount']}',
-              ),
-              Text(
-                'Reason: $bakReason',
-              ),
               Text(
                 'Date: ${DateFormat.yMd('nl_NL').format(date)} at ${DateFormat.Hm('nl_NL').format(date)}',
               ),
@@ -154,7 +119,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   'Rejection Reason: $rejectionReason',
                   style: const TextStyle(color: Colors.redAccent),
                 ),
-              ],
+              ]
             ],
           ),
           trailing: Text(
@@ -162,7 +127,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             style: TextStyle(
               color: bak['status'] == 'approved'
                   ? Colors.green
-                  : bak['status'] == 'declined'
+                  : bak['status'] == 'rejected'
                       ? Colors.red
                       : Colors.orange,
             ),

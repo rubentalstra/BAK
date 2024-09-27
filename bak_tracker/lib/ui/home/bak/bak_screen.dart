@@ -26,7 +26,7 @@ class _BakScreenState extends State<BakScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -153,7 +153,6 @@ class _BakScreenState extends State<BakScreen>
           controller: _tabController,
           tabs: const [
             Tab(text: 'Send Bak'),
-            Tab(text: 'Request Consumed Bak'),
             Tab(text: 'Received Bak'),
           ],
         ),
@@ -171,8 +170,6 @@ class _BakScreenState extends State<BakScreen>
               controller: _tabController,
               children: [
                 _buildSendBakTab(context, members),
-                _buildRequestConsumedBakTab(
-                    context, state.selectedAssociation.id),
                 const ReceivedBakScreen(),
               ],
             );
@@ -301,11 +298,12 @@ class _BakScreenState extends State<BakScreen>
                   : Alignment.centerRight,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  if (_selectedReceiverId == null) {
+                  if (_selectedReceiverId == null ||
+                      _reasonController.text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text(
-                              'Please select a receiver and enter an amount.')),
+                              'Please select a receiver, enter an amount, and provide a reason.')),
                     );
                     return;
                   }
@@ -341,92 +339,7 @@ class _BakScreenState extends State<BakScreen>
                 icon: const Icon(Icons.send),
                 label: const Text('Send Bak'),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Tab 2: Request Consumed Bak
-  Widget _buildRequestConsumedBakTab(
-      BuildContext context, String associationId) {
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus(); // Dismiss the keyboard
-      },
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Amount',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8.0),
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              color: AppColors.lightPrimary,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: TextField(
-                  controller: _amountController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    labelText: 'Enter amount',
-                    labelStyle: TextStyle(
-                      color: Colors.grey, // Default color when not focused
-                    ),
-                  ),
-                  textInputAction: TextInputAction.done,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24.0),
-            Align(
-              alignment: MediaQuery.of(context).size.width < 600
-                  ? Alignment.center
-                  : Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  try {
-                    await requestConsumedBak(
-                      associationId: associationId,
-                      amount: int.parse(_amountController.text),
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Consumed Bak request sent!'),
-                      backgroundColor: Colors.green,
-                    ));
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error requesting consumed bak: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24.0, vertical: 12.0),
-                  textStyle: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.receipt_long),
-                label: const Text('Request Consumed Bak'),
-              ),
-            ),
+            )
           ],
         ),
       ),

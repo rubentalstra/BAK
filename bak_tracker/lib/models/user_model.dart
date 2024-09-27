@@ -4,7 +4,7 @@ class UserModel {
   final String bio;
   final String? fcmToken;
   final DateTime createdAt;
-  final String? profileImagePath;
+  final String? profileImage;
 
   UserModel({
     required this.id,
@@ -12,7 +12,7 @@ class UserModel {
     required this.bio,
     this.fcmToken,
     required this.createdAt,
-    this.profileImagePath,
+    this.profileImage,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
@@ -22,7 +22,7 @@ class UserModel {
       bio: map['bio'],
       fcmToken: map['fcm_token'],
       createdAt: DateTime.parse(map['created_at']),
-      profileImagePath: map['profile_image_path'],
+      profileImage: map['profile_image'],
     );
   }
 
@@ -33,7 +33,7 @@ class UserModel {
       'bio': bio,
       'fcm_token': fcmToken,
       'created_at': createdAt.toIso8601String(),
-      'profile_image_path': profileImagePath,
+      'profile_image': profileImage,
     };
   }
 }

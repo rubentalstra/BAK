@@ -38,7 +38,7 @@ class AppThemes {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        foregroundColor: AppColors.lightAccent,
+        foregroundColor: AppColors.lightSecondary,
         backgroundColor: AppColors.lightPrimary,
       ),
     ),

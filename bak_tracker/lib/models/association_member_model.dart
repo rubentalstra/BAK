@@ -4,7 +4,7 @@ class AssociationMemberModel {
   final String userId;
   final String? name;
   final String? bio;
-  final String? profileImagePath;
+  final String? profileImage;
   final String associationId;
   final String role;
   final Map<String, dynamic> permissions;
@@ -16,7 +16,7 @@ class AssociationMemberModel {
     required this.userId,
     this.name,
     this.bio,
-    this.profileImagePath,
+    this.profileImage,
     required this.associationId,
     required this.role,
     required this.permissions,
@@ -30,7 +30,7 @@ class AssociationMemberModel {
       userId: map['user_id'],
       name: map['name'],
       bio: map['bio'],
-      profileImagePath: map['profile_image_path'],
+      profileImage: map['profile_image'],
       associationId: map['association_id'],
       role: map['role'],
       permissions: map['permissions'] is String
@@ -47,7 +47,7 @@ class AssociationMemberModel {
       'user_id': userId,
       'name': name,
       'bio': bio,
-      'profile_image_path': profileImagePath,
+      'profile_image': profileImage,
       'association_id': associationId,
       'role': role,
       'permissions': jsonEncode(permissions),

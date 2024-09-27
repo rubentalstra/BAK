@@ -35,7 +35,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
     }
   }
 
-// Fetch Baks from the database for a specific association
+  // Fetch Baks from the database for a specific association
   Future<void> _fetchBaks(String associationId) async {
     if (!mounted) return; // Ensure the widget is still mounted
     setState(() {
@@ -76,15 +76,18 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
   }
 
   Future<void> _updateBakStatus(
-      String bakId, String status, String takerId, int amount) async {
+      String bakId, String status, String takerId, int amount,
+      [String? rejectionReason]) async {
     final supabase = Supabase.instance.client;
     final userId = supabase.auth.currentUser?.id;
 
     try {
       // Update the bak status in the database
-      await supabase
-          .from('bak_consumed')
-          .update({'status': status, 'approved_by': userId}).eq('id', bakId);
+      final updateData = {'status': status, 'approved_by': userId};
+      if (rejectionReason != null) {
+        updateData['reason'] = rejectionReason;
+      }
+      await supabase.from('bak_consumed').update(updateData).eq('id', bakId);
 
       final associationBloc = context.read<AssociationBloc>().state;
       if (associationBloc is AssociationLoaded) {
@@ -103,21 +106,6 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
           await supabase
               .from('association_members')
               .update({'baks_consumed': updatedConsumed})
-              .eq('user_id', takerId)
-              .eq('association_id', associationId);
-        } else if (status == 'rejected') {
-          final takerResponse = await supabase
-              .from('association_members')
-              .select('baks_received')
-              .eq('user_id', takerId)
-              .eq('association_id', associationId)
-              .single();
-
-          final updatedReceived = takerResponse['baks_received'] + amount;
-
-          await supabase
-              .from('association_members')
-              .update({'baks_received': updatedReceived})
               .eq('user_id', takerId)
               .eq('association_id', associationId);
         }
@@ -167,6 +155,69 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
     } catch (e) {
       print('Error inserting notification: $e');
     }
+  }
+
+// Show dialog for rejection reason
+  Future<void> _showRejectDialog(
+      BuildContext context, String bakId, String takerId, int amount) async {
+    final _reasonController = TextEditingController();
+
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Reject Bak'),
+          content: SizedBox(
+            width:
+                MediaQuery.of(context).size.width * 0.8, // 80% of screen width
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Please provide a reason for rejecting this bak:',
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _reasonController,
+                  decoration: const InputDecoration(
+                    labelText: 'Rejection Reason',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 5, // Allow for more lines
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+              },
+            ),
+            ElevatedButton(
+              child: const Text('Reject'),
+              onPressed: () {
+                final reason = _reasonController.text.trim();
+                if (reason.isNotEmpty) {
+                  _updateBakStatus(bakId, 'rejected', takerId, amount, reason);
+                  Navigator.of(context).pop(); // Close dialog
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please provide a reason for rejection'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -231,10 +282,11 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
                 onPressed: () =>
                     _updateBakStatus(bak['id'], 'approved', takerId, bakAmount),
               ),
+              const SizedBox(width: 8), // Add some space between the buttons
               IconButton(
                 icon: const Icon(Icons.close, color: Colors.red),
-                onPressed: () =>
-                    _updateBakStatus(bak['id'], 'rejected', takerId, bakAmount),
+                onPressed: () => _showRejectDialog(context, bak['id'], takerId,
+                    bakAmount), // Show reject dialog
               ),
             ],
           ),

@@ -75,7 +75,7 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen> {
   // Method to build the profile image section
   Widget _buildProfileImageSection() {
     return GestureDetector(
-      onTap: _showFullScreenImage,
+      onTap: _localImageFile != null ? _showFullScreenImage : null,
       child: CircleAvatar(
         radius: 80,
         backgroundColor: Colors.grey[200],
@@ -84,7 +84,7 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen> {
         child: _localImageFile == null
             ? const Icon(
                 Icons.person,
-                size: 80,
+                size: 100,
                 color: Colors.grey,
               )
             : null,
