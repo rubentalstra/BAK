@@ -220,25 +220,18 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
             appBar: AppBar(
               title: const Text('Approve Baks'),
               actions: [
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert),
-                  onSelected: (value) {
-                    if (value == 'transactions') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const ProcessedBaksTransactionsScreen(),
-                        ),
-                      );
-                    }
+                IconButton(
+                  icon: const Icon(Icons.history),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const ProcessedBaksTransactionsScreen(),
+                      ),
+                    );
                   },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'transactions',
-                      child: Text('Go to Transactions'),
-                    ),
-                  ],
+                  tooltip: 'Transactions',
                 ),
               ],
             ),

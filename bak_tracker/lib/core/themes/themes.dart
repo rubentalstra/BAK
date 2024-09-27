@@ -29,7 +29,7 @@ class AppThemes {
     ),
     iconTheme: const IconThemeData(color: AppColors.lightSecondary),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: AppColors.lightAccent,
+      backgroundColor: AppColors.lightSecondary,
       foregroundColor: AppColors.lightOnPrimary,
     ),
     textTheme: const TextTheme(
@@ -149,6 +149,15 @@ class AppThemes {
         }
         return Colors.white;
       }),
+    ),
+
+    datePickerTheme: const DatePickerThemeData(
+      backgroundColor: AppColors.lightPrimaryVariant,
+      dayStyle: TextStyle(color: AppColors.lightOnPrimary),
+      yearStyle: TextStyle(color: AppColors.lightOnPrimary),
+      weekdayStyle: TextStyle(color: AppColors.lightOnPrimary),
+      headerBackgroundColor: AppColors.lightPrimary,
+      headerForegroundColor: AppColors.lightSecondary,
     ),
   );
 }
