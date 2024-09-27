@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 
 class OngoingBetsTab extends StatefulWidget {
   final String associationId;
@@ -91,7 +90,7 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return _buildLoadingSkeleton();
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_ongoingBets.isEmpty) {
@@ -102,116 +101,128 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
       itemCount: _ongoingBets.length,
       itemBuilder: (context, index) {
         final bet = _ongoingBets[index];
-        return ListTile(
-          title: Text('Bet: ${bet['amount']} bakken'),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Description: ${bet['bet_description']}'),
-              Text('Status: ${bet['status']}'),
-              if (bet['status'] == 'pending')
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed: () => _updateBetStatus(bet['id'], 'accepted'),
-                      child: const Text('Accept'),
-                    ),
-                    TextButton(
-                      onPressed: () => _updateBetStatus(bet['id'], 'rejected'),
-                      child: const Text('Reject'),
-                    ),
-                  ],
+        return Card(
+          elevation: 4,
+          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bet: ${bet['amount']} bakken',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
-              if (bet['status'] == 'accepted')
-                Row(
-                  children: [
-                    DropdownButton<String>(
-                      hint: const Text('Select Winner'),
-                      items: [
-                        DropdownMenuItem<String>(
-                          value: bet['bet_creator_id'],
-                          child: Text('Bet Creator'),
-                        ),
-                        DropdownMenuItem<String>(
-                          value: bet['bet_receiver_id'],
-                          child: Text('Bet Receiver'),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          final loserId = value == bet['bet_creator_id']
-                              ? bet['bet_receiver_id']
-                              : bet['bet_creator_id'];
-                          _settleBet(bet['id'], value, loserId, bet['amount']);
-                        }
-                      },
-                    ),
-                  ],
+                const SizedBox(height: 8),
+                Text(
+                  'Description: ${bet['bet_description']}',
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
-            ],
+                const SizedBox(height: 8),
+                _buildStatusIndicator(bet['status']),
+                const SizedBox(height: 8),
+                if (bet['status'] == 'pending') _buildPendingActions(bet),
+                if (bet['status'] == 'accepted') _buildWinnerSelection(bet),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  // Loading skeleton for ongoing bets
-  Widget _buildLoadingSkeleton() {
-    return ListView.builder(
-      itemCount: 5,
-      itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-          child: Skeletonizer(
-            effect: const ShimmerEffect(
-              baseColor: Color(0xFFE0E0E0),
-              highlightColor: Color(0xFFF5F5F5),
-              duration: Duration(seconds: 1),
-            ),
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 8.0),
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 24.0,
-                    backgroundColor: Colors.grey,
-                  ),
-                  const SizedBox(width: 16.0),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          height: 16.0,
-                          width: 100.0,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(4.0),
-                          ),
-                        ),
-                        const SizedBox(height: 8.0),
-                        Container(
-                          height: 14.0,
-                          width: 150.0,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(4.0),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+  // Widget for bet status
+  Widget _buildStatusIndicator(String status) {
+    Color statusColor;
+    String statusText;
+
+    if (status == 'pending') {
+      statusColor = Colors.orange;
+      statusText = 'Pending Approval';
+    } else if (status == 'accepted') {
+      statusColor = Colors.green;
+      statusText = 'Accepted - Ready to Settle';
+    } else {
+      statusColor = Colors.grey;
+      statusText = 'Unknown Status';
+    }
+
+    return Row(
+      children: [
+        Icon(
+          Icons.circle,
+          color: statusColor,
+          size: 12,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          statusText,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: statusColor,
           ),
-        );
-      },
+        ),
+      ],
+    );
+  }
+
+  // Widget for pending actions (Accept/Reject)
+  Widget _buildPendingActions(Map<String, dynamic> bet) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        TextButton(
+          onPressed: () => _updateBetStatus(bet['id'], 'accepted'),
+          child: const Text(
+            'Accept',
+            style: TextStyle(color: Colors.green),
+          ),
+        ),
+        const SizedBox(width: 8),
+        TextButton(
+          onPressed: () => _updateBetStatus(bet['id'], 'rejected'),
+          child: const Text(
+            'Reject',
+            style: TextStyle(color: Colors.red),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Widget for selecting the winner (after the bet is accepted)
+  Widget _buildWinnerSelection(Map<String, dynamic> bet) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text('Select Winner:'),
+        DropdownButton<String>(
+          hint: const Text('Choose'),
+          items: [
+            DropdownMenuItem<String>(
+              value: bet['bet_creator_id'],
+              child: const Text('Bet Creator'),
+            ),
+            DropdownMenuItem<String>(
+              value: bet['bet_receiver_id'],
+              child: const Text('Bet Receiver'),
+            ),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              final loserId = value == bet['bet_creator_id']
+                  ? bet['bet_receiver_id']
+                  : bet['bet_creator_id'];
+              _settleBet(bet['id'], value, loserId, bet['amount']);
+            }
+          },
+        ),
+      ],
     );
   }
 }

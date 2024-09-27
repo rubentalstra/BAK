@@ -43,10 +43,26 @@ class _CreateBetTabState extends State<CreateBetTab> {
         'bet_description': description,
         'status': 'pending',
       });
+
+      // Clear the input fields
       _descriptionController.clear();
       _amountController.clear();
+
+      // Show success snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bet created successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
-      print('Error creating bet: $e');
+      // Show error snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error creating bet: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

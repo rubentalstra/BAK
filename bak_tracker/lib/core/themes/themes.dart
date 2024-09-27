@@ -6,7 +6,7 @@ class AppThemes {
     brightness: Brightness.dark,
     colorScheme: ColorScheme(
       primary: AppColors.lightPrimary,
-      primaryContainer: AppColors.lightPrimary,
+      primaryContainer: AppColors.lightPrimaryVariant,
       secondary: AppColors.lightSecondary,
       surface: AppColors.lightSurface,
       onPrimary: AppColors.lightOnPrimary,
@@ -35,6 +35,7 @@ class AppThemes {
       bodyLarge: TextStyle(color: AppColors.lightOnPrimary),
       bodyMedium: TextStyle(color: AppColors.lightOnPrimary),
       displayLarge: TextStyle(color: AppColors.lightOnPrimary),
+      headlineMedium: TextStyle(color: AppColors.lightOnPrimary),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -48,7 +49,18 @@ class AppThemes {
     ),
     dividerColor: Colors.grey.shade300,
 
-    // Tab bar theme
+    // Darker Card theme for dark mode
+    cardTheme: CardTheme(
+      color: AppColors.cardBackground, // Darker card background
+      shadowColor:
+          Colors.black.withOpacity(0.4), // Stronger shadow for contrast
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      margin: const EdgeInsets.all(8.0),
+    ),
+
     tabBarTheme: const TabBarTheme(
       labelColor: AppColors.lightSecondary,
       unselectedLabelColor: Colors.grey,
@@ -62,17 +74,15 @@ class AppThemes {
       ),
     ),
 
-    // DropdownMenuTheme for better readability
     dropdownMenuTheme: DropdownMenuThemeData(
       textStyle: const TextStyle(
-        color: AppColors.lightSecondary, // Text color for better contrast
+        color: AppColors.lightSecondary,
         fontWeight: FontWeight.bold,
         fontSize: 18.0,
       ),
       inputDecorationTheme: const InputDecorationTheme(
         filled: true,
-        fillColor:
-            AppColors.lightPrimaryVariant, // Background color for input field
+        fillColor: AppColors.lightPrimaryVariant,
         border: OutlineInputBorder(
           borderSide: BorderSide(color: AppColors.lightSecondary),
         ),
@@ -84,10 +94,10 @@ class AppThemes {
         ),
         contentPadding: EdgeInsets.all(12.0),
         labelStyle: TextStyle(
-          color: AppColors.lightAccent, // Label text color for contrast
+          color: AppColors.lightAccent,
         ),
         hintStyle: TextStyle(
-          color: Colors.grey, // Hint text color is now grey
+          color: Colors.grey,
         ),
       ),
       menuStyle: MenuStyle(
@@ -133,9 +143,9 @@ class AppThemes {
     radioTheme: RadioThemeData(
       fillColor: WidgetStateProperty.resolveWith<Color>((states) {
         if (states.contains(WidgetState.selected)) {
-          return AppColors.lightSecondary; // Active color (selected)
+          return AppColors.lightSecondary;
         }
-        return Colors.white; // Inactive color (unselected)
+        return Colors.white;
       }),
     ),
   );

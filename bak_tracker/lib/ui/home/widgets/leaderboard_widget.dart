@@ -71,12 +71,8 @@ class LeaderboardWidget extends StatelessWidget {
   }
 
   Widget _buildLeaderboardList(BuildContext context) {
-    return ListView.separated(
+    return ListView.builder(
       itemCount: entries.length,
-      separatorBuilder: (context, index) => Divider(
-        height: 1.0,
-        color: Colors.grey[300],
-      ),
       itemBuilder: (context, index) {
         final entry = entries[index];
 
@@ -120,7 +116,7 @@ class LeaderboardWidget extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: AppColors.lightBackground,
+        color: AppColors.cardBackground, // Updated card background
         borderRadius: BorderRadius.circular(8.0),
       ),
       child: Row(
@@ -138,7 +134,6 @@ class LeaderboardWidget extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 16.0,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 4.0),
@@ -173,7 +168,6 @@ class LeaderboardWidget extends StatelessWidget {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16.0,
-                  color: Colors.black87,
                 ),
               ),
             ],
@@ -205,61 +199,51 @@ class LeaderboardWidget extends StatelessWidget {
     );
   }
 
+  // Updated skeleton with card background color
   Widget _buildLoadingSkeleton() {
-    return ListView.separated(
+    return ListView.builder(
       itemCount: 6, // Loading skeleton for 6 items
-      separatorBuilder: (context, index) => Divider(
-        height: 1.0,
-        color: Colors.grey[300],
-      ),
       itemBuilder: (context, index) {
-        return Skeletonizer(
-          effect: const ShimmerEffect(
-            baseColor: Color(0xFFE0E0E0), // Equivalent to Colors.grey[300]
-            highlightColor: Color(0xFFF5F5F5), // Equivalent to Colors.grey[100]
-            duration: Duration(seconds: 1), // Adjust shimmer speed
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 8.0),
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: AppColors.cardBackground, // Updated card background
+            borderRadius: BorderRadius.circular(8.0),
           ),
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 8.0),
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: Colors.grey[200], // Lighter grey for a softer feel
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const CircleAvatar(
-                  radius: 24.0,
-                  backgroundColor: Colors.grey,
-                ),
-                const SizedBox(width: 16.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 16.0,
-                        width: 100.0,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(4.0),
-                        ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const CircleAvatar(
+                radius: 24.0,
+                backgroundColor: Colors.grey,
+              ),
+              const SizedBox(width: 16.0),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 16.0,
+                      width: 100.0,
+                      decoration: BoxDecoration(
+                        color: AppColors.lightPrimaryVariant,
+                        borderRadius: BorderRadius.circular(4.0),
                       ),
-                      const SizedBox(height: 8.0),
-                      Container(
-                        height: 14.0,
-                        width: 150.0,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(4.0),
-                        ),
+                    ),
+                    const SizedBox(height: 8.0),
+                    Container(
+                      height: 14.0,
+                      width: 150.0,
+                      decoration: BoxDecoration(
+                        color: AppColors.lightPrimaryVariant,
+                        borderRadius: BorderRadius.circular(4.0),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },

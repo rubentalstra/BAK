@@ -1,7 +1,6 @@
 import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:skeletonizer/skeletonizer.dart'; // Skeletonizer package
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 
@@ -20,7 +19,6 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    // Initial fetching is deferred until the association is loaded
   }
 
   Future<void> _fetchBetHistory(String associationId) async {
@@ -37,10 +35,11 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
           .select(
               'id, amount, status, bet_creator_id (id, name), bet_receiver_id (id, name), bet_description, winner_id, created_at')
           .eq('status', 'settled')
-          .eq('association_id', associationId) // Use associationId filter
+          .eq('association_id', associationId)
           .order('created_at', ascending: false);
 
-      if (!mounted) return; // Ensure the widget is still mounted
+      if (!mounted) return;
+
       setState(() {
         _betHistory = List<Map<String, dynamic>>.from(betHistoryResponse);
         _isLoading = false;
@@ -72,9 +71,12 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
               });
             }
 
-            return _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _buildBetHistoryList();
+            return RefreshIndicator(
+              onRefresh: () => _fetchBetHistory(associationId),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _buildBetHistoryList(),
+            );
           } else {
             return const Center(child: CircularProgressIndicator());
           }
@@ -83,7 +85,6 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
     );
   }
 
-  // Build the list of settled bets
   Widget _buildBetHistoryList() {
     if (_betHistory.isEmpty) {
       return const Center(child: Text('No settled bets found'));
@@ -99,7 +100,7 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
         final winnerId = bet['winner_id'];
         final winnerName = winnerId == bet['bet_creator_id']['id']
             ? creatorName
-            : receiverName; // Determine winner's name
+            : receiverName;
         final amount = bet['amount'];
         final createdAt = DateTime.parse(bet['created_at']).toLocal();
         final formattedDate =

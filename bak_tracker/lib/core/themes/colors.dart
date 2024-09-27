@@ -15,7 +15,7 @@ class AppColors {
   static const Color lightBackground =
       Color(0xFFE1E5E7); // Soft neutral background
   static const Color lightSurface =
-      Color(0xFFFFFFFF); // Pure white for clean surfaces like cards
+      Color(0xFFF0F4F8); // Soft off-white/light grey for cards (new color)
 
   // Text and icon colors
   static const Color lightOnPrimary =
@@ -28,4 +28,7 @@ class AppColors {
       Color(0xFFD98C4B); // Slightly darker variant of the accent for highlights
   static const Color lightDivider =
       Color(0xFFB0BEC5); // Subtle color for dividers
+
+  // New card background color
+  static const Color cardBackground = Color(0xFF2B343B);
 }
