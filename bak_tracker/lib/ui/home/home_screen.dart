@@ -173,7 +173,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: IconButton(
                       icon: const Icon(Icons.settings),
                       onPressed: () {
-                        Navigator.of(context).push(
+                        Navigator.of(context)
+                            .push(
                           MaterialPageRoute(
                             builder: (context) => AssociationSettingsScreen(
                               memberData: memberData,
@@ -181,7 +182,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               pendingBaksCount: state.pendingBaksCount,
                             ),
                           ),
-                        );
+                        )
+                            .then((_) {
+                          // Reload the leaderboard when returning from the settings screen
+                          _fetchLeaderboard();
+                        });
                       },
                     ),
                   );

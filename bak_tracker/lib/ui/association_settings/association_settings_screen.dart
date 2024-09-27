@@ -141,16 +141,16 @@ class AssociationSettingsScreen extends StatelessWidget {
           if (memberData.canApproveBaks) const Divider(),
 
           // Show Reset Bak Amount option if the user has permission
-          _buildOptionTile(
-            context,
-            icon: Icons.restore,
-            title: 'Reset Bak Amount',
-            subtitle: 'Reset the amount of baks received and consumed',
-            titleStyle: TextStyle(color: Colors.red.shade500),
-            onTap: memberData.canManageBaks
-                ? () => _showResetBakDialog(context)
-                : null,
-          ),
+          if (memberData.canManageBaks)
+            _buildOptionTile(
+              context,
+              icon: Icons.restore,
+              title: 'Reset Member Stats',
+              subtitle:
+                  'Reset the baks received, baks consumed, bets won, and bets lost',
+              titleStyle: TextStyle(color: Colors.red.shade500),
+              onTap: () => _showResetBakDialog(context),
+            ),
         ],
       ),
     );
@@ -182,9 +182,14 @@ class AssociationSettingsScreen extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Reset Bak Amount'),
+          title: const Text('Reset Member Stats'),
           content: const Text(
-              'Are you sure you want to reset all BAKs consumed and received? This action cannot be undone.'),
+              'Are you sure you want to reset the following stats for all members? This action cannot be undone:\n\n'
+              '- Baks Received: 0\n'
+              '- Baks Consumed: 0\n'
+              '- Bets Won: 0\n'
+              '- Bets Lost: 0\n\n'
+              'Once reset, these values will be cleared for all members of the association.'),
           actions: [
             TextButton(
               onPressed: () {
@@ -197,12 +202,13 @@ class AssociationSettingsScreen extends StatelessWidget {
               onPressed: () async {
                 try {
                   // Call the reset method
-                  await associationService.resetAllBaks(associationId);
+                  await associationService.resetAllStats(associationId);
 
                   // Show success SnackBar
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('BAKs have been reset successfully'),
+                      content:
+                          Text('Member stats have been reset successfully'),
                     ),
                   );
                 } catch (e) {

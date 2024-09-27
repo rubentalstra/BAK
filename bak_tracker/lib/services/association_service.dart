@@ -57,12 +57,14 @@ class AssociationService {
     return AssociationModel.fromMap(response);
   }
 
-  Future<String> resetAllBaks(String associationId) async {
+  Future<String> resetAllStats(String associationId) async {
     try {
-      await _supabase
-          .from('association_members')
-          .update({'baks_received': 0, 'baks_consumed': 0}).eq(
-              'association_id', associationId);
+      await _supabase.from('association_members').update({
+        'baks_received': 0,
+        'baks_consumed': 0,
+        'bets_won': 0,
+        'bets_lost': 0
+      }).eq('association_id', associationId);
 
       return 'BAKs reset successfully';
     } catch (e) {
