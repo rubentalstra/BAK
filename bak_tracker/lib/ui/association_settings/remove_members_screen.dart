@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bak_tracker/services/image_upload_service.dart';
 
 class RemoveMembersScreen extends StatefulWidget {
   final String associationId;
@@ -14,6 +16,8 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
   List<Map<String, dynamic>> _members = [];
   bool _isLoading = true;
   String? _currentUserId;
+  final ImageUploadService _imageUploadService =
+      ImageUploadService(Supabase.instance.client);
 
   @override
   void initState() {
@@ -36,7 +40,7 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
     try {
       final response = await supabase
           .from('association_members')
-          .select('user_id (id, name), role, permissions')
+          .select('user_id (id, name, profile_image), role, permissions')
           .eq('association_id', widget.associationId);
 
       setState(() {
@@ -130,58 +134,71 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
     final hasAllPermissions =
         member['permissions']['hasAllPermissions'] ?? false;
     final isCurrentUser = memberId == _currentUserId;
+    final profileImage = member['user_id']['profile_image'];
 
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: hasAllPermissions ? Colors.blue : Colors.grey,
-        child: const Icon(Icons.person, color: Colors.white),
-      ),
-      title: Text(
-        memberName,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            member['role'],
-            style: TextStyle(
-              color: Colors.grey.shade300,
-              fontWeight: FontWeight.bold,
-            ),
+    return FutureBuilder<File?>(
+      future: profileImage == null || profileImage.isEmpty
+          ? Future.value(null)
+          : _imageUploadService.fetchOrDownloadProfileImage(profileImage),
+      builder: (context, snapshot) {
+        final imageFile = snapshot.data;
+
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: hasAllPermissions ? Colors.blue : Colors.grey,
+            backgroundImage: imageFile != null ? FileImage(imageFile) : null,
+            child: imageFile == null
+                ? const Icon(Icons.person, color: Colors.white)
+                : null,
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Permissions: ${hasAllPermissions ? "Full Access" : _formatPermissions(member['permissions'])}',
-            style: TextStyle(
-              color: hasAllPermissions ? Colors.blue : Colors.grey,
-            ),
+          title: Text(
+            memberName,
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-        ],
-      ),
-      trailing: isCurrentUser
-          ? const IconButton(
-              icon: Icon(Icons.block, color: Colors.grey),
-              tooltip: 'You cannot remove yourself',
-              onPressed: null,
-            )
-          : hasAllPermissions
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                member['role'],
+                style: TextStyle(
+                  color: Colors.grey.shade300,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Permissions: ${hasAllPermissions ? "Full Access" : _formatPermissions(member['permissions'])}',
+                style: TextStyle(
+                  color: hasAllPermissions ? Colors.blue : Colors.grey,
+                ),
+              ),
+            ],
+          ),
+          trailing: isCurrentUser
               ? const IconButton(
-                  icon: Icon(Icons.lock, color: Colors.red),
-                  tooltip:
-                      'This member has full permissions and cannot be removed',
+                  icon: Icon(Icons.block, color: Colors.grey),
+                  tooltip: 'You cannot remove yourself',
                   onPressed: null,
                 )
-              : IconButton(
-                  icon: const Icon(Icons.remove_circle_outline,
-                      color: Colors.red),
-                  onPressed: () => _confirmRemoveMember(
-                    context,
-                    memberId,
-                    memberName,
-                    hasAllPermissions,
-                  ),
-                ),
+              : hasAllPermissions
+                  ? const IconButton(
+                      icon: Icon(Icons.lock, color: Colors.red),
+                      tooltip:
+                          'This member has full permissions and cannot be removed',
+                      onPressed: null,
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.remove_circle_outline,
+                          color: Colors.red),
+                      onPressed: () => _confirmRemoveMember(
+                        context,
+                        memberId,
+                        memberName,
+                        hasAllPermissions,
+                      ),
+                    ),
+        );
+      },
     );
   }
 
