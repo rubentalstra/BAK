@@ -1,4 +1,6 @@
-class BakConsumedModel {
+import 'package:equatable/equatable.dart';
+
+class BakConsumedModel extends Equatable {
   final String id;
   final String takerId;
   final String associationId;
@@ -7,7 +9,7 @@ class BakConsumedModel {
   final String? approvedBy;
   final DateTime createdAt;
 
-  BakConsumedModel({
+  const BakConsumedModel({
     required this.id,
     required this.takerId,
     required this.associationId,
@@ -40,4 +42,9 @@ class BakConsumedModel {
       'created_at': createdAt.toIso8601String(),
     };
   }
+
+  // Override props for Equatable
+  @override
+  List<Object?> get props =>
+      [id, takerId, associationId, amount, status, approvedBy, createdAt];
 }

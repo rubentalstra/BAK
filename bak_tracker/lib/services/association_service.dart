@@ -13,7 +13,7 @@ class AssociationService {
     final List<dynamic> response = await _supabase
         .from('association_members')
         .select(
-            'user_id (id, name, profile_image, bio), association_id, role, permissions, joined_at, baks_received, baks_consumed')
+            'user_id (id, name, profile_image, bio), association_id, role, permissions, joined_at, baks_received, baks_consumed, bets_won, bets_lost')
         .eq('association_id', associationId);
 
     return response.map((data) {
@@ -31,6 +31,8 @@ class AssociationService {
         joinedAt: DateTime.parse(data['joined_at']),
         baksReceived: data['baks_received'],
         baksConsumed: data['baks_consumed'],
+        betsWon: data['bets_won'],
+        betsLost: data['bets_lost'],
       );
     }).toList();
   }

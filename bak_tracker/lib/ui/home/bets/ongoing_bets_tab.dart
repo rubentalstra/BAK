@@ -1,16 +1,17 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bak_tracker/services/bak_service.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
 
 class OngoingBetsTab extends StatefulWidget {
   final String associationId;
-  final ImageUploadService imageUploadService; // Add the service
+  final ImageUploadService imageUploadService;
 
   const OngoingBetsTab({
     Key? key,
     required this.associationId,
-    required this.imageUploadService, // Pass the service
+    required this.imageUploadService,
   }) : super(key: key);
 
   @override
@@ -24,7 +25,7 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
   @override
   void initState() {
     super.initState();
-    _fetchOngoingBets(); // Fetch bets when the tab is opened
+    _fetchOngoingBets();
   }
 
   Future<void> _fetchOngoingBets() async {
@@ -53,14 +54,19 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
     }
   }
 
-  Future<void> _updateBetStatus(String betId, String newStatus) async {
+  Future<void> _updateBetStatus(
+      String betId, String newStatus, String creatorId) async {
     final supabase = Supabase.instance.client;
+    final receiverId = supabase.auth.currentUser!.id;
+
     try {
-      await supabase.from('bets').update({'status': newStatus}).eq('id', betId);
-
-// if you reject the bet, the amount will be added to the creator's baks_received
-
-      _fetchOngoingBets(); // Refresh the bet list after update
+      await BakService.updateBetStatus(
+        betId: betId,
+        newStatus: newStatus,
+        receiverId: receiverId,
+        creatorId: creatorId,
+      );
+      _fetchOngoingBets();
     } catch (e) {
       print('Error updating bet status: $e');
     }
@@ -68,28 +74,15 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
 
   Future<void> _settleBet(
       String betId, String winnerId, String loserId, int amount) async {
-    final supabase = Supabase.instance.client;
     try {
-      await supabase
-          .from('bets')
-          .update({'status': 'settled', 'winner_id': winnerId}).eq('id', betId);
-
-      final loserResponse = await supabase
-          .from('association_members')
-          .select('baks_received')
-          .eq('user_id', loserId)
-          .eq('association_id', widget.associationId)
-          .single();
-
-      final updatedBaksReceived = loserResponse['baks_received'] + amount;
-
-      await supabase
-          .from('association_members')
-          .update({'baks_received': updatedBaksReceived})
-          .eq('user_id', loserId)
-          .eq('association_id', widget.associationId);
-
-      _fetchOngoingBets(); // Refresh the bet list after settlement
+      await BakService.settleBet(
+        betId: betId,
+        winnerId: winnerId,
+        loserId: loserId,
+        amount: amount,
+        associationId: widget.associationId,
+      );
+      _fetchOngoingBets();
     } catch (e) {
       print('Error settling bet: $e');
     }
@@ -146,13 +139,11 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
     );
   }
 
-  // Widget to show both bet participants (Creator and Receiver) with profile images
   Widget _buildBetParticipants(Map<String, dynamic> bet) {
     return Row(
       children: [
         Stack(
-          clipBehavior:
-              Clip.none, // Allow the second image to overflow the stack
+          clipBehavior: Clip.none,
           children: [
             FutureBuilder<File?>(
               future: widget.imageUploadService.fetchOrDownloadProfileImage(
@@ -164,7 +155,7 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
               },
             ),
             Positioned(
-              left: 30, // Adjust the offset to ensure both images are visible
+              left: 30,
               child: FutureBuilder<File?>(
                 future: widget.imageUploadService.fetchOrDownloadProfileImage(
                     bet['bet_receiver_id']['profile_image']),
@@ -177,7 +168,7 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
             ),
           ],
         ),
-        const SizedBox(width: 40), // Space between the image stack and text
+        const SizedBox(width: 40),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -195,7 +186,6 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
     );
   }
 
-  // Widget to display the profile image or a default avatar
   Widget _buildProfileImage(File? imageFile, String userName) {
     if (imageFile == null) {
       return CircleAvatar(
@@ -212,7 +202,6 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
     }
   }
 
-  // Widget for bet status
   Widget _buildStatusIndicator(String status) {
     Color statusColor;
     String statusText;
@@ -247,13 +236,13 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
     );
   }
 
-  // Widget for pending actions (Accept/Reject)
   Widget _buildPendingActions(Map<String, dynamic> bet) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         TextButton(
-          onPressed: () => _updateBetStatus(bet['id'], 'accepted'),
+          onPressed: () => _updateBetStatus(
+              bet['id'], 'accepted', bet['bet_creator_id']['id']),
           child: const Text(
             'Accept',
             style: TextStyle(color: Colors.green),
@@ -261,7 +250,8 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
         ),
         const SizedBox(width: 8),
         TextButton(
-          onPressed: () => _updateBetStatus(bet['id'], 'rejected'),
+          onPressed: () => _updateBetStatus(
+              bet['id'], 'rejected', bet['bet_creator_id']['id']),
           child: const Text(
             'Reject',
             style: TextStyle(color: Colors.red),
@@ -271,9 +261,8 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
     );
   }
 
-// Widget for selecting the winner (after the bet is accepted)
   Widget _buildWinnerSelection(Map<String, dynamic> bet) {
-    String? selectedWinner; // Track the selected winner's userId
+    String? selectedWinner;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,7 +326,6 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
     );
   }
 
-// Widget for displaying the selectable winner option
   Widget _buildSelectableWinnerOption({
     required String userId,
     required String userName,
@@ -375,7 +363,6 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
     );
   }
 
-// Function to handle winner selection
   void _handleWinnerSelection(
       Map<String, dynamic> bet, String selectedWinnerId) {
     final loserId = selectedWinnerId == bet['bet_creator_id']['id']

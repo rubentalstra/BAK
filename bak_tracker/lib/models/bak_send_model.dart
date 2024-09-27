@@ -1,4 +1,6 @@
-class BakSendModel {
+import 'package:equatable/equatable.dart';
+
+class BakSendModel extends Equatable {
   final String id;
   final String giverId;
   final String receiverId;
@@ -8,7 +10,7 @@ class BakSendModel {
   final String status;
   final DateTime createdAt;
 
-  BakSendModel({
+  const BakSendModel({
     required this.id,
     required this.giverId,
     required this.receiverId,
@@ -44,4 +46,17 @@ class BakSendModel {
       'created_at': createdAt.toIso8601String(),
     };
   }
+
+  // Override props for Equatable
+  @override
+  List<Object?> get props => [
+        id,
+        giverId,
+        receiverId,
+        associationId,
+        reason,
+        amount,
+        status,
+        createdAt
+      ];
 }

@@ -1,6 +1,7 @@
 import 'dart:convert';
+import 'package:equatable/equatable.dart';
 
-class AssociationMemberModel {
+class AssociationMemberModel extends Equatable {
   final String userId;
   final String? name;
   final String? bio;
@@ -11,8 +12,10 @@ class AssociationMemberModel {
   final DateTime joinedAt;
   final int baksReceived;
   final int baksConsumed;
+  final int betsWon;
+  final int betsLost;
 
-  AssociationMemberModel({
+  const AssociationMemberModel({
     required this.userId,
     this.name,
     this.bio,
@@ -23,6 +26,8 @@ class AssociationMemberModel {
     required this.joinedAt,
     required this.baksReceived,
     required this.baksConsumed,
+    required this.betsWon,
+    required this.betsLost,
   });
 
   factory AssociationMemberModel.fromMap(Map<String, dynamic> map) {
@@ -39,6 +44,8 @@ class AssociationMemberModel {
       joinedAt: DateTime.parse(map['joined_at']),
       baksReceived: map['baks_received'],
       baksConsumed: map['baks_consumed'],
+      betsWon: map['bets_won'],
+      betsLost: map['bets_lost'],
     );
   }
 
@@ -54,10 +61,12 @@ class AssociationMemberModel {
       'joined_at': joinedAt.toIso8601String(),
       'baks_received': baksReceived,
       'baks_consumed': baksConsumed,
+      'bets_won': betsWon,
+      'bets_lost': betsLost,
     };
   }
 
-  // If all_permissions is true, all permissions should be true
+  // Permissions checkers
   bool get hasAllPermissions => permissions['hasAllPermissions'] ?? false;
 
   bool get canManagePermissions =>
@@ -72,4 +81,21 @@ class AssociationMemberModel {
       hasAllPermissions || (permissions['canManageBaks'] ?? false);
   bool get canApproveBaks =>
       hasAllPermissions || (permissions['canApproveBaks'] ?? false);
+
+  // Equatable override to simplify equality comparison
+  @override
+  List<Object?> get props => [
+        userId,
+        name,
+        bio,
+        profileImage,
+        associationId,
+        role,
+        permissions,
+        joinedAt,
+        baksReceived,
+        baksConsumed,
+        betsWon,
+        betsLost,
+      ];
 }

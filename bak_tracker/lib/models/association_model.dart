@@ -1,10 +1,12 @@
-class AssociationModel {
+import 'package:equatable/equatable.dart';
+
+class AssociationModel extends Equatable {
   final String id;
   final String name;
   final DateTime? createdAt;
   final String? logoUrl;
 
-  AssociationModel({
+  const AssociationModel({
     required this.id,
     required this.name,
     this.createdAt,
@@ -15,7 +17,8 @@ class AssociationModel {
     return AssociationModel(
       id: map['id'],
       name: map['name'],
-      createdAt: DateTime.parse(map['created_at']),
+      createdAt:
+          map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
       logoUrl: map['logo_url'],
     );
   }
@@ -28,4 +31,8 @@ class AssociationModel {
       'logo_url': logoUrl,
     };
   }
+
+  // Override props for Equatable
+  @override
+  List<Object?> get props => [id, name, createdAt, logoUrl];
 }

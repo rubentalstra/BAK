@@ -1,4 +1,6 @@
-class UserModel {
+import 'package:equatable/equatable.dart';
+
+class UserModel extends Equatable {
   final String id;
   final String name;
   final String bio;
@@ -6,7 +8,7 @@ class UserModel {
   final DateTime createdAt;
   final String? profileImage;
 
-  UserModel({
+  const UserModel({
     required this.id,
     required this.name,
     required this.bio,
@@ -36,4 +38,8 @@ class UserModel {
       'profile_image': profileImage,
     };
   }
+
+  // Override props for Equatable
+  @override
+  List<Object?> get props => [id, name, bio, fcmToken, createdAt, profileImage];
 }

@@ -40,7 +40,6 @@ class _ChuckedTransactionsScreenState extends State<ChuckedTransactionsScreen> {
               'id, amount, status, created_at, association_id, reason, taker_id (id, name)')
           .eq('taker_id', currentUserId)
           .eq('association_id', associationId)
-          .neq('status', 'pending')
           .order('created_at', ascending: false);
 
       setState(() {
@@ -125,12 +124,11 @@ class _ChuckedTransactionsScreenState extends State<ChuckedTransactionsScreen> {
           trailing: Text(
             bak['status'],
             style: TextStyle(
-              color: bak['status'] == 'approved'
-                  ? Colors.green
-                  : bak['status'] == 'rejected'
-                      ? Colors.red
-                      : Colors.orange,
-            ),
+                color: bak['status'] == 'approved'
+                    ? Colors.green
+                    : bak['status'] == 'rejected'
+                        ? Colors.red
+                        : Colors.grey),
           ),
         );
       },

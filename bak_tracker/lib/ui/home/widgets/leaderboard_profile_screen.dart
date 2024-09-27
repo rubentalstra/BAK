@@ -9,6 +9,8 @@ class LeaderboardProfileScreen extends StatefulWidget {
   final String? role;
   final int baksConsumed;
   final int baksDebt;
+  final int betsWon; // New field for bets won
+  final int betsLost; // New field for bets lost
 
   const LeaderboardProfileScreen({
     super.key,
@@ -18,6 +20,8 @@ class LeaderboardProfileScreen extends StatefulWidget {
     required this.role,
     required this.baksConsumed,
     required this.baksDebt,
+    required this.betsWon, // Required bets won
+    required this.betsLost, // Required bets lost
   });
 
   @override
@@ -138,7 +142,7 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen> {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  // color: Colors.black87,
                 ),
               ),
             ],
@@ -148,7 +152,7 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen> {
     );
   }
 
-  // Method to build the stats card
+  // Method to build the stats card, with new fields for Bets Won and Bets Lost
   Widget _buildStatsCard() {
     return Card(
       color: Colors.white.withOpacity(0.85),
@@ -156,12 +160,27 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen> {
       elevation: 6,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+        child: Column(
           children: [
-            _buildStatColumn('Chucked', widget.baksConsumed, Icons.local_drink),
-            _buildStatColumn(
-                'BAK Debt', widget.baksDebt, Icons.account_balance),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatColumn(
+                    'Chucked', widget.baksConsumed, Icons.local_drink),
+                _buildStatColumn(
+                    'BAK Debt', widget.baksDebt, Icons.account_balance_wallet),
+              ],
+            ),
+            const SizedBox(height: 24), // Spacer between stat rows
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatColumn('Bets Won', widget.betsWon,
+                    Icons.emoji_events), // New Bets Won stat
+                _buildStatColumn('Bets Lost', widget.betsLost,
+                    Icons.sports_kabaddi), // New Bets Lost stat
+              ],
+            ),
           ],
         ),
       ),

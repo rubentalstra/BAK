@@ -1,4 +1,6 @@
-class InviteModel {
+import 'package:equatable/equatable.dart';
+
+class InviteModel extends Equatable {
   final String id;
   final String associationId;
   final String inviteKey;
@@ -7,7 +9,7 @@ class InviteModel {
   final DateTime? expiresAt;
   final bool isExpired;
 
-  InviteModel({
+  const InviteModel({
     required this.id,
     required this.associationId,
     required this.inviteKey,
@@ -41,4 +43,16 @@ class InviteModel {
       'is_expired': isExpired,
     };
   }
+
+  // Override props for Equatable
+  @override
+  List<Object?> get props => [
+        id,
+        associationId,
+        inviteKey,
+        createdBy,
+        createdAt,
+        expiresAt,
+        isExpired,
+      ];
 }

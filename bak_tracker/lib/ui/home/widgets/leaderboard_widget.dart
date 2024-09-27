@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:bak_tracker/ui/home/widgets/leaderboard_profile_screen.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 
@@ -13,6 +12,8 @@ class LeaderboardEntry {
   final String? profileImage;
   final int baksConsumed;
   final int baksDebt;
+  final int betsWon;
+  final int betsLost;
 
   LeaderboardEntry({
     required this.rank,
@@ -22,6 +23,8 @@ class LeaderboardEntry {
     this.profileImage,
     required this.baksConsumed,
     required this.baksDebt,
+    required this.betsWon,
+    required this.betsLost,
   });
 
   LeaderboardEntry copyWith({
@@ -32,6 +35,8 @@ class LeaderboardEntry {
     String? profileImage,
     int? baksConsumed,
     int? baksDebt,
+    int? betsWon,
+    int? betsLost,
   }) {
     return LeaderboardEntry(
       rank: rank ?? this.rank,
@@ -41,6 +46,8 @@ class LeaderboardEntry {
       profileImage: profileImage ?? this.profileImage,
       baksConsumed: baksConsumed ?? this.baksConsumed,
       baksDebt: baksDebt ?? this.baksDebt,
+      betsWon: betsWon ?? this.betsWon,
+      betsLost: betsLost ?? this.betsLost,
     );
   }
 }
@@ -99,6 +106,8 @@ class LeaderboardWidget extends StatelessWidget {
                       role: entry.role,
                       baksConsumed: entry.baksConsumed,
                       baksDebt: entry.baksDebt,
+                      betsWon: entry.betsWon,
+                      betsLost: entry.betsLost,
                     ),
                   ),
                 );

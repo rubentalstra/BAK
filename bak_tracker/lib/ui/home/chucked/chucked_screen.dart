@@ -2,10 +2,10 @@ import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/ui/home/chucked/transactions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bak_tracker/services/bak_service.dart'; // Using the service
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ChuckedScreen extends StatefulWidget {
   const ChuckedScreen({super.key});
@@ -21,29 +21,6 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
   void dispose() {
     _amountController.dispose();
     super.dispose();
-  }
-
-  Future<void> requestConsumedBak({
-    required String associationId,
-    required int amount,
-  }) async {
-    final supabase = Supabase.instance.client;
-    final userId = supabase.auth.currentUser!.id;
-
-    try {
-      await supabase.from('bak_consumed').insert({
-        'taker_id': userId,
-        'association_id': associationId,
-        'amount': amount,
-        'status': 'pending',
-        'created_at': DateTime.now().toIso8601String(),
-      });
-
-      // Clear input field after successful request
-      _amountController.clear();
-    } catch (e) {
-      rethrow;
-    }
   }
 
   @override
@@ -124,7 +101,7 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
                   try {
                     final amount = int.tryParse(_amountController.text);
                     if (amount != null && amount > 0) {
-                      await requestConsumedBak(
+                      await BakService.requestConsumedBak(
                         associationId: associationId,
                         amount: amount,
                       );
@@ -132,6 +109,7 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
                         content: Text('Consumed Bak request sent!'),
                         backgroundColor: Colors.green,
                       ));
+                      _amountController.clear();
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                         content: Text('Please enter a valid amount'),

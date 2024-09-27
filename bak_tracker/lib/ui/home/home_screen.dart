@@ -88,6 +88,8 @@ class _HomeScreenState extends State<HomeScreen> {
             profileImage: member.profileImage,
             baksConsumed: member.baksConsumed,
             baksDebt: member.baksReceived,
+            betsWon: member.betsWon,
+            betsLost: member.betsLost,
           );
         }).toList();
 

@@ -1,7 +1,7 @@
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bak_tracker/services/bak_service.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
 
 class CreateBetTab extends StatefulWidget {
@@ -27,43 +27,7 @@ class _CreateBetTabState extends State<CreateBetTab> {
   void initState() {
     super.initState();
     if (widget.members.isNotEmpty) {
-      _selectedReceiverId = widget.members.first.userId; // Default first member
-    }
-  }
-
-  Future<void> _createBet(
-      String receiverId, int amount, String description) async {
-    final supabase = Supabase.instance.client;
-    final creatorId = supabase.auth.currentUser!.id;
-    try {
-      await supabase.from('bets').insert({
-        'bet_creator_id': creatorId,
-        'bet_receiver_id': receiverId,
-        'association_id': widget.associationId,
-        'amount': amount,
-        'bet_description': description,
-        'status': 'pending',
-      });
-
-      // Clear the input fields
-      _descriptionController.clear();
-      _amountController.clear();
-
-      // Show success snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Bet created successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      // Show error snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error creating bet: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _selectedReceiverId = widget.members.first.userId;
     }
   }
 
@@ -177,12 +141,35 @@ class _CreateBetTabState extends State<CreateBetTab> {
             Align(
               alignment: Alignment.center,
               child: ElevatedButton.icon(
-                onPressed: () {
+                onPressed: () async {
                   if (_selectedReceiverId != null) {
                     final amount = int.tryParse(_amountController.text) ?? 0;
                     final description = _descriptionController.text;
                     if (amount > 0 && description.isNotEmpty) {
-                      _createBet(_selectedReceiverId!, amount, description);
+                      try {
+                        await BakService.createBet(
+                          receiverId: _selectedReceiverId!,
+                          associationId: widget.associationId,
+                          amount: amount,
+                          description: description,
+                        );
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Bet created successfully!'),
+                              backgroundColor: Colors.green),
+                        );
+
+                        _amountController.clear();
+                        _descriptionController.clear();
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error creating bet: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
