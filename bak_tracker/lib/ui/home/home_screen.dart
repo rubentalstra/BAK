@@ -176,6 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             builder: (context) => AssociationSettingsScreen(
                               memberData: memberData,
                               associationId: state.selectedAssociation.id,
+                              pendingBaksCount: state.pendingBaksCount,
                             ),
                           ),
                         );

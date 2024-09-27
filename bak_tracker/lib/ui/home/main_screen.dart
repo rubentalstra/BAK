@@ -3,11 +3,11 @@ import 'dart:async'; // For polling
 
 import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
+import 'package:bak_tracker/ui/home/bets/bets_screen.dart';
 import 'package:bak_tracker/ui/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/ui/home/bak/bak_screen.dart';
-import 'package:bak_tracker/ui/home/approve_baks/approve_baks_screen.dart';
 import 'package:bak_tracker/ui/home/home_screen.dart';
 import 'package:bak_tracker/ui/home/chucked/chucked_screen.dart';
 import 'package:bak_tracker/ui/home/widgets/bottom_nav_bar.dart';
@@ -161,12 +161,12 @@ class _MainScreenState extends State<MainScreen> {
 
     return BlocBuilder<AssociationBloc, AssociationState>(
       builder: (context, state) {
-        int pendingBaksCount = 0;
+        int betsCount = 0;
 
-        // If the association is loaded, retrieve pending baks count
-        if (state is AssociationLoaded) {
-          pendingBaksCount = state.pendingBaksCount;
-        }
+        // // If the association is loaded, retrieve ongoing Bets count
+        // if (state is AssociationLoaded) {
+        //   betsCount = state.betsCount;
+        // }
 
         return Scaffold(
           body: (_pages.isNotEmpty)
@@ -177,7 +177,8 @@ class _MainScreenState extends State<MainScreen> {
           bottomNavigationBar: BottomNavBar(
             selectedIndex: _selectedIndex,
             onTap: _onItemTapped,
-            pendingBaks: pendingBaksCount, // Pass the pending baks count
+            pendingBets:
+                betsCount, // Pass the pending bets count to the BottomNavBar
             canApproveBaks: _canApproveBaks,
           ),
         );
@@ -217,7 +218,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
             const BakScreen(),
             const ChuckedScreen(),
-            if (_canApproveBaks) const ApproveBaksScreen(),
+            const BetsScreen(),
             const SettingsScreen(),
           ];
         });

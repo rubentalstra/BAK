@@ -1,5 +1,6 @@
 import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
+import 'package:bak_tracker/ui/home/association_settings/approve_baks/approve_bak_transactions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,17 +13,13 @@ class ApproveBaksScreen extends StatefulWidget {
   _ApproveBaksScreenState createState() => _ApproveBaksScreenState();
 }
 
-class _ApproveBaksScreenState extends State<ApproveBaksScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
   List<Map<String, dynamic>> _requestedBaks = [];
-  List<Map<String, dynamic>> _processedBaks = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _fetchBaksFromBloc(); // Fetch initial data from the selected association
   }
 
@@ -52,18 +49,9 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
           .eq('status', 'pending')
           .eq('association_id', associationId); // Use associationId filter
 
-      // Fetch approved/rejected baks for the current association
-      final processedResponse = await supabase
-          .from('bak_consumed')
-          .select(
-              'id, amount, status, approved_by (id, name), created_at, taker_id (id, name)')
-          .neq('status', 'pending')
-          .eq('association_id', associationId); // Use associationId filter
-
       if (!mounted) return; // Ensure the widget is still mounted
       setState(() {
         _requestedBaks = List<Map<String, dynamic>>.from(requestedResponse);
-        _processedBaks = List<Map<String, dynamic>>.from(processedResponse);
         _isLoading = false;
       });
     } catch (e) {
@@ -157,7 +145,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
     }
   }
 
-// Show dialog for rejection reason
+  // Show dialog for rejection reason
   Future<void> _showRejectDialog(
       BuildContext context, String bakId, String takerId, int amount) async {
     final _reasonController = TextEditingController();
@@ -231,23 +219,32 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
           return Scaffold(
             appBar: AppBar(
               title: const Text('Approve Baks'),
-              bottom: TabBar(
-                controller: _tabController,
-                tabs: const [
-                  Tab(text: 'Requested'),
-                  Tab(text: 'Approved/Rejected'),
-                ],
-              ),
+              actions: [
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (value) {
+                    if (value == 'transactions') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const ProcessedBaksTransactionsScreen(),
+                        ),
+                      );
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'transactions',
+                      child: Text('Go to Transactions'),
+                    ),
+                  ],
+                ),
+              ],
             ),
             body: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildRequestedTab(), // Tab for requested baks
-                      _buildProcessedTab(), // Tab for approved/rejected baks
-                    ],
-                  ),
+                : _buildRequestedTab(),
           );
         } else {
           // If no association is loaded, show error or empty state
@@ -288,103 +285,6 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen>
                 onPressed: () => _showRejectDialog(context, bak['id'], takerId,
                     bakAmount), // Show reject dialog
               ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // Build the tab for approved/rejected Baks
-  Widget _buildProcessedTab() {
-    if (_processedBaks.isEmpty) {
-      return const Center(child: Text('No approved or rejected baks'));
-    }
-
-    return ListView.builder(
-      itemCount: _processedBaks.length,
-      itemBuilder: (context, index) {
-        final bak = _processedBaks[index];
-        final takerName = bak['taker_id']['name']; // Fetch the requester's name
-        final approvedBy = bak['approved_by'] != null
-            ? bak['approved_by']['name']
-            : 'N/A'; // Approved by user or 'N/A'
-        final status = bak['status'].toUpperCase();
-        final statusColor = status == 'APPROVED' ? Colors.green : Colors.red;
-        final createdAt = DateTime.parse(bak['created_at']).toLocal();
-        final formattedDate =
-            '${createdAt.day}/${createdAt.month}/${createdAt.year}';
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Requested by
-              Row(
-                children: [
-                  Text(
-                    'Requested by: $takerName',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // Amount and Status
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.local_drink,
-                          size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Bak: ${bak['amount']}',
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                    ],
-                  ),
-                  Text(
-                    status,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: statusColor,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(Icons.verified_user, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'Approved by: $approvedBy',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-
-              // Date information
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today,
-                      size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Date: $formattedDate',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              const Divider(height: 20, thickness: 1),
             ],
           ),
         );

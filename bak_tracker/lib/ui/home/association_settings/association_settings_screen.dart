@@ -1,11 +1,12 @@
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/services/association_service.dart';
-import 'package:bak_tracker/ui/home/approve_baks/approve_baks_screen.dart';
+import 'package:bak_tracker/ui/home/association_settings/approve_baks/approve_baks_screen.dart';
 import 'package:bak_tracker/ui/home/association_settings/invite_members_screen.dart';
 import 'package:bak_tracker/ui/home/association_settings/remove_members_screen.dart';
 import 'package:bak_tracker/ui/home/association_settings/permissions/list_permissions_screen.dart';
 import 'package:bak_tracker/ui/home/association_settings/update_roles_screen.dart';
+import 'package:badges/badges.dart' as badges;
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -13,11 +14,13 @@ class AssociationSettingsScreen extends StatelessWidget {
   final AssociationMemberModel memberData;
   final String associationId;
   final AssociationService associationService = AssociationService();
+  final int pendingBaksCount; // Pass the pending baks count
 
   AssociationSettingsScreen({
     super.key,
     required this.memberData,
     required this.associationId,
+    required this.pendingBaksCount, // Required for badge
   });
 
   @override
@@ -109,22 +112,32 @@ class AssociationSettingsScreen extends StatelessWidget {
           ),
           if (memberData.canManageRoles) const Divider(),
 
-          // Show Approve Baks option if the user has permission
-          _buildOptionTile(
-            context,
-            icon: FontAwesomeIcons.circleCheck,
-            title: 'Approve Baks',
-            subtitle: 'Approve or reject pending baks',
-            onTap: memberData.canApproveBaks
-                ? () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const ApproveBaksScreen(),
-                      ),
-                    );
-                  }
-                : null,
-          ),
+          // Show Approve Baks option with badge if the user has permission
+          if (memberData.canApproveBaks)
+            _buildOptionTile(
+              context,
+              icon: FontAwesomeIcons.circleCheck,
+              title: 'Approve Baks',
+              subtitle: 'Approve or reject pending baks',
+              trailing: badges.Badge(
+                showBadge: pendingBaksCount > 0,
+                badgeContent: Text(
+                  pendingBaksCount.toString(),
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+                badgeStyle: const badges.BadgeStyle(
+                  badgeColor: Colors.red,
+                ),
+                child: const Icon(Icons.chevron_right),
+              ),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const ApproveBaksScreen(),
+                  ),
+                );
+              },
+            ),
           if (memberData.canApproveBaks) const Divider(),
 
           // Show Reset Bak Amount option if the user has permission
@@ -150,13 +163,16 @@ class AssociationSettingsScreen extends StatelessWidget {
     required String subtitle,
     TextStyle? titleStyle,
     required VoidCallback? onTap,
+    Widget? trailing, // Allow trailing widgets, like the badge
   }) {
     return ListTile(
       leading: Icon(icon, color: AppColors.lightSecondary),
-      title: Text(title,
-          style: titleStyle ?? const TextStyle(fontWeight: FontWeight.bold)),
+      title: Text(
+        title,
+        style: titleStyle ?? const TextStyle(fontWeight: FontWeight.bold),
+      ),
       subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: trailing ?? const Icon(Icons.chevron_right),
       onTap: onTap,
     );
   }

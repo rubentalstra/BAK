@@ -6,14 +6,14 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onTap;
-  final int pendingBaks; // Pass pending baks count
+  final int pendingBets; // Pass ongoing bets count
   final bool canApproveBaks; // Pass permission flag
 
   const BottomNavBar({
     super.key,
     required this.selectedIndex,
     required this.onTap,
-    required this.pendingBaks, // Required to show badge
+    required this.pendingBets, // Required to show badge
     required this.canApproveBaks, // Required to conditionally show "Approve Baks"
   });
 
@@ -36,25 +36,24 @@ class BottomNavBar extends StatelessWidget {
         icon: FaIcon(FontAwesomeIcons.wineBottle, size: 25),
         label: 'Chucked',
       ),
-      if (canApproveBaks) // Conditionally show Approve Baks tab
-        BottomNavigationBarItem(
-          icon: badges.Badge(
-            showBadge:
-                pendingBaks > 0, // Only show badge if there are pending baks
-            badgeContent: Text(
-              pendingBaks.toString(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-              ),
+      BottomNavigationBarItem(
+        icon: badges.Badge(
+          showBadge:
+              pendingBets > 0, // Only show badge if there are on going bets
+          badgeContent: Text(
+            pendingBets.toString(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
             ),
-            badgeStyle: const badges.BadgeStyle(
-              badgeColor: Colors.red, // Customize badge color
-            ),
-            child: const FaIcon(FontAwesomeIcons.thumbsUp, size: 25),
           ),
-          label: 'Approve Baks',
+          badgeStyle: const badges.BadgeStyle(
+            badgeColor: Colors.red, // Customize badge color
+          ),
+          child: const FaIcon(FontAwesomeIcons.dice, size: 25),
         ),
+        label: 'Bets',
+      ),
       const BottomNavigationBarItem(
         icon: Icon(Icons.settings),
         label: 'Settings',
