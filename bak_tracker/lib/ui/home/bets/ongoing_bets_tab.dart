@@ -36,7 +36,7 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
       final response = await supabase
           .from('bets')
           .select(
-              'bet_creator_id(id, name, profile_image), bet_receiver_id(id, name, profile_image), amount, bet_description, status, association_id')
+              'id, bet_creator_id(id, name, profile_image), bet_receiver_id(id, name, profile_image), amount, bet_description, status, association_id')
           .eq('association_id', widget.associationId)
           .inFilter('status', ['pending', 'accepted']).order('created_at',
               ascending: false);
@@ -57,6 +57,9 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
     final supabase = Supabase.instance.client;
     try {
       await supabase.from('bets').update({'status': newStatus}).eq('id', betId);
+
+// if you reject the bet, the amount will be added to the creator's baks_received
+
       _fetchOngoingBets(); // Refresh the bet list after update
     } catch (e) {
       print('Error updating bet status: $e');
@@ -268,34 +271,116 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
     );
   }
 
-  // Widget for selecting the winner (after the bet is accepted)
+// Widget for selecting the winner (after the bet is accepted)
   Widget _buildWinnerSelection(Map<String, dynamic> bet) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    String? selectedWinner; // Track the selected winner's userId
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Select Winner:'),
-        DropdownButton<String>(
-          hint: const Text('Choose'),
-          items: [
-            DropdownMenuItem<String>(
-              value: bet['bet_creator_id']['id'],
-              child: const Text('Bet Creator'),
+        const Text(
+          'Select the Winner:',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16.0,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            FutureBuilder<File?>(
+              future: widget.imageUploadService.fetchOrDownloadProfileImage(
+                  bet['bet_creator_id']['profile_image']),
+              builder: (context, snapshot) {
+                final creatorImage = snapshot.data;
+                return _buildSelectableWinnerOption(
+                  userId: bet['bet_creator_id']['id'],
+                  userName: bet['bet_creator_id']['name'],
+                  profileImage: creatorImage,
+                  isSelected: selectedWinner == bet['bet_creator_id']['id'],
+                  onTap: () {
+                    setState(() {
+                      selectedWinner = bet['bet_creator_id']['id'];
+                      _handleWinnerSelection(bet, selectedWinner!);
+                    });
+                  },
+                );
+              },
             ),
-            DropdownMenuItem<String>(
-              value: bet['bet_receiver_id']['id'],
-              child: const Text('Bet Receiver'),
+            const Text(
+              'vs',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            FutureBuilder<File?>(
+              future: widget.imageUploadService.fetchOrDownloadProfileImage(
+                  bet['bet_receiver_id']['profile_image']),
+              builder: (context, snapshot) {
+                final receiverImage = snapshot.data;
+                return _buildSelectableWinnerOption(
+                  userId: bet['bet_receiver_id']['id'],
+                  userName: bet['bet_receiver_id']['name'],
+                  profileImage: receiverImage,
+                  isSelected: selectedWinner == bet['bet_receiver_id']['id'],
+                  onTap: () {
+                    setState(() {
+                      selectedWinner = bet['bet_receiver_id']['id'];
+                      _handleWinnerSelection(bet, selectedWinner!);
+                    });
+                  },
+                );
+              },
             ),
           ],
-          onChanged: (value) {
-            if (value != null) {
-              final loserId = value == bet['bet_creator_id']['id']
-                  ? bet['bet_receiver_id']['id']
-                  : bet['bet_creator_id']['id'];
-              _settleBet(bet['id'], value, loserId, bet['amount']);
-            }
-          },
         ),
       ],
     );
+  }
+
+// Widget for displaying the selectable winner option
+  Widget _buildSelectableWinnerOption({
+    required String userId,
+    required String userName,
+    File? profileImage,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 27,
+            backgroundImage:
+                profileImage != null ? FileImage(profileImage) : null,
+            backgroundColor: profileImage == null ? Colors.grey[300] : null,
+            child: profileImage == null
+                ? Text(
+                    userName[0].toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            userName,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
+
+// Function to handle winner selection
+  void _handleWinnerSelection(
+      Map<String, dynamic> bet, String selectedWinnerId) {
+    final loserId = selectedWinnerId == bet['bet_creator_id']['id']
+        ? bet['bet_receiver_id']['id']
+        : bet['bet_creator_id']['id'];
+    _settleBet(bet['id'], selectedWinnerId, loserId, bet['amount']);
   }
 }

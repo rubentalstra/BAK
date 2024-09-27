@@ -1,6 +1,6 @@
 import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
-import 'package:bak_tracker/ui/home/association_settings/approve_baks/approve_bak_transactions_screen.dart';
+import 'package:bak_tracker/ui/association_settings/approve_baks/approve_bak_transactions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';

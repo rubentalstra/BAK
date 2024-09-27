@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/ui/login/login_screen.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -26,7 +27,7 @@ class SettingsScreen extends StatelessWidget {
         title: const Text('Settings'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const FaIcon(FontAwesomeIcons.arrowRightFromBracket),
             tooltip: 'Logout',
             onPressed: () {
               _handleLogout(context);
@@ -46,7 +47,7 @@ class SettingsScreen extends StatelessWidget {
               context,
               title: 'Select Language',
               subtitle: 'Choose your preferred language',
-              icon: Icons.language,
+              icon: FontAwesomeIcons.language,
               onTap: () => _showLanguageSelector(context),
             ),
             _buildDivider(),
@@ -54,7 +55,7 @@ class SettingsScreen extends StatelessWidget {
               context,
               title: 'Profile Settings',
               subtitle: 'Update your profile information',
-              icon: Icons.chevron_right,
+              icon: FontAwesomeIcons.circleUser,
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -62,7 +63,6 @@ class SettingsScreen extends StatelessWidget {
                 );
               },
             ),
-            _buildDivider(),
             BlocBuilder<AssociationBloc, AssociationState>(
               builder: (context, state) {
                 if (state is AssociationLoaded) {
@@ -79,7 +79,7 @@ class SettingsScreen extends StatelessWidget {
               context,
               title: 'Request Account Deletion',
               subtitle: 'Permanently delete your account',
-              icon: Icons.chevron_right,
+              icon: FontAwesomeIcons.userMinus,
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -131,7 +131,7 @@ class SettingsScreen extends StatelessWidget {
           context,
           title: 'Join Another Association',
           subtitle: 'Enter an invite code to join',
-          icon: Icons.chevron_right,
+          icon: FontAwesomeIcons.circlePlus,
           onTap: () => _showInviteCodeModal(context),
         ),
         _buildDivider(),
@@ -139,7 +139,7 @@ class SettingsScreen extends StatelessWidget {
           context,
           title: 'Create Association',
           subtitle: 'Create a new association',
-          icon: Icons.chevron_right,
+          icon: FontAwesomeIcons.sitemap,
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -152,7 +152,7 @@ class SettingsScreen extends StatelessWidget {
           context,
           title: 'Leave Association',
           subtitle: 'Leave the current association',
-          icon: Icons.chevron_right,
+          icon: FontAwesomeIcons.personWalkingArrowRight,
           onTap: () => _showConfirmLeaveDialog(context, state),
         ),
       ],
@@ -168,7 +168,7 @@ class SettingsScreen extends StatelessWidget {
           context,
           title: 'Join Association',
           subtitle: 'Enter an invite code to join',
-          icon: Icons.chevron_right,
+          icon: FontAwesomeIcons.circlePlus,
           onTap: () => _showInviteCodeModal(context),
         ),
         _buildDivider(),
@@ -197,7 +197,8 @@ class SettingsScreen extends StatelessWidget {
     return ListTile(
       title: Text(title),
       subtitle: Text(subtitle),
-      trailing: Icon(icon),
+      leading: FaIcon(icon, color: AppColors.lightSecondary),
+      trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
     );
   }

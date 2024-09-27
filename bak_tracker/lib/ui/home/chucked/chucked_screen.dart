@@ -1,10 +1,11 @@
-import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/ui/home/chucked/transactions_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
+import 'package:bak_tracker/bloc/association/association_state.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ChuckedScreen extends StatefulWidget {
   const ChuckedScreen({super.key});
@@ -51,24 +52,17 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
       appBar: AppBar(
         title: const Text('Chucked Bak'),
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'transactions') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ChuckedTransactionsScreen(),
-                  ),
-                );
-              }
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChuckedTransactionsScreen(),
+                ),
+              );
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'transactions',
-                child: Text('Go to Transactions'),
-              ),
-            ],
+            tooltip: 'Chucked History',
           ),
         ],
       ),
@@ -98,7 +92,7 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
           children: [
             Text(
               'Amount',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
@@ -108,28 +102,23 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              color: AppColors.lightPrimary,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: TextField(
                   controller: _amountController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
+                    hintText: 'Enter amount',
+                    icon: FaIcon(FontAwesomeIcons.beerMugEmpty,
+                        color: AppColors.lightSecondary),
                     border: InputBorder.none,
-                    labelText: 'Enter amount',
-                    labelStyle: TextStyle(
-                      color: Colors.grey, // Default color when not focused
-                    ),
                   ),
-                  textInputAction: TextInputAction.done,
                 ),
               ),
             ),
             const SizedBox(height: 24.0),
             Align(
-              alignment: MediaQuery.of(context).size.width < 600
-                  ? Alignment.center
-                  : Alignment.centerRight,
+              alignment: Alignment.center,
               child: ElevatedButton.icon(
                 onPressed: () async {
                   try {
@@ -158,17 +147,16 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
                     );
                   }
                 },
+                icon: const Icon(Icons.send),
+                label: const Text('Request Chucked Bak',
+                    style: TextStyle(fontSize: 18)),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 24.0, vertical: 12.0),
-                  textStyle: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                      horizontal: 32.0, vertical: 16.0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                icon: const Icon(Icons.receipt_long),
-                label: const Text('Request Chucked Bak'),
               ),
             ),
           ],

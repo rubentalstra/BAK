@@ -4,14 +4,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 
-class ReceivedBakScreen extends StatefulWidget {
-  const ReceivedBakScreen({super.key});
+class ReceivedBakTab extends StatefulWidget {
+  const ReceivedBakTab({super.key});
 
   @override
-  _ReceivedBakScreenState createState() => _ReceivedBakScreenState();
+  _ReceivedBakTabState createState() => _ReceivedBakTabState();
 }
 
-class _ReceivedBakScreenState extends State<ReceivedBakScreen>
+class _ReceivedBakTabState extends State<ReceivedBakTab>
     with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _receivedBakken = [];
   bool _isLoadingReceived = false;

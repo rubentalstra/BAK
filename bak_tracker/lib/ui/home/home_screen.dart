@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
-import 'package:bak_tracker/ui/home/association_settings/association_settings_screen.dart';
+import 'package:bak_tracker/ui/association_settings/association_settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';

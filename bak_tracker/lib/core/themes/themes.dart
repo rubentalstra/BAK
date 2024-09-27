@@ -16,6 +16,7 @@ class AppThemes {
       onError: Colors.white,
       brightness: Brightness.dark,
     ),
+    canvasColor: AppColors.cardBackground,
     scaffoldBackgroundColor: AppColors.lightPrimaryVariant,
     appBarTheme: const AppBarTheme(
       color: AppColors.lightPrimary,
@@ -101,7 +102,8 @@ class AppThemes {
         ),
       ),
       menuStyle: MenuStyle(
-        backgroundColor: WidgetStateProperty.all(AppColors.lightAccent),
+        backgroundColor: WidgetStateProperty.all(
+            AppColors.lightPrimary), // Set dropdown color
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8.0),

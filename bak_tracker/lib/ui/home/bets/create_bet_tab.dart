@@ -1,5 +1,6 @@
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
 
@@ -87,7 +88,7 @@ class _CreateBetTabState extends State<CreateBetTab> {
             if (widget.members.isNotEmpty) ...[
               Text(
                 'Select Bet Receiver',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
@@ -97,7 +98,6 @@ class _CreateBetTabState extends State<CreateBetTab> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                color: AppColors.lightPrimary,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: DropdownButton<String>(
@@ -116,49 +116,105 @@ class _CreateBetTabState extends State<CreateBetTab> {
                     }).toList(),
                     isExpanded: true,
                     underline: Container(),
-                    dropdownColor: AppColors.lightPrimary,
                   ),
                 ),
               ),
               const SizedBox(height: 16.0),
             ],
-            TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(labelText: 'Bet Description'),
+            Text(
+              'Bet Description',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
-            TextField(
-              controller: _amountController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Amount (Bakken)'),
+            const SizedBox(height: 8),
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: TextField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter bet description',
+                    icon: Icon(Icons.message, color: Colors.blue),
+                    border: InputBorder.none,
+                  ),
+                  maxLines: 3,
+                ),
+              ),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                if (_selectedReceiverId != null) {
-                  final amount = int.tryParse(_amountController.text) ?? 0;
-                  final description = _descriptionController.text;
-                  if (amount > 0 && description.isNotEmpty) {
-                    _createBet(_selectedReceiverId!, amount, description);
+            Text(
+              'Bet Amount (Bakken)',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: TextField(
+                  controller: _amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter amount',
+                    icon: FaIcon(FontAwesomeIcons.beerMugEmpty,
+                        color: AppColors.lightSecondary),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Align(
+              alignment: Alignment.center,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  if (_selectedReceiverId != null) {
+                    final amount = int.tryParse(_amountController.text) ?? 0;
+                    final description = _descriptionController.text;
+                    if (amount > 0 && description.isNotEmpty) {
+                      _createBet(_selectedReceiverId!, amount, description);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Please enter a valid bet amount and description.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text(
-                            'Please enter a valid bet amount and description.'),
+                        content: Text('Please select a receiver for the bet.'),
                         backgroundColor: Colors.red,
                       ),
                     );
                   }
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please select a receiver for the bet.'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Create Bet'),
-            ),
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 32.0, vertical: 16.0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.send),
+                label: const Text(
+                  'Create Bet',
+                  style: TextStyle(fontSize: 18),
+                ),
+              ),
+            )
           ],
         ),
       ),
