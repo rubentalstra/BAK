@@ -81,19 +81,55 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
       if (associationBloc is AssociationLoaded) {
         final associationId = associationBloc.selectedAssociation.id;
 
+        // If the request is approved, update baks_consumed and baks_received
         if (status == 'approved') {
+          // Fetch the taker's current baks_consumed and baks_received
           final takerResponse = await supabase
               .from('association_members')
-              .select('baks_consumed')
+              .select('baks_consumed, baks_received')
               .eq('user_id', takerId)
               .eq('association_id', associationId)
               .single();
 
-          final updatedConsumed = takerResponse['baks_consumed'] + amount;
+          final int currentBaksConsumed = takerResponse['baks_consumed'];
+          final int currentBaksReceived = takerResponse['baks_received'];
+
+          // Update baks_consumed and decrease baks_received, ensuring baks_received doesn't go below 0
+          final updatedConsumed = currentBaksConsumed + amount;
+          final updatedReceived = currentBaksReceived - amount < 0
+              ? 0
+              : currentBaksReceived - amount;
 
           await supabase
               .from('association_members')
-              .update({'baks_consumed': updatedConsumed})
+              .update({
+                'baks_consumed': updatedConsumed,
+                'baks_received': updatedReceived
+              })
+              .eq('user_id', takerId)
+              .eq('association_id', associationId);
+        }
+
+        // If the request is rejected, add the bak back to baks_received
+        else if (status == 'rejected') {
+          // Fetch the taker's current baks_received
+          final takerResponse = await supabase
+              .from('association_members')
+              .select('baks_received')
+              .eq('user_id', takerId)
+              .eq('association_id', associationId)
+              .single();
+
+          final int currentBaksReceived = takerResponse['baks_received'];
+
+          // Update baks_received by adding the rejected amount back
+          final updatedReceived = currentBaksReceived + amount;
+
+          await supabase
+              .from('association_members')
+              .update({
+                'baks_received': updatedReceived,
+              })
               .eq('user_id', takerId)
               .eq('association_id', associationId);
         }

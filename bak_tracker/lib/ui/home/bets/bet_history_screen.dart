@@ -15,41 +15,57 @@ class BetHistoryScreen extends StatefulWidget {
 class _BetHistoryScreenState extends State<BetHistoryScreen> {
   List<Map<String, dynamic>> _betHistory = [];
   bool _isLoading = true;
+  bool _isFetchingMore = false;
   String? _selectedAssociationId;
+
+  final int _limit = 10;
+  int _offset = 0;
 
   @override
   void initState() {
     super.initState();
+    // You can initialize anything else here if needed.
   }
 
-  Future<void> _fetchBetHistory(String associationId) async {
-    setState(() {
+  Future<void> _fetchBetHistory(String associationId,
+      {bool isLoadMore = false}) async {
+    if (!isLoadMore) {
       _isLoading = true;
-    });
+    } else {
+      _isFetchingMore = true;
+    }
 
     final supabase = Supabase.instance.client;
 
     try {
-      // Fetch settled bets (status = 'settled') for the current association
       final betHistoryResponse = await supabase
           .from('bets')
           .select(
               'id, amount, status, bet_creator_id (id, name), bet_receiver_id (id, name), bet_description, winner_id, created_at')
           .eq('status', 'settled')
           .eq('association_id', associationId)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .range(_offset, _offset + _limit - 1);
 
       if (!mounted) return;
 
       setState(() {
-        _betHistory = List<Map<String, dynamic>>.from(betHistoryResponse);
+        if (isLoadMore) {
+          _betHistory
+              .addAll(List<Map<String, dynamic>>.from(betHistoryResponse));
+        } else {
+          _betHistory = List<Map<String, dynamic>>.from(betHistoryResponse);
+        }
         _isLoading = false;
+        _isFetchingMore = false;
+        _offset += _limit;
       });
     } catch (e) {
-      print('Error fetching bet history: $e');
       setState(() {
         _isLoading = false;
+        _isFetchingMore = false;
       });
+      print('Error fetching bet history: $e');
     }
   }
 
@@ -65,23 +81,22 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
             final associationId = state.selectedAssociation.id;
             if (_selectedAssociationId != associationId) {
               _selectedAssociationId = associationId;
-
-              // Fetch bet history only when the association changes or on first load
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _fetchBetHistory(associationId);
-              });
+              _offset = 0;
+              _fetchBetHistory(associationId);
             }
 
             return RefreshIndicator(
               color: AppColors.lightSecondary,
-              onRefresh: () => _fetchBetHistory(associationId),
+              onRefresh: () {
+                _offset = 0;
+                return _fetchBetHistory(associationId);
+              },
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _buildBetHistoryList(),
             );
-          } else {
-            return const Center(child: CircularProgressIndicator());
           }
+          return const Center(child: CircularProgressIndicator());
         },
       ),
     );
@@ -92,73 +107,96 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
       return const Center(child: Text('No settled bets found'));
     }
 
-    return ListView.builder(
-      itemCount: _betHistory.length,
-      itemBuilder: (context, index) {
-        final bet = _betHistory[index];
-        final creatorName = bet['bet_creator_id']['name'];
-        final receiverName = bet['bet_receiver_id']['name'];
-        final betDescription = bet['bet_description'];
-        final winnerId = bet['winner_id'];
-        final winnerName = winnerId == bet['bet_creator_id']['id']
-            ? creatorName
-            : receiverName;
-        final amount = bet['amount'];
-        final createdAt = DateTime.parse(bet['created_at']).toLocal();
-        final formattedDate =
-            '${createdAt.day}/${createdAt.month}/${createdAt.year}';
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    'Bet between $creatorName and $receiverName',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Amount: $amount bakken',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  Text(
-                    'Winner: $winnerName',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text('Description: $betDescription'),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today,
-                      size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Date: $formattedDate',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              const Divider(height: 20, thickness: 1),
-            ],
-          ),
-        );
+    return NotificationListener<ScrollNotification>(
+      onNotification: (scrollInfo) {
+        if (!_isFetchingMore &&
+            scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
+          _fetchBetHistory(_selectedAssociationId!, isLoadMore: true);
+        }
+        return false;
       },
+      child: ListView.builder(
+        itemCount: _betHistory.length + (_isFetchingMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == _betHistory.length) {
+            return _isFetchingMore
+                ? const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : const SizedBox.shrink();
+          }
+
+          return _buildBetHistoryItem(_betHistory[index]);
+        },
+      ),
+    );
+  }
+
+  Widget _buildBetHistoryItem(Map<String, dynamic> bet) {
+    final creatorName = bet['bet_creator_id']['name'];
+    final receiverName = bet['bet_receiver_id']['name'];
+    final winnerName = bet['winner_id'] == bet['bet_creator_id']['id']
+        ? creatorName
+        : receiverName;
+    final createdAt = DateTime.parse(bet['created_at']).toLocal();
+    final formattedDate =
+        '${createdAt.day}/${createdAt.month}/${createdAt.year}';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTitleRow(creatorName, receiverName),
+          const SizedBox(height: 8),
+          _buildAmountAndWinnerRow(bet['amount'], winnerName),
+          const SizedBox(height: 4),
+          Text('Description: ${bet['bet_description']}'),
+          const SizedBox(height: 4),
+          _buildDateRow(formattedDate),
+          const Divider(height: 20, thickness: 1),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTitleRow(String creatorName, String receiverName) {
+    return Row(
+      children: [
+        Text(
+          'Bet between $creatorName and $receiverName',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAmountAndWinnerRow(int amount, String winnerName) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text('Amount: $amount bakken',
+            style: Theme.of(context).textTheme.bodyLarge),
+        Text(
+          'Winner: $winnerName',
+          style:
+              const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateRow(String formattedDate) {
+    return Row(
+      children: [
+        const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+        const SizedBox(width: 4),
+        Text('Date: $formattedDate',
+            style: Theme.of(context).textTheme.bodySmall),
+      ],
     );
   }
 }

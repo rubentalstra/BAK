@@ -1,8 +1,11 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/services/bak_service.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
+import 'package:bak_tracker/ui/home/bets/widgets/bet_participants.dart';
+import 'package:bak_tracker/ui/home/bets/widgets/pending_actions.dart';
+import 'package:bak_tracker/ui/home/bets/widgets/status_indicator.dart';
+import 'package:bak_tracker/ui/home/bets/widgets/winner_selection.dart';
 
 class OngoingBetsTab extends StatefulWidget {
   final String associationId;
@@ -56,8 +59,7 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
 
   Future<void> _updateBetStatus(
       String betId, String newStatus, String creatorId) async {
-    final supabase = Supabase.instance.client;
-    final receiverId = supabase.auth.currentUser!.id;
+    final receiverId = Supabase.instance.client.auth.currentUser!.id;
 
     try {
       await BakService.updateBetStatus(
@@ -102,6 +104,8 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
       itemCount: _ongoingBets.length,
       itemBuilder: (context, index) {
         final bet = _ongoingBets[index];
+        final currentUserId = Supabase.instance.client.auth.currentUser!.id;
+
         return Card(
           elevation: 4,
           margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -113,7 +117,10 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildBetParticipants(bet),
+                BetParticipants(
+                  bet: bet,
+                  imageUploadService: widget.imageUploadService,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   'Bet: ${bet['amount']} bakken',
@@ -127,257 +134,25 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 8),
-                _buildStatusIndicator(bet['status']),
+                StatusIndicator(status: bet['status']),
                 const SizedBox(height: 8),
-                if (bet['status'] == 'pending') _buildPendingActions(bet),
-                if (bet['status'] == 'accepted') _buildWinnerSelection(bet),
+                if (bet['status'] == 'pending' &&
+                    bet['bet_receiver_id']['id'] == currentUserId)
+                  PendingActions(
+                    bet: bet,
+                    onUpdateBetStatus: _updateBetStatus,
+                  ),
+                if (bet['status'] == 'accepted')
+                  WinnerSelection(
+                    bet: bet,
+                    onWinnerSelected: _handleWinnerSelection,
+                    imageUploadService: widget.imageUploadService,
+                  ),
               ],
             ),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildBetParticipants(Map<String, dynamic> bet) {
-    return Row(
-      children: [
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            FutureBuilder<File?>(
-              future: (bet['bet_creator_id']['profile_image'] != null &&
-                      bet['bet_creator_id']['profile_image'] is String &&
-                      bet['bet_creator_id']['profile_image'].isNotEmpty)
-                  ? widget.imageUploadService.fetchOrDownloadProfileImage(
-                      bet['bet_creator_id']['profile_image'])
-                  : Future.value(null),
-              builder: (context, snapshot) {
-                final creatorImage = snapshot.data;
-                return _buildProfileImage(
-                    creatorImage, bet['bet_creator_id']['name']);
-              },
-            ),
-            Positioned(
-              left: 30,
-              child: FutureBuilder<File?>(
-                future: (bet['bet_receiver_id']['profile_image'] != null &&
-                        bet['bet_receiver_id']['profile_image'] is String &&
-                        bet['bet_receiver_id']['profile_image'].isNotEmpty)
-                    ? widget.imageUploadService.fetchOrDownloadProfileImage(
-                        bet['bet_receiver_id']['profile_image'])
-                    : Future.value(null),
-                builder: (context, snapshot) {
-                  final receiverImage = snapshot.data;
-                  return _buildProfileImage(
-                      receiverImage, bet['bet_receiver_id']['name']);
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 40),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Creator: ${bet['bet_creator_id']['name']}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Receiver: ${bet['bet_receiver_id']['name']}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProfileImage(File? imageFile, String userName) {
-    return CircleAvatar(
-      radius: 24,
-      backgroundColor: imageFile == null ? Colors.grey[300] : null,
-      backgroundImage: imageFile != null ? FileImage(imageFile) : null,
-      child: imageFile == null
-          ? Text(
-              userName[0].toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-              ),
-            )
-          : null,
-    );
-  }
-
-  Widget _buildStatusIndicator(String status) {
-    Color statusColor;
-    String statusText;
-
-    if (status == 'pending') {
-      statusColor = Colors.orange;
-      statusText = 'Pending Approval';
-    } else if (status == 'accepted') {
-      statusColor = Colors.green;
-      statusText = 'Accepted - Ready to Settle';
-    } else {
-      statusColor = Colors.grey;
-      statusText = 'Unknown Status';
-    }
-
-    return Row(
-      children: [
-        Icon(
-          Icons.circle,
-          color: statusColor,
-          size: 12,
-        ),
-        const SizedBox(width: 6),
-        Text(
-          statusText,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: statusColor,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPendingActions(Map<String, dynamic> bet) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        TextButton(
-          onPressed: () => _updateBetStatus(
-              bet['id'], 'accepted', bet['bet_creator_id']['id']),
-          child: const Text(
-            'Accept',
-            style: TextStyle(color: Colors.green),
-          ),
-        ),
-        const SizedBox(width: 8),
-        TextButton(
-          onPressed: () => _updateBetStatus(
-              bet['id'], 'rejected', bet['bet_creator_id']['id']),
-          child: const Text(
-            'Reject',
-            style: TextStyle(color: Colors.red),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWinnerSelection(Map<String, dynamic> bet) {
-    String? selectedWinner;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Select the Winner:',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16.0,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            FutureBuilder<File?>(
-              future: (bet['bet_creator_id']['profile_image'] != null &&
-                      bet['bet_creator_id']['profile_image'] is String &&
-                      bet['bet_creator_id']['profile_image'].isNotEmpty)
-                  ? widget.imageUploadService.fetchOrDownloadProfileImage(
-                      bet['bet_creator_id']['profile_image'])
-                  : Future.value(null),
-              builder: (context, snapshot) {
-                final creatorImage = snapshot.data;
-                return _buildSelectableWinnerOption(
-                  userId: bet['bet_creator_id']['id'],
-                  userName: bet['bet_creator_id']['name'],
-                  profileImage: creatorImage,
-                  isSelected: selectedWinner == bet['bet_creator_id']['id'],
-                  onTap: () {
-                    setState(() {
-                      selectedWinner = bet['bet_creator_id']['id'];
-                      _handleWinnerSelection(bet, selectedWinner!);
-                    });
-                  },
-                );
-              },
-            ),
-            const Text(
-              'vs',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            FutureBuilder<File?>(
-              future: (bet['bet_receiver_id']['profile_image'] != null &&
-                      bet['bet_receiver_id']['profile_image'] is String &&
-                      bet['bet_receiver_id']['profile_image'].isNotEmpty)
-                  ? widget.imageUploadService.fetchOrDownloadProfileImage(
-                      bet['bet_receiver_id']['profile_image'])
-                  : Future.value(null),
-              builder: (context, snapshot) {
-                final receiverImage = snapshot.data;
-                return _buildSelectableWinnerOption(
-                  userId: bet['bet_receiver_id']['id'],
-                  userName: bet['bet_receiver_id']['name'],
-                  profileImage: receiverImage,
-                  isSelected: selectedWinner == bet['bet_receiver_id']['id'],
-                  onTap: () {
-                    setState(() {
-                      selectedWinner = bet['bet_receiver_id']['id'];
-                      _handleWinnerSelection(bet, selectedWinner!);
-                    });
-                  },
-                );
-              },
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSelectableWinnerOption({
-    required String userId,
-    required String userName,
-    File? profileImage,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 27,
-            backgroundImage:
-                profileImage != null ? FileImage(profileImage) : null,
-            backgroundColor: profileImage == null ? Colors.grey[300] : null,
-            child: profileImage == null
-                ? Text(
-                    userName[0].toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                    ),
-                  )
-                : null,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            userName,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-        ],
-      ),
     );
   }
 
