@@ -42,7 +42,7 @@ class ActiveInvitesTab extends StatelessWidget {
 
         // Calculate remaining time until expiration
         final Duration? timeUntilExpiration =
-            expiresAt != null ? expiresAt.difference(DateTime.now()) : null;
+            expiresAt?.difference(DateTime.now());
 
         // Format dates for display
         final String createdDate = DateFormat('dd-MM-yyyy').format(createdAt);

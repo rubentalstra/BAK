@@ -148,7 +148,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
   // Show dialog for rejection reason
   Future<void> _showRejectDialog(
       BuildContext context, String bakId, String takerId, int amount) async {
-    final _reasonController = TextEditingController();
+    final reasonController = TextEditingController();
 
     return showDialog<void>(
       context: context,
@@ -168,7 +168,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextField(
-                  controller: _reasonController,
+                  controller: reasonController,
                   decoration: const InputDecoration(
                     labelText: 'Rejection Reason',
                     border: OutlineInputBorder(),
@@ -188,7 +188,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
             ElevatedButton(
               child: const Text('Reject'),
               onPressed: () {
-                final reason = _reasonController.text.trim();
+                final reason = reasonController.text.trim();
                 if (reason.isNotEmpty) {
                   _updateBakStatus(bakId, 'rejected', takerId, amount, reason);
                   Navigator.of(context).pop(); // Close dialog

@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NotificationsService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
-  // bool _isInitialized = false;
   final Set<String> _shownNotificationIds = {}; // Store notification IDs
 
   NotificationsService(this.flutterLocalNotificationsPlugin);
@@ -14,7 +13,7 @@ class NotificationsService {
     try {
       const AndroidInitializationSettings initializationSettingsAndroid =
           AndroidInitializationSettings(
-              'ic_launcher'); // Ensure the icon exists
+              '@drawable/ic_notification'); // Ensure the icon exists in mipmap
 
       const DarwinInitializationSettings initializationSettingsIOS =
           DarwinInitializationSettings(
@@ -37,17 +36,32 @@ class NotificationsService {
       );
 
       print('FlutterLocalNotificationsPlugin initialized successfully');
+
+      // Create notification channels for Android 8.0 and above
+      await _createNotificationChannel();
     } catch (e) {
       print('Error initializing FlutterLocalNotificationsPlugin: $e');
     }
   }
 
+  // Create notification channels for Android 8.0 and above
+  Future<void> _createNotificationChannel() async {
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'your_channel_id', // Unique ID
+      'your_channel_name', // Human readable name
+      description: 'your_channel_description', // Description for the channel
+      importance: Importance.high,
+    );
+
+    // Register the channel with the system
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+  }
+
   // Set up Firebase Messaging
   Future<void> setupFirebaseMessaging() async {
-    // if (_isInitialized) return; // Prevent multiple initializations
-
-    // _isInitialized = true; // Mark as initialized
-
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
     // Request notification permissions
@@ -74,10 +88,8 @@ class NotificationsService {
 
       if (message.messageId != null &&
           !_shownNotificationIds.contains(message.messageId)) {
-        // Store message ID to prevent showing the same notification twice
         _shownNotificationIds.add(message.messageId!);
 
-        // Handle notification if present
         if (message.notification != null) {
           RemoteNotification? notification = message.notification;
           String title = notification?.title ?? 'No title';
@@ -93,7 +105,6 @@ class NotificationsService {
     // Handle notification tap
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print('App opened from a notification');
-      // Handle navigation or other actions based on the notification
     });
   }
 
@@ -112,13 +123,14 @@ class NotificationsService {
               channelDescription: 'your_channel_description',
               importance: Importance.max,
               priority: Priority.high,
-              ticker: 'ticker');
+              ticker: 'ticker',
+              icon: '@drawable/ic_notification');
       const NotificationDetails platformChannelSpecifics = NotificationDetails(
           android: androidPlatformChannelSpecifics,
           iOS: DarwinNotificationDetails());
 
       await flutterLocalNotificationsPlugin.show(
-        body.hashCode, // Use the body hash code as the notification ID to avoid duplicates
+        body.hashCode,
         title,
         body,
         platformChannelSpecifics,
@@ -160,13 +172,16 @@ class NotificationsService {
             channelDescription: 'your_channel_description',
             importance: Importance.max,
             priority: Priority.high,
-            ticker: 'ticker');
+            ticker: 'ticker',
+            icon:
+                '@drawable/ic_notification'); // Fallback to ic_launcher for notification icon
+
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
         android: androidPlatformChannelSpecifics,
         iOS: DarwinNotificationDetails());
 
     await flutterLocalNotificationsPlugin.show(
-      body.hashCode, // Use the body hash code as the notification ID to avoid duplicates
+      body.hashCode,
       title,
       body,
       platformChannelSpecifics,

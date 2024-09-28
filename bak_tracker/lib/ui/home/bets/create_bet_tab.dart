@@ -9,10 +9,10 @@ class CreateBetTab extends StatefulWidget {
   final List<AssociationMemberModel> members;
 
   const CreateBetTab({
-    Key? key,
+    super.key,
     required this.associationId,
     required this.members,
-  }) : super(key: key);
+  });
 
   @override
   _CreateBetTabState createState() => _CreateBetTabState();

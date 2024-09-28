@@ -9,7 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BetsScreen extends StatefulWidget {
-  const BetsScreen({Key? key}) : super(key: key);
+  const BetsScreen({super.key});
 
   @override
   _BetsScreenState createState() => _BetsScreenState();

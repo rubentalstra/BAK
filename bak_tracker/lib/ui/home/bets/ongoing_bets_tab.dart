@@ -289,8 +289,12 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             FutureBuilder<File?>(
-              future: widget.imageUploadService.fetchOrDownloadProfileImage(
-                  bet['bet_creator_id']['profile_image']),
+              future: (bet['bet_creator_id']['profile_image'] != null &&
+                      bet['bet_creator_id']['profile_image'] is String &&
+                      bet['bet_creator_id']['profile_image'].isNotEmpty)
+                  ? widget.imageUploadService.fetchOrDownloadProfileImage(
+                      bet['bet_creator_id']['profile_image'])
+                  : Future.value(null),
               builder: (context, snapshot) {
                 final creatorImage = snapshot.data;
                 return _buildSelectableWinnerOption(
@@ -312,8 +316,12 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             FutureBuilder<File?>(
-              future: widget.imageUploadService.fetchOrDownloadProfileImage(
-                  bet['bet_receiver_id']['profile_image']),
+              future: (bet['bet_receiver_id']['profile_image'] != null &&
+                      bet['bet_receiver_id']['profile_image'] is String &&
+                      bet['bet_receiver_id']['profile_image'].isNotEmpty)
+                  ? widget.imageUploadService.fetchOrDownloadProfileImage(
+                      bet['bet_receiver_id']['profile_image'])
+                  : Future.value(null),
               builder: (context, snapshot) {
                 final receiverImage = snapshot.data;
                 return _buildSelectableWinnerOption(

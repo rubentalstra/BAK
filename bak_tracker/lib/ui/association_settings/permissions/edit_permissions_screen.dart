@@ -8,11 +8,11 @@ class EditPermissionsScreen extends StatefulWidget {
   final Map<String, dynamic> currentPermissions;
 
   const EditPermissionsScreen({
-    Key? key,
+    super.key,
     required this.memberId,
     required this.associationId,
     required this.currentPermissions,
-  }) : super(key: key);
+  });
 
   @override
   _EditPermissionsScreenState createState() => _EditPermissionsScreenState();
