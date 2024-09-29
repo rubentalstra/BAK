@@ -1,6 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/models/association_model.dart';
-import 'dart:convert';
 
 class JoinAssociationService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -25,11 +24,7 @@ class JoinAssociationService {
       }
 
       final associationId = inviteResponse['association_id'];
-
-      // Handle permissions from the invite
-      final invitePermissions = inviteResponse['permissions'] != null
-          ? jsonDecode(inviteResponse['permissions']) as Map<String, dynamic>
-          : {}; // Default to empty permissions if none are provided
+      final invitePermissions = inviteResponse['permissions'];
 
       // Check if the user is already a member of the association
       final isMember = await _supabase
@@ -48,8 +43,7 @@ class JoinAssociationService {
         'user_id': userId,
         'association_id': associationId,
         'role': 'member',
-        'permissions':
-            jsonEncode(invitePermissions), // Use permissions from invite
+        'permissions': invitePermissions,
         'joined_at': DateTime.now().toIso8601String(),
       });
 

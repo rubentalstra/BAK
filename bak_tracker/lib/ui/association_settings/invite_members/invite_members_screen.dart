@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math';
+import 'package:bak_tracker/models/invite_model.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -24,8 +25,8 @@ class InviteMembersScreen extends StatefulWidget {
 
 class _InviteMembersScreenState extends State<InviteMembersScreen>
     with SingleTickerProviderStateMixin {
-  List<Map<String, dynamic>> _activeInvites = [];
-  List<Map<String, dynamic>> _expiredInvites = [];
+  List<InviteModel> _activeInvites = [];
+  List<InviteModel> _expiredInvites = [];
   bool _loadingInvites = true;
 
   late TabController _tabController;
@@ -84,14 +85,14 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
       });
 
       // Fetch active invites
-      final List<Map<String, dynamic>> activeResponse = await supabase
+      final List<dynamic> activeResponse = await supabase
           .from('invites')
           .select()
           .eq('association_id', widget.associationId)
           .eq('is_expired', false);
 
       // Fetch expired invites
-      final List<Map<String, dynamic>> expiredResponse = await supabase
+      final List<dynamic> expiredResponse = await supabase
           .from('invites')
           .select()
           .eq('association_id', widget.associationId)
@@ -99,8 +100,13 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
           .order('created_at', ascending: false);
 
       setState(() {
-        _activeInvites = List<Map<String, dynamic>>.from(activeResponse);
-        _expiredInvites = List<Map<String, dynamic>>.from(expiredResponse);
+        // Convert response to InviteModel instances
+        _activeInvites = activeResponse
+            .map((inviteMap) => InviteModel.fromMap(inviteMap))
+            .toList();
+        _expiredInvites = expiredResponse
+            .map((inviteMap) => InviteModel.fromMap(inviteMap))
+            .toList();
         _loadingInvites = false;
       });
     } catch (e) {
@@ -108,6 +114,19 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
       setState(() {
         _loadingInvites = false;
       });
+    }
+  }
+
+  // Delete an invite
+  Future<void> _deleteInvite(String inviteId) async {
+    final supabase = Supabase.instance.client;
+
+    try {
+      await supabase.from('invites').delete().eq('id', inviteId);
+
+      _fetchInvites(); // Refresh the list after deleting
+    } catch (e) {
+      print('Error deleting invite: $e');
     }
   }
 
@@ -237,6 +256,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
       'canManageRoles': false,
       'canManageBaks': false,
       'canApproveBaks': false,
+      'canManagePermissions': false,
     };
 
     bool hasSelectedPermissions() {
@@ -304,6 +324,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
                           permissions['canManageRoles'] = false;
                           permissions['canManageBaks'] = false;
                           permissions['canApproveBaks'] = false;
+                          permissions['canManagePermissions'] = false;
                         }
                       });
                     },
@@ -363,6 +384,18 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
                             });
                           },
                   ),
+                  CheckboxListTile(
+                    title: const Text('Can Manage Permissions'),
+                    value: permissions['canManagePermissions'],
+                    onChanged: permissions['hasAllPermissions']
+                        ? null
+                        : (bool? value) {
+                            setState(() {
+                              permissions['canManagePermissions'] =
+                                  value ?? false;
+                            });
+                          },
+                  ),
                 ],
               ),
               actions: <Widget>[
@@ -417,7 +450,8 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
           _loadingInvites
               ? const Center(child: CircularProgressIndicator())
               : Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 4.0), // Reduced padding
                   child: ActiveInvitesTab(
                     invites: _activeInvites,
                     onCopyInviteKey: _copyInviteKey,
@@ -428,8 +462,12 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
           _loadingInvites
               ? const Center(child: CircularProgressIndicator())
               : Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: ExpiredInvitesTab(invites: _expiredInvites),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 4.0), // Reduced padding
+                  child: ExpiredInvitesTab(
+                    invites: _expiredInvites,
+                    onDeleteInvite: _deleteInvite, // Handle delete action
+                  ),
                 ),
         ],
       ),

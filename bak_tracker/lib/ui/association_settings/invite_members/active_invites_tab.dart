@@ -1,9 +1,10 @@
+import 'package:bak_tracker/models/invite_model.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 
 class ActiveInvitesTab extends StatelessWidget {
-  final List<Map<String, dynamic>> invites;
+  final List<InviteModel> invites;
   final Function(String) onCopyInviteKey;
   final Function(String) onShareInvite;
   final Function(String) onExpireInvite;
@@ -27,86 +28,159 @@ class ActiveInvitesTab extends StatelessWidget {
       );
     }
 
-    return ListView.separated(
+    return ListView.builder(
       itemCount: invites.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final invite = invites[index];
-        final inviteKey = invite['invite_key'];
-        final inviteId = invite['id'];
+        final inviteKey = invite.inviteKey;
 
-        final DateTime createdAt = DateTime.parse(invite['created_at']);
-        final DateTime? expiresAt = invite['expires_at'] != null
-            ? DateTime.parse(invite['expires_at'])
-            : null;
-
-        // Calculate remaining time until expiration
         final Duration? timeUntilExpiration =
-            expiresAt?.difference(DateTime.now());
+            invite.expiresAt?.difference(DateTime.now());
 
-        // Format dates for display
-        final String createdDate = DateFormat('dd-MM-yyyy').format(createdAt);
+        // Format expiration dates for display
+        final String expirationDateTime = invite.expiresAt != null
+            ? DateFormat('dd-MM-yyyy HH:mm').format(invite.expiresAt!)
+            : 'No expiration';
+
         String expirationDisplay = 'No expiration';
-        if (expiresAt != null) {
-          if (timeUntilExpiration != null && timeUntilExpiration.inDays > 0) {
-            expirationDisplay =
-                '${timeUntilExpiration.inDays} days left (${DateFormat('dd-MM-yyyy').format(expiresAt)})';
-          } else if (timeUntilExpiration != null &&
-              timeUntilExpiration.inDays == 0) {
-            expirationDisplay =
-                'Expires today (${DateFormat('dd-MM-yyyy').format(expiresAt)})';
-          } else {
-            expirationDisplay =
-                'Expired on ${DateFormat('dd-MM-yyyy').format(expiresAt)}';
+        if (timeUntilExpiration != null) {
+          if (timeUntilExpiration.inDays > 0) {
+            expirationDisplay = '${timeUntilExpiration.inDays} days left';
+          } else if (timeUntilExpiration.inDays == 0) {
+            expirationDisplay = 'Expires today';
           }
         }
 
-        final permissions = Map<String, dynamic>.from(invite['permissions']);
-
-        return ListTile(
-          title: Text(
-            'Invite Key: $inviteKey',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Created: $createdDate',
-                style: const TextStyle(color: Colors.grey),
-              ),
-              Text(
-                expirationDisplay,
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontWeight: FontWeight.w600,
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: 8.0, vertical: 8.0), // Match padding
+          child: Card(
+            elevation: 1, // Match elevation
+            margin: EdgeInsets.zero, // Remove default card margin
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10), // Match radius
+            ),
+            child: ListTile(
+              contentPadding:
+                  const EdgeInsets.all(12), // Match padding inside card
+              leading: CircleAvatar(
+                backgroundColor: Colors.greenAccent.withOpacity(0.1),
+                radius: 24,
+                child: const Icon(
+                  FontAwesomeIcons.key,
+                  color: Colors.greenAccent,
                 ),
               ),
-              Text(
-                _buildPermissionsSummary(permissions),
-                style: TextStyle(color: Colors.grey.shade700),
+              title: Text(
+                'Invite Key: $inviteKey',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-            ],
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const FaIcon(FontAwesomeIcons.copy),
-                onPressed: () => onCopyInviteKey(inviteKey),
-                tooltip: 'Copy Invite Key',
+              subtitle: Padding(
+                padding: const EdgeInsets.only(
+                    top: 4.0), // Match padding between elements
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          FontAwesomeIcons.calendarDay,
+                          size: 14,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Created: ${DateFormat('dd-MM-yyyy').format(invite.createdAt)}',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              FontAwesomeIcons.hourglassEnd,
+                              size: 14,
+                              color: Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              expirationDisplay, // Expiration status
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4), // Add space between rows
+                        Row(
+                          children: [
+                            const Icon(
+                              FontAwesomeIcons.clock,
+                              size: 14,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              expirationDateTime, // Expiration date and time
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _buildPermissionsSummary(invite.permissions),
+                      style: TextStyle(color: Colors.grey.shade700),
+                    ),
+                  ],
+                ),
               ),
-              IconButton(
-                icon: const FaIcon(FontAwesomeIcons.share),
-                onPressed: () => onShareInvite(inviteKey),
-                tooltip: 'Share Invite',
+              trailing: PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert),
+                onSelected: (String result) {
+                  switch (result) {
+                    case 'Copy':
+                      onCopyInviteKey(inviteKey);
+                      break;
+                    case 'Share':
+                      onShareInvite(inviteKey);
+                      break;
+                    case 'Expire':
+                      onExpireInvite(invite.id);
+                      break;
+                  }
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                  const PopupMenuItem<String>(
+                    value: 'Copy',
+                    child: ListTile(
+                      leading: Icon(Icons.copy),
+                      title: Text('Copy Invite Key'),
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'Share',
+                    child: ListTile(
+                      leading: FaIcon(FontAwesomeIcons.shareFromSquare),
+                      title: Text('Share Invite'),
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'Expire',
+                    child: ListTile(
+                      leading: Icon(Icons.cancel),
+                      title: Text('Expire Invite'),
+                    ),
+                  ),
+                ],
               ),
-              IconButton(
-                icon: const FaIcon(FontAwesomeIcons.xmark),
-                onPressed: () => onExpireInvite(inviteId),
-                tooltip: 'Expire Invite',
-              ),
-            ],
+            ),
           ),
         );
       },
