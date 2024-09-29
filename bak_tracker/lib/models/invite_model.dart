@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:equatable/equatable.dart';
 
 class InviteModel extends Equatable {
@@ -8,6 +9,7 @@ class InviteModel extends Equatable {
   final DateTime createdAt;
   final DateTime? expiresAt;
   final bool isExpired;
+  final Map<String, dynamic>? permissions; // Add permissions field
 
   const InviteModel({
     required this.id,
@@ -17,6 +19,7 @@ class InviteModel extends Equatable {
     required this.createdAt,
     this.expiresAt,
     required this.isExpired,
+    this.permissions, // Include permissions
   });
 
   factory InviteModel.fromMap(Map<String, dynamic> map) {
@@ -29,6 +32,9 @@ class InviteModel extends Equatable {
       expiresAt:
           map['expires_at'] != null ? DateTime.parse(map['expires_at']) : null,
       isExpired: map['is_expired'],
+      permissions: map['permissions'] != null
+          ? jsonDecode(map['permissions']) as Map<String, dynamic>
+          : null,
     );
   }
 
@@ -41,10 +47,10 @@ class InviteModel extends Equatable {
       'created_at': createdAt.toIso8601String(),
       'expires_at': expiresAt?.toIso8601String(),
       'is_expired': isExpired,
+      'permissions': jsonEncode(permissions), // Store permissions as JSON
     };
   }
 
-  // Override props for Equatable
   @override
   List<Object?> get props => [
         id,
@@ -54,5 +60,6 @@ class InviteModel extends Equatable {
         createdAt,
         expiresAt,
         isExpired,
+        permissions, // Add permissions to props
       ];
 }

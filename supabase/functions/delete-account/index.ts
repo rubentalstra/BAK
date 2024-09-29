@@ -1,13 +1,14 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const supabase = createClient(
+// Supabase service role client for admin-level operations (e.g., deleting users from auth)
+const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! // This is for admin tasks like deleting users from auth
 );
 
 Deno.serve(async (req) => {
   try {
-    // Step 1: Verify the access token
+    // Step 1: Verify the access token from the user's session
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -16,7 +17,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const token = authHeader.split("Bearer ")[1];
+    const token = authHeader.replace('Bearer ', '')
     if (!token) {
       return new Response(
         JSON.stringify({ error: "Bearer token missing." }),
@@ -24,9 +25,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify JWT and get the user information from the token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Create a Supabase client for the user using the token to enforce RLS
+    const supabaseUserClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+    )
 
+    // Step 2: Fetch the user from the token (no need for userId in the body)
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: "Invalid or expired token." }),
@@ -34,32 +41,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 2: Parse the request body (handle potential errors)
-    let body;
-    try {
-      body = await req.json();
-    } catch (error) {
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON body." }),
-        { status: 400 }
-      );
-    }
+    const userId = user.id; // We get the userId directly from the token
 
-    const { userId } = body;
-
-    // Step 3: Ensure that the request's userId matches the authenticated user's ID
-    if (userId !== user.id) {
-      return new Response(
-        JSON.stringify({ error: "You are not authorized to delete this account." }),
-        { status: 403 }
-      );
-    }
-
-    // Step 4: Delete the user data from the database
-    const { error: dbError } = await supabase
+    // Step 3: Delete the user's data from the 'users' table using the user-level client (RLS will enforce security)
+    const { error: dbError } = await supabaseUserClient
       .from('users') // Assuming your users table is named 'users'
       .delete()
-      .eq('id', userId);
+      .eq('id', userId); // RLS ensures only the logged-in user can delete their own data
 
     if (dbError) {
       console.error("Error deleting user data:", dbError);
@@ -69,9 +57,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 5: Delete the user from Supabase Auth
-    const { error: authDeleteError } = await supabase.auth.admin.deleteUser(userId);
-
+    // Step 4: Delete the user from Supabase Auth using the service role client
+    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (authDeleteError) {
       console.error("Error deleting auth user:", authDeleteError);
       return new Response(
@@ -80,9 +67,11 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Step 5: Send success response
     return new Response(JSON.stringify({ message: "Account deletion successful." }), {
       status: 200,
     });
+
   } catch (error) {
     console.error("Unexpected error:", error);
     return new Response(JSON.stringify({ error: "Unexpected error." }), {

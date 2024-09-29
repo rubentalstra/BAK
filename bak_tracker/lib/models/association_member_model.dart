@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:bak_tracker/core/const/permissions.dart';
 import 'package:equatable/equatable.dart';
 
 class AssociationMemberModel extends Equatable {
@@ -67,20 +68,19 @@ class AssociationMemberModel extends Equatable {
   }
 
   // Permissions checkers
-  bool get hasAllPermissions => permissions['hasAllPermissions'] ?? false;
-
+  bool get hasAllPermissions => hasPermission(permissions, 'hasAllPermissions');
   bool get canManagePermissions =>
-      hasAllPermissions || (permissions['canManagePermissions'] ?? false);
+      hasAllPermissions || hasPermission(permissions, 'canManagePermissions');
   bool get canInviteMembers =>
-      hasAllPermissions || (permissions['canInviteMembers'] ?? false);
+      hasAllPermissions || hasPermission(permissions, 'canInviteMembers');
   bool get canRemoveMembers =>
-      hasAllPermissions || (permissions['canRemoveMembers'] ?? false);
+      hasAllPermissions || hasPermission(permissions, 'canRemoveMembers');
   bool get canManageRoles =>
-      hasAllPermissions || (permissions['canManageRoles'] ?? false);
+      hasAllPermissions || hasPermission(permissions, 'canManageRoles');
   bool get canManageBaks =>
-      hasAllPermissions || (permissions['canManageBaks'] ?? false);
+      hasAllPermissions || hasPermission(permissions, 'canManageBaks');
   bool get canApproveBaks =>
-      hasAllPermissions || (permissions['canApproveBaks'] ?? false);
+      hasAllPermissions || hasPermission(permissions, 'canApproveBaks');
 
   // Equatable override to simplify equality comparison
   @override

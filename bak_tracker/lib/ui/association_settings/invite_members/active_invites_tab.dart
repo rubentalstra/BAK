@@ -61,6 +61,8 @@ class ActiveInvitesTab extends StatelessWidget {
           }
         }
 
+        final permissions = Map<String, dynamic>.from(invite['permissions']);
+
         return ListTile(
           title: Text(
             'Invite Key: $inviteKey',
@@ -79,6 +81,10 @@ class ActiveInvitesTab extends StatelessWidget {
                   color: Colors.green,
                   fontWeight: FontWeight.w600,
                 ),
+              ),
+              Text(
+                _buildPermissionsSummary(permissions),
+                style: TextStyle(color: Colors.grey.shade700),
               ),
             ],
           ),
@@ -105,5 +111,37 @@ class ActiveInvitesTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  // Build a summary of permissions for display
+  String _buildPermissionsSummary(Map<String, dynamic> permissions) {
+    List<String> permissionLabels = [];
+
+    if (permissions['hasAllPermissions'] == true) {
+      permissionLabels.add('Has All Permissions');
+    } else {
+      if (permissions['canInviteMembers'] == true) {
+        permissionLabels.add('Invite Members');
+      }
+      if (permissions['canRemoveMembers'] == true) {
+        permissionLabels.add('Remove Members');
+      }
+      if (permissions['canManageRoles'] == true) {
+        permissionLabels.add('Manage Roles');
+      }
+      if (permissions['canManageBaks'] == true) {
+        permissionLabels.add('Manage Baks');
+      }
+      if (permissions['canApproveBaks'] == true) {
+        permissionLabels.add('Approve Baks');
+      }
+      if (permissions['canManagePermissions'] == true) {
+        permissionLabels.add('Manage Permissions');
+      }
+    }
+
+    return permissionLabels.isNotEmpty
+        ? permissionLabels.join(', ')
+        : 'No Permissions';
   }
 }

@@ -51,8 +51,9 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
         .join();
   }
 
-  // Your _createInvite method will accept the expiration date
-  Future<void> _createInvite(DateTime? expiryDate) async {
+  // Create an invite with expiration date and permissions
+  Future<void> _createInvite(
+      DateTime? expiryDate, Map<String, dynamic> permissions) async {
     final supabase = Supabase.instance.client;
     final String userId = supabase.auth.currentUser!.id;
     final String inviteKey = _generateInviteKey();
@@ -62,9 +63,9 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
         'association_id': widget.associationId,
         'invite_key': inviteKey,
         'created_by': userId,
-        'expires_at':
-            expiryDate?.toIso8601String(), // Add expiration date if available
+        'expires_at': expiryDate?.toIso8601String(),
         'is_expired': false,
+        'permissions': permissions,
       });
 
       _fetchInvites(); // Refresh the list of invites
@@ -142,7 +143,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
     );
   }
 
-// Date picker for selecting expiration date
+  // Date picker for selecting expiration date
   Future<DateTime?> _selectExpiryDate(BuildContext context) async {
     final DateTime now = DateTime.now();
     final DateTime initialDate =
@@ -151,63 +152,67 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
     DateTime selectedDate = initialDate;
 
     if (Platform.isIOS) {
-      return await showCupertinoModalPopup<DateTime>(
+      return await showModalBottomSheet<DateTime>(
         context: context,
-        builder: (_) => SizedBox(
-          height: 300,
-          child: Column(
-            children: [
-              // The toolbar with Cancel and Done buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CupertinoButton(
-                    child: const Text('Cancel',
-                        style: TextStyle(color: Colors.red)),
-                    onPressed: () {
-                      Navigator.pop(
-                          context); // Close the picker without selecting a date
-                    },
-                  ),
-                  CupertinoButton(
-                    child: const Text('Done',
-                        style: TextStyle(color: Colors.blue)),
-                    onPressed: () {
-                      // Set the selected date to 23:59:59 for the chosen day
-                      selectedDate = DateTime(selectedDate.year,
-                          selectedDate.month, selectedDate.day, 23, 59, 59);
-                      Navigator.pop(context,
-                          selectedDate); // Return the selected date with end of day time
-                    },
-                  ),
-                ],
-              ),
-              SizedBox(
-                height: 180,
-                child: CupertinoTheme(
-                  data: const CupertinoThemeData(
-                    brightness: Brightness.dark, // Darker appearance
-                    primaryColor: Colors.black,
-                  ),
-                  child: CupertinoDatePicker(
-                    mode: CupertinoDatePickerMode.date,
-                    initialDateTime: selectedDate,
-                    minimumDate: now,
-                    maximumDate: now.add(const Duration(days: 365)),
-                    onDateTimeChanged: (DateTime dateTime) {
-                      // Update the selected date but keep it as a date with 23:59:59 time
-                      selectedDate = DateTime(dateTime.year, dateTime.month,
-                          dateTime.day, 23, 59, 59);
-                    },
+        backgroundColor: Colors.black, // Set background color
+        isScrollControlled: true, // Allows full-height modal bottom sheet
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) {
+          return SizedBox(
+            height: 300,
+            child: Column(
+              children: [
+                // The toolbar with Cancel and Done buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CupertinoButton(
+                      child: const Text('Cancel',
+                          style: TextStyle(color: Colors.red)),
+                      onPressed: () {
+                        Navigator.pop(
+                            context); // Close the picker without selecting a date
+                      },
+                    ),
+                    CupertinoButton(
+                      child: const Text('Done',
+                          style: TextStyle(color: Colors.blue)),
+                      onPressed: () {
+                        selectedDate = DateTime(selectedDate.year,
+                            selectedDate.month, selectedDate.day, 23, 59, 59);
+                        Navigator.pop(
+                            context, selectedDate); // Return the selected date
+                      },
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  height: 180,
+                  child: CupertinoTheme(
+                    data: const CupertinoThemeData(
+                      brightness: Brightness.dark, // Light appearance
+                      primaryColor: Colors.blue,
+                    ),
+                    child: CupertinoDatePicker(
+                      mode: CupertinoDatePickerMode.date,
+                      initialDateTime: selectedDate,
+                      minimumDate: now,
+                      maximumDate: now.add(const Duration(days: 365)),
+                      onDateTimeChanged: (DateTime dateTime) {
+                        selectedDate = DateTime(dateTime.year, dateTime.month,
+                            dateTime.day, 23, 59, 59);
+                      },
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        },
       );
     } else {
-      // Default Android date picker
       final DateTime? pickedDate = await showDatePicker(
         context: context,
         initialDate: initialDate,
@@ -215,7 +220,6 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
         lastDate: now.add(const Duration(days: 365)),
       );
 
-      // Ensure the returned date is set to 23:59:59
       return pickedDate != null
           ? DateTime(
               pickedDate.year, pickedDate.month, pickedDate.day, 23, 59, 59)
@@ -223,9 +227,21 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
     }
   }
 
-// Dialog for creating an invite with expiration date
+  // Show a dialog to select permissions and create invite
   Future<void> _showCreateInviteDialog() async {
     DateTime? selectedExpiryDate;
+    Map<String, dynamic> permissions = {
+      'hasAllPermissions': false,
+      'canInviteMembers': false,
+      'canRemoveMembers': false,
+      'canManageRoles': false,
+      'canManageBaks': false,
+      'canApproveBaks': false,
+    };
+
+    bool hasSelectedPermissions() {
+      return permissions.entries.any((entry) => entry.value == true);
+    }
 
     return showDialog<void>(
       context: context,
@@ -259,8 +275,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
                       }
                     },
                   ),
-                  if (selectedExpiryDate !=
-                      null) // Option to remove expiry date
+                  if (selectedExpiryDate != null)
                     TextButton(
                       onPressed: () {
                         setState(() {
@@ -274,6 +289,80 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
                         ),
                       ),
                     ),
+                  const Divider(),
+                  const Text('Assign Permissions for this Invite:'),
+                  CheckboxListTile(
+                    title: const Text('Has All Permissions'),
+                    value: permissions['hasAllPermissions'],
+                    onChanged: (bool? value) {
+                      setState(() {
+                        permissions['hasAllPermissions'] = value ?? false;
+                        if (value ?? false) {
+                          // Uncheck all other permissions when hasAllPermissions is selected
+                          permissions['canInviteMembers'] = false;
+                          permissions['canRemoveMembers'] = false;
+                          permissions['canManageRoles'] = false;
+                          permissions['canManageBaks'] = false;
+                          permissions['canApproveBaks'] = false;
+                        }
+                      });
+                    },
+                  ),
+                  CheckboxListTile(
+                    title: const Text('Can Invite Members'),
+                    value: permissions['canInviteMembers'],
+                    onChanged: permissions['hasAllPermissions']
+                        ? null
+                        : (bool? value) {
+                            setState(() {
+                              permissions['canInviteMembers'] = value ?? false;
+                            });
+                          },
+                  ),
+                  CheckboxListTile(
+                    title: const Text('Can Remove Members'),
+                    value: permissions['canRemoveMembers'],
+                    onChanged: permissions['hasAllPermissions']
+                        ? null
+                        : (bool? value) {
+                            setState(() {
+                              permissions['canRemoveMembers'] = value ?? false;
+                            });
+                          },
+                  ),
+                  CheckboxListTile(
+                    title: const Text('Can Manage Roles'),
+                    value: permissions['canManageRoles'],
+                    onChanged: permissions['hasAllPermissions']
+                        ? null
+                        : (bool? value) {
+                            setState(() {
+                              permissions['canManageRoles'] = value ?? false;
+                            });
+                          },
+                  ),
+                  CheckboxListTile(
+                    title: const Text('Can Manage Baks'),
+                    value: permissions['canManageBaks'],
+                    onChanged: permissions['hasAllPermissions']
+                        ? null
+                        : (bool? value) {
+                            setState(() {
+                              permissions['canManageBaks'] = value ?? false;
+                            });
+                          },
+                  ),
+                  CheckboxListTile(
+                    title: const Text('Can Approve Baks'),
+                    value: permissions['canApproveBaks'],
+                    onChanged: permissions['hasAllPermissions']
+                        ? null
+                        : (bool? value) {
+                            setState(() {
+                              permissions['canApproveBaks'] = value ?? false;
+                            });
+                          },
+                  ),
                 ],
               ),
               actions: <Widget>[
@@ -286,9 +375,19 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
                 ElevatedButton(
                   child: const Text('Create Invite'),
                   onPressed: () {
+                    // Enforce expiration date if any permissions are selected
+                    if (hasSelectedPermissions() &&
+                        selectedExpiryDate == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Please set an expiration date when assigning permissions.'),
+                        ),
+                      );
+                      return;
+                    }
                     Navigator.of(context).pop();
-                    // Use selectedExpiryDate to create the invite with or without an expiry date
-                    _createInvite(selectedExpiryDate);
+                    _createInvite(selectedExpiryDate, permissions);
                   },
                 ),
               ],

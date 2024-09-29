@@ -38,6 +38,7 @@ dependencies:
   flutter_bloc: ^8.1.6
   supabase_flutter: ^2.6.0
   supabase_auth_ui: ^0.5.1
+  functions_client: ^2.3.2
   google_sign_in: ^6.2.1
   equatable: ^2.0.5
   flutter_native_splash: ^2.4.1

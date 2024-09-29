@@ -1,7 +1,4 @@
-import 'dart:convert';
-import 'package:bak_tracker/core/const/config.dart';
 import 'package:bak_tracker/ui/login/login_screen.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -80,25 +77,17 @@ class AccountDeletionScreen extends StatelessWidget {
 
   Future<void> _deleteAccount(BuildContext context) async {
     final supabase = Supabase.instance.client;
-    final userId = supabase.auth.currentUser!.id;
-    final dio = Dio(); // Create Dio instance
 
     try {
-      // Call the Edge function to delete the account
-      final response = await dio.post(
-        '$supabaseUrl/functions/v1/delete-account', // Use the constant supabaseUrl
-        options: Options(
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization':
-                'Bearer ${supabase.auth.currentSession?.accessToken}', // Pass the access token
-          },
-        ),
-        data: jsonEncode(
-            {'userId': userId}), // Send the userId in the request body
+      // Call the Supabase Edge function to delete the account
+      final FunctionResponse res = await supabase.functions.invoke(
+        'delete-account',
+        headers: {
+          'Authorization': 'Bearer ${supabase.auth.currentSession?.accessToken}'
+        },
       );
 
-      if (response.statusCode == 200) {
+      if (res.status == 200) {
         // Account deletion successful
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Account successfully deleted.')),
@@ -115,7 +104,7 @@ class AccountDeletionScreen extends StatelessWidget {
       } else {
         // Handle error (show SnackBar)
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting account: ${response.data}')),
+          SnackBar(content: Text('Error deleting account: ${res.data}')),
         );
       }
     } catch (error) {
