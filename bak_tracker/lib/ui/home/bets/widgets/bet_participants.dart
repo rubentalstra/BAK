@@ -69,7 +69,7 @@ class BetParticipants extends StatelessWidget {
   Widget _buildProfileImage(File? imageFile, String userName) {
     return CircleAvatar(
       radius: 24,
-      backgroundColor: imageFile == null ? Colors.grey[300] : null,
+      backgroundColor: imageFile == null ? Colors.grey : null,
       backgroundImage: imageFile != null ? FileImage(imageFile) : null,
       child: imageFile == null
           ? Text(

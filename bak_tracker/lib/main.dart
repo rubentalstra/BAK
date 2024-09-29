@@ -4,6 +4,7 @@ import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
 import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
 import 'package:bak_tracker/core/themes/themes.dart';
 import 'package:bak_tracker/services/notifications_service.dart';
+import 'package:bak_tracker/services/app_info_service.dart';
 import 'package:bak_tracker/core/utils/my_secure_storage.dart';
 import 'package:bak_tracker/ui/home/main_screen.dart';
 import 'package:bak_tracker/ui/no_association/no_association_screen.dart';
@@ -13,30 +14,34 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:bak_tracker/env/env.dart';
 import 'firebase_options.dart';
+
+// Initialize the AppInfoService globally
+final AppInfoService appInfoService = AppInfoService();
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   try {
-    // Load environment variables and initialize Firebase and Supabase
-    await dotenv.load(fileName: ".env");
+    // Initialize Firebase and Supabase
     await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform);
 
     await Supabase.initialize(
-      url: dotenv.env['SUPABASE_URL']!,
-      anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+      url: Env.supabaseUrl,
+      anonKey: Env.supabaseAnonKey,
       authOptions: FlutterAuthClientOptions(localStorage: MySecureStorage()),
     );
+    print('Firebase and Supabase initialized successfully.');
 
-    print('Firebase, Supabase, and .env loaded successfully.');
+    // Initialize App Info Service to fetch version and build number
+    await appInfoService.initializeAppInfo();
 
     // Run the main app
     runApp(const BakTrackerApp());
@@ -59,7 +64,7 @@ class BakTrackerApp extends StatelessWidget {
       child: BlocBuilder<LocaleBloc, LocaleState>(
         builder: (context, localeState) {
           return MaterialApp(
-            title: 'Bak Tracker',
+            title: 'BAK*',
             theme: AppThemes.darkTheme,
             locale: localeState.locale,
             debugShowCheckedModeBanner: false,
@@ -82,10 +87,10 @@ class AppStartup extends StatefulWidget {
   const AppStartup({super.key});
 
   @override
-  _AppStartupState createState() => _AppStartupState();
+  AppStartupState createState() => AppStartupState();
 }
 
-class _AppStartupState extends State<AppStartup> {
+class AppStartupState extends State<AppStartup> {
   late NotificationsService notificationsService;
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   late DeepLinkService deepLinkService;

@@ -5,7 +5,10 @@ import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
 import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/core/utils/locale_utils.dart';
+import 'package:bak_tracker/main.dart';
 import 'package:bak_tracker/ui/home/main_screen.dart';
+import 'package:bak_tracker/ui/legal/privacy_policy_screen.dart';
+import 'package:bak_tracker/ui/legal/terms_conditions_screen.dart';
 import 'package:bak_tracker/ui/no_association/association_request_screen.dart';
 import 'package:bak_tracker/ui/no_association/no_association_screen.dart';
 import 'package:bak_tracker/ui/settings/account_deletion_screen.dart';
@@ -74,6 +77,33 @@ class SettingsScreen extends StatelessWidget {
                 }
               },
             ),
+            _buildSectionTitle('Legal'),
+            _buildListTile(
+              context,
+              title: 'Privacy Policy',
+              subtitle: 'Read our privacy policy',
+              icon: FontAwesomeIcons.shieldHalved,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) => const PrivacyPolicyScreen()),
+                );
+              },
+            ),
+            _buildDivider(),
+            _buildListTile(
+              context,
+              title: 'Terms & Conditions',
+              subtitle: 'Read our terms and conditions',
+              icon: FontAwesomeIcons.fileContract,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) => const TermsAndConditionsScreen()),
+                );
+              },
+            ),
+            _buildDivider(),
             _buildSectionTitle('Account'),
             _buildListTile(
               context,
@@ -87,12 +117,15 @@ class SettingsScreen extends StatelessWidget {
                 );
               },
             ),
+            const SizedBox(height: 20),
+            _buildVersionInfo(context), // Add app version and build number
           ],
         ),
       ),
     );
   }
 
+  // Method to handle the logout functionality
   void _handleLogout(BuildContext context) {
     context.read<AuthenticationBloc>().signOut();
     Navigator.of(context).pushReplacement(
@@ -100,6 +133,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  // Method to handle association state changes
   void _handleAssociationStateChanges(
       BuildContext context, AssociationState state) {
     if (state is NoAssociationsLeft) {
@@ -121,6 +155,7 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
+  // Widget to display association settings
   Widget _buildAssociationSettings(
       BuildContext context, AssociationLoaded state) {
     return Column(
@@ -158,6 +193,34 @@ class SettingsScreen extends StatelessWidget {
       ],
     );
   }
+
+  // Widget to display version and build number in a compact "version+build" format
+  Widget _buildVersionInfo(BuildContext context) {
+    final appVersion = appInfoService.appVersion;
+    final buildNumber = appInfoService.buildNumber;
+    final versionDisplay = '$appVersion+$buildNumber';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "App version: $versionDisplay",
+              style: const TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Other utility and widget methods here...
 
   Widget _buildJoinAssociationActions(BuildContext context) {
     return Column(

@@ -4,9 +4,9 @@ import 'package:bak_tracker/ui/no_association/no_association_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_auth_ui/supabase_auth_ui.dart';
+import 'package:bak_tracker/env/env.dart'; // Import generated Env class from envied
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -14,10 +14,16 @@ class LoginScreen extends StatelessWidget {
   // Function to check if the user is part of any association
   Future<bool> _checkUserAssociation() async {
     try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) {
+        print('User is not logged in.');
+        return false;
+      }
+
       final response = await Supabase.instance.client
           .from('association_members')
           .select()
-          .eq('user_id', Supabase.instance.client.auth.currentUser!.id);
+          .eq('user_id', userId);
 
       if (response.isNotEmpty) {
         return true; // User is part of at least one association
@@ -40,8 +46,8 @@ class LoginScreen extends StatelessWidget {
           SupaSocialsAuth(
             colored: true,
             nativeGoogleAuthConfig: NativeGoogleAuthConfig(
-              webClientId: dotenv.env['YOUR_WEB_CLIENT_ID']!,
-              iosClientId: dotenv.env['YOUR_IOS_CLIENT_ID']!,
+              webClientId: Env.webClientId, // Using Env class for client ID
+              iosClientId: Env.iosClientId, // Using Env class for iOS client ID
             ),
             enableNativeAppleAuth: false,
             socialProviders: const [OAuthProvider.google],
@@ -56,8 +62,7 @@ class LoginScreen extends StatelessWidget {
                   flutterLocalNotificationsPlugin =
                   FlutterLocalNotificationsPlugin();
               NotificationsService(flutterLocalNotificationsPlugin)
-                  .handleFCMToken(
-                      messaging); // Access global notification service
+                  .handleFCMToken(messaging);
 
               bool isPartOfAssociation = await _checkUserAssociation();
 

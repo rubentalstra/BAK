@@ -97,7 +97,7 @@ class WinnerSelection extends StatelessWidget {
             radius: 27,
             backgroundImage:
                 profileImage != null ? FileImage(profileImage) : null,
-            backgroundColor: profileImage == null ? Colors.grey[300] : null,
+            backgroundColor: profileImage == null ? Colors.grey : null,
             child: profileImage == null
                 ? Text(
                     _getInitials(userName),

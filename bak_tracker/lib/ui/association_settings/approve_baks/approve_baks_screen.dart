@@ -10,10 +10,10 @@ class ApproveBaksScreen extends StatefulWidget {
   const ApproveBaksScreen({super.key});
 
   @override
-  _ApproveBaksScreenState createState() => _ApproveBaksScreenState();
+  ApproveBaksScreenState createState() => ApproveBaksScreenState();
 }
 
-class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
+class ApproveBaksScreenState extends State<ApproveBaksScreen> {
   List<Map<String, dynamic>> _requestedBaks = [];
   bool _isLoading = true;
 
