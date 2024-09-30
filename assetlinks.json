@@ -7,7 +7,8 @@
             "namespace": "android_app",
             "package_name": "com.baktracker",
             "sha256_cert_fingerprints": [
-                "F5:0F:82:D3:F6:F9:FD:0A:11:4F:5C:7C:75:56:A1:99:FA:95:33:16:FD:64:B0:56:48:24:DA:8A:B1:7A:71:A2"
+                "F5:0F:82:D3:F6:F9:FD:0A:11:4F:5C:7C:75:56:A1:99:FA:95:33:16:FD:64:B0:56:48:24:DA:8A:B1:7A:71:A2",
+                "48:70:19:97:97:FB:C2:36:CC:ED:63:1E:F3:9F:BA:75:A7:A2:E8:20:C4:03:06:AD:9B:AF:74:39:66:52:97:77"
             ]
         }
     }

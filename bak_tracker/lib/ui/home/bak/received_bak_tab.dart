@@ -96,23 +96,23 @@ class _ReceivedBakTabState extends State<ReceivedBakTab>
           .from('bak_send')
           .update({'status': 'declined'}).eq('id', bakId);
 
-      // Get the current baks_consumed value for the giver filtered by association_id
+      // Get the current baks_received value for the giver filtered by association_id
       final giverResponse = await supabase
           .from('association_members')
-          .select('baks_consumed')
+          .select('baks_received')
           .eq('user_id', giverId)
           .eq('association_id', associationId) // Filter by association_id
           .single();
 
-      if (giverResponse['baks_consumed'] != null) {
+      if (giverResponse['baks_received'] != null) {
         // Increment the baks_consumed value
-        final updatedBaksConsumed = giverResponse['baks_consumed'] + amount;
+        final updatedBaksReceived = giverResponse['baks_received'] + amount;
 
         // Update the baks_consumed for the giver filtered by association_id
         await supabase
             .from('association_members')
             .update({
-              'baks_consumed': updatedBaksConsumed,
+              'baks_received': updatedBaksReceived,
             })
             .eq('user_id', giverId)
             .eq('association_id', associationId); // Filter by association_id
