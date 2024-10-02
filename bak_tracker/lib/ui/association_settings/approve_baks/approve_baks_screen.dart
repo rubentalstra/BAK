@@ -1,8 +1,10 @@
-import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
+import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/models/bak_consumed_model.dart';
 import 'package:bak_tracker/ui/association_settings/approve_baks/approve_bak_transactions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 
@@ -10,233 +12,176 @@ class ApproveBaksScreen extends StatefulWidget {
   const ApproveBaksScreen({super.key});
 
   @override
-  ApproveBaksScreenState createState() => ApproveBaksScreenState();
+  _ApproveBaksScreenState createState() => _ApproveBaksScreenState();
 }
 
-class ApproveBaksScreenState extends State<ApproveBaksScreen> {
-  List<Map<String, dynamic>> _requestedBaks = [];
+class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
+  List<BakConsumedModel> _requestedBaks = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchBaksFromBloc(); // Fetch initial data from the selected association
+    _fetchBaksFromBloc();
   }
 
-  // Fetch Baks based on the current association from the Bloc
   void _fetchBaksFromBloc() {
-    final associationBloc = context.read<AssociationBloc>().state;
-    if (associationBloc is AssociationLoaded) {
-      final associationId = associationBloc.selectedAssociation.id;
-      _fetchBaks(associationId); // Use association ID from the state
+    final state = context.read<AssociationBloc>().state;
+    if (state is AssociationLoaded) {
+      _fetchBaks(state.selectedAssociation.id);
     }
   }
 
-  // Fetch Baks from the database for a specific association
   Future<void> _fetchBaks(String associationId) async {
-    if (!mounted) return; // Ensure the widget is still mounted
     setState(() {
       _isLoading = true;
     });
 
-    final supabase = Supabase.instance.client;
-
     try {
-      // Fetch requested baks (status = 'pending') for the current association
-      final requestedResponse = await supabase
+      final requestedResponse = await Supabase.instance.client
           .from('bak_consumed')
-          .select('id, amount, created_at, taker_id (id, name)')
+          .select(
+              'id, amount, created_at, taker_id (id, name), association_id, status, created_at')
           .eq('status', 'pending')
-          .eq('association_id', associationId); // Use associationId filter
+          .eq('association_id', associationId);
 
-      if (!mounted) return; // Ensure the widget is still mounted
       setState(() {
-        _requestedBaks = List<Map<String, dynamic>>.from(requestedResponse);
+        _requestedBaks = (requestedResponse as List)
+            .map((bakData) => BakConsumedModel.fromMap(bakData))
+            .toList();
         _isLoading = false;
       });
     } catch (e) {
-      print('Error fetching baks: $e');
-      if (!mounted) return; // Ensure the widget is still mounted
+      _showSnackBar('Error fetching baks: $e');
       setState(() {
         _isLoading = false;
       });
     }
   }
 
-  Future<void> _updateBakStatus(
-      String bakId, String status, String takerId, int amount,
-      [String? rejectionReason]) async {
+  Future<void> _updateBakStatus(BakConsumedModel bak, String status,
+      {String? rejectionReason}) async {
     final supabase = Supabase.instance.client;
     final userId = supabase.auth.currentUser?.id;
 
     try {
-      // Update the bak status in the database
-      final updateData = {'status': status, 'approved_by': userId};
-      if (rejectionReason != null) {
-        updateData['reason'] = rejectionReason;
+      final updateData = {
+        'status': status,
+        'approved_by': userId,
+        if (rejectionReason != null) 'reason': rejectionReason,
+      };
+
+      await supabase.from('bak_consumed').update(updateData).eq('id', bak.id);
+
+      if (status == 'approved') {
+        await _adjustBaksOnApproval(
+            bak.taker.id, bak.amount, bak.associationId);
+      } else if (status == 'rejected') {
+        await _adjustBaksOnRejection(
+            bak.taker.id, bak.amount, bak.associationId);
       }
-      await supabase.from('bak_consumed').update(updateData).eq('id', bakId);
 
-      final associationBloc = context.read<AssociationBloc>().state;
-      if (associationBloc is AssociationLoaded) {
-        final associationId = associationBloc.selectedAssociation.id;
-
-        // If the request is approved, update baks_consumed and baks_received
-        if (status == 'approved') {
-          // Fetch the taker's current baks_consumed and baks_received
-          final takerResponse = await supabase
-              .from('association_members')
-              .select('baks_consumed, baks_received')
-              .eq('user_id', takerId)
-              .eq('association_id', associationId)
-              .single();
-
-          final int currentBaksConsumed = takerResponse['baks_consumed'];
-          final int currentBaksReceived = takerResponse['baks_received'];
-
-          // Update baks_consumed and decrease baks_received, ensuring baks_received doesn't go below 0
-          final updatedConsumed = currentBaksConsumed + amount;
-          final updatedReceived = currentBaksReceived - amount < 0
-              ? 0
-              : currentBaksReceived - amount;
-
-          await supabase
-              .from('association_members')
-              .update({
-                'baks_consumed': updatedConsumed,
-                'baks_received': updatedReceived
-              })
-              .eq('user_id', takerId)
-              .eq('association_id', associationId);
-        }
-
-        // If the request is rejected, add the bak back to baks_received
-        else if (status == 'rejected') {
-          // Fetch the taker's current baks_received
-          final takerResponse = await supabase
-              .from('association_members')
-              .select('baks_received')
-              .eq('user_id', takerId)
-              .eq('association_id', associationId)
-              .single();
-
-          final int currentBaksReceived = takerResponse['baks_received'];
-
-          // Update baks_received by adding the rejected amount back
-          final updatedReceived = currentBaksReceived + amount;
-
-          await supabase
-              .from('association_members')
-              .update({
-                'baks_received': updatedReceived,
-              })
-              .eq('user_id', takerId)
-              .eq('association_id', associationId);
-        }
-
-        // Refresh the list and badge count
-        if (mounted) {
-          _fetchBaks(associationId);
-
-          // Trigger the refresh event for pending baks in the AssociationBloc
-          context
-              .read<AssociationBloc>()
-              .add(RefreshPendingBaks(associationId));
-        }
-
-        // Insert notification for the requester
-        await _insertNotification(takerId, status);
-      }
+      _fetchBaks(bak.associationId);
+      _sendNotification(bak.taker.id, status);
     } catch (e) {
-      print('Error updating bak status: $e');
+      _showSnackBar('Error updating bak status: $e');
     }
   }
 
-  Future<void> _insertNotification(String userId, String status) async {
+  Future<void> _adjustBaksOnApproval(
+      String takerId, int amount, String associationId) async {
     final supabase = Supabase.instance.client;
 
-    try {
-      String title;
-      String body;
+    final memberResponse = await supabase
+        .from('association_members')
+        .select('baks_consumed, baks_received')
+        .eq('user_id', takerId)
+        .eq('association_id', associationId)
+        .single();
 
-      // Customize the notification message based on the status
-      if (status == 'approved') {
-        title = 'Bak Request Approved';
-        body = 'Your bak request has been approved!';
-      } else {
-        title = 'Bak Request Rejected';
-        body = 'Your bak request has been rejected.';
-      }
+    final int currentBaksConsumed = memberResponse['baks_consumed'];
+    final int currentBaksReceived = memberResponse['baks_received'];
 
-      // Insert the notification into the notifications table
-      await supabase.from('notifications').insert({
-        'user_id': userId,
-        'title': title,
-        'body': body,
-      });
+    final updatedConsumed = currentBaksConsumed + amount;
+    final updatedReceived =
+        currentBaksReceived - amount < 0 ? 0 : currentBaksReceived - amount;
 
-      print('Notification sent to $userId');
-    } catch (e) {
-      print('Error inserting notification: $e');
-    }
+    await supabase
+        .from('association_members')
+        .update({
+          'baks_consumed': updatedConsumed,
+          'baks_received': updatedReceived,
+        })
+        .eq('user_id', takerId)
+        .eq('association_id', associationId);
   }
 
-  // Show dialog for rejection reason
-  Future<void> _showRejectDialog(
-      BuildContext context, String bakId, String takerId, int amount) async {
+  Future<void> _adjustBaksOnRejection(
+      String takerId, int amount, String associationId) async {
+    final supabase = Supabase.instance.client;
+
+    final memberResponse = await supabase
+        .from('association_members')
+        .select('baks_received')
+        .eq('user_id', takerId)
+        .eq('association_id', associationId)
+        .single();
+
+    final int currentBaksReceived = memberResponse['baks_received'];
+    final updatedReceived = currentBaksReceived + amount;
+
+    await supabase
+        .from('association_members')
+        .update({
+          'baks_received': updatedReceived,
+        })
+        .eq('user_id', takerId)
+        .eq('association_id', associationId);
+  }
+
+  Future<void> _sendNotification(String userId, String status) async {
+    final supabase = Supabase.instance.client;
+    final title =
+        status == 'approved' ? 'Bak Request Approved' : 'Bak Request Rejected';
+    final body = status == 'approved'
+        ? 'Your bak request has been approved!'
+        : 'Your bak request has been rejected.';
+
+    await supabase.from('notifications').insert({
+      'user_id': userId,
+      'title': title,
+      'body': body,
+    });
+  }
+
+  Future<void> _showRejectDialog(BakConsumedModel bak) async {
     final reasonController = TextEditingController();
 
     return showDialog<void>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
           title: const Text('Reject Bak'),
-          content: SizedBox(
-            width:
-                MediaQuery.of(context).size.width * 0.8, // 80% of screen width
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Please provide a reason for rejecting this bak:',
-                  style: TextStyle(fontSize: 16),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: reasonController,
-                  decoration: const InputDecoration(
-                    labelText: 'Rejection Reason',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 5, // Allow for more lines
-                ),
-              ],
-            ),
+          content: TextField(
+            controller: reasonController,
+            decoration: const InputDecoration(labelText: 'Rejection Reason'),
+            maxLines: 3,
           ),
           actions: [
             TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-              },
-            ),
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel')),
             ElevatedButton(
-              child: const Text('Reject'),
               onPressed: () {
-                final reason = reasonController.text.trim();
-                if (reason.isNotEmpty) {
-                  _updateBakStatus(bakId, 'rejected', takerId, amount, reason);
-                  Navigator.of(context).pop(); // Close dialog
+                if (reasonController.text.isNotEmpty) {
+                  _updateBakStatus(bak, 'rejected',
+                      rejectionReason: reasonController.text);
+                  Navigator.of(context).pop();
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please provide a reason for rejection'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  _showSnackBar('Please provide a rejection reason.');
                 }
               },
+              child: const Text('Reject'),
             ),
           ],
         );
@@ -244,80 +189,95 @@ class ApproveBaksScreenState extends State<ApproveBaksScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<AssociationBloc, AssociationState>(
-      builder: (context, state) {
-        if (state is AssociationLoading) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (state is AssociationLoaded) {
-          // If association is loaded, show the UI
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('Approve Baks'),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.history),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const ProcessedBaksTransactionsScreen(),
-                      ),
-                    );
-                  },
-                  tooltip: 'Transactions',
-                ),
-              ],
-            ),
-            body: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _buildRequestedTab(),
-          );
-        } else {
-          // If no association is loaded, show error or empty state
-          return const Center(child: Text('No association selected'));
-        }
-      },
-    );
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  // Build the tab for requested Baks
-  Widget _buildRequestedTab() {
-    if (_requestedBaks.isEmpty) {
-      return const Center(child: Text('No pending requests'));
-    }
+  String _formatDate(DateTime date) {
+    return DateFormat('HH:mm dd-MM-yyyy').format(date);
+  }
 
-    return ListView.builder(
-      itemCount: _requestedBaks.length,
-      itemBuilder: (context, index) {
-        final bak = _requestedBaks[index];
-        final takerName = bak['taker_id']['name']; // Fetch the taker name
-        final takerId = bak['taker_id']['id']; // Fetch the taker ID
-        final bakAmount = bak['amount']; // Fetch the bak amount
-
-        return ListTile(
-          title: Text('Bak Amount: ${bak['amount']}'),
-          subtitle: Text('Requested by: $takerName'),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.check, color: Colors.green),
-                onPressed: () =>
-                    _updateBakStatus(bak['id'], 'approved', takerId, bakAmount),
-              ),
-              const SizedBox(width: 8), // Add some space between the buttons
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.red),
-                onPressed: () => _showRejectDialog(context, bak['id'], takerId,
-                    bakAmount), // Show reject dialog
-              ),
-            ],
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Approve Baks'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const ProcessedBaksTransactionsScreen()),
+            ),
+            tooltip: 'Transactions',
           ),
-        );
-      },
+        ],
+      ),
+      body: RefreshIndicator(
+        color: AppColors.lightSecondary,
+        onRefresh: () async {
+          final state = context.read<AssociationBloc>().state;
+          if (state is AssociationLoaded) {
+            await _fetchBaks(state.selectedAssociation.id); // Re-fetch data
+          }
+        },
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(
+                color: AppColors.lightSecondary,
+              ))
+            : _requestedBaks.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment:
+                          MainAxisAlignment.center, // Vertically center
+                      crossAxisAlignment:
+                          CrossAxisAlignment.center, // Horizontally center
+                      children: const [
+                        Text(
+                          'No pending bak requests',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _requestedBaks.length,
+                    itemBuilder: (context, index) {
+                      final bak = _requestedBaks[index];
+                      return Card(
+                        margin: const EdgeInsets.all(8),
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          title: Text('Bak Amount: ${bak.amount}'),
+                          subtitle: Text(
+                              'Requested by: ${bak.taker.name}\nRequested on: ${_formatDate(bak.createdAt)}'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.check,
+                                    color: Colors.green),
+                                onPressed: () =>
+                                    _updateBakStatus(bak, 'approved'),
+                              ),
+                              IconButton(
+                                icon:
+                                    const Icon(Icons.close, color: Colors.red),
+                                onPressed: () => _showRejectDialog(bak),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+      ),
     );
   }
 }

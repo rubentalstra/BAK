@@ -2,6 +2,7 @@ import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/ui/home/bak/received_bak_tab.dart';
 import 'package:bak_tracker/ui/home/bak/send_bak_tab.dart';
 import 'package:bak_tracker/ui/home/bak/transactions_screen.dart';
+import 'package:badges/badges.dart' as badges;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
@@ -38,7 +39,7 @@ class _BakScreenState extends State<BakScreen>
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () {
-              // Navigate to the Bet History screen
+              // Navigate to the Bak History screen
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -49,12 +50,36 @@ class _BakScreenState extends State<BakScreen>
             tooltip: 'Bak History',
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Send Bak'),
-            Tab(text: 'Received Bak'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48.0),
+          child: BlocBuilder<AssociationBloc, AssociationState>(
+            builder: (context, state) {
+              int pendingBaksCount = 0;
+              if (state is AssociationLoaded) {
+                pendingBaksCount = state.pendingBaksCount;
+              }
+
+              return TabBar(
+                controller: _tabController,
+                tabs: [
+                  const Tab(text: 'Send Bak'),
+                  badges.Badge(
+                    showBadge: pendingBaksCount > 0,
+                    badgeContent: Text(
+                      pendingBaksCount.toString(),
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                    ),
+                    badgeStyle: const badges.BadgeStyle(
+                      badgeColor: Colors.red,
+                      padding: EdgeInsets.all(6),
+                    ),
+                    position: badges.BadgePosition.topEnd(top: -10, end: -10),
+                    child: const Tab(text: 'Received Bak'),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
       body: BlocBuilder<AssociationBloc, AssociationState>(

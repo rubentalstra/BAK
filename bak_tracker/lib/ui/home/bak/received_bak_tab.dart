@@ -1,3 +1,4 @@
+import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -45,7 +46,7 @@ class _ReceivedBakTabState extends State<ReceivedBakTab>
     });
   }
 
-  // Approve Bak
+// Approve Bak
   Future<void> approveBak(String bakId, int amount, String receiverId,
       String giverId, String associationId) async {
     final supabase = Supabase.instance.client;
@@ -78,6 +79,9 @@ class _ReceivedBakTabState extends State<ReceivedBakTab>
             .eq('association_id', associationId); // Filter by association_id
       }
 
+      // Refresh the pending baks count by dispatching the refresh event
+      context.read<AssociationBloc>().add(RefreshBaksAndBets(associationId));
+
       // Refresh the data
       _fetchReceivedBakken(associationId);
     } catch (e) {
@@ -85,7 +89,7 @@ class _ReceivedBakTabState extends State<ReceivedBakTab>
     }
   }
 
-  // Decline Bak
+// Decline Bak
   Future<void> declineBak(
       String bakId, int amount, giverId, String associationId) async {
     final supabase = Supabase.instance.client;
@@ -117,6 +121,9 @@ class _ReceivedBakTabState extends State<ReceivedBakTab>
             .eq('user_id', giverId)
             .eq('association_id', associationId); // Filter by association_id
       }
+
+      // Refresh the pending baks count by dispatching the refresh event
+      context.read<AssociationBloc>().add(RefreshBaksAndBets(associationId));
 
       // Refresh the data
       _fetchReceivedBakken(associationId);

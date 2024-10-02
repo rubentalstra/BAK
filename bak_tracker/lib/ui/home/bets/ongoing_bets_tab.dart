@@ -1,4 +1,7 @@
+import 'package:bak_tracker/bloc/association/association_bloc.dart';
+import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/services/bak_service.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
@@ -69,6 +72,11 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
         creatorId: creatorId,
       );
       _fetchOngoingBets();
+
+      // Trigger refresh for badges by dispatching the RefreshBaksAndBets event
+      context
+          .read<AssociationBloc>()
+          .add(RefreshBaksAndBets(widget.associationId));
     } catch (e) {
       print('Error updating bet status: $e');
     }
@@ -85,6 +93,11 @@ class _OngoingBetsTabState extends State<OngoingBetsTab> {
         associationId: widget.associationId,
       );
       _fetchOngoingBets();
+
+      // Trigger refresh for badges by dispatching the RefreshBaksAndBets event
+      context
+          .read<AssociationBloc>()
+          .add(RefreshBaksAndBets(widget.associationId));
     } catch (e) {
       print('Error settling bet: $e');
     }

@@ -60,14 +60,33 @@ class AssociationService {
     }).toList();
   }
 
-  Future<int> fetchPendingBaksCount(String associationId) async {
-    final List<dynamic> pendingBaksResponse = await _supabase
+  Future<int> fetchPendingBaksCount(String associationId, String userId) async {
+    final response = await _supabase
+        .from('bak_send')
+        .select()
+        .eq('association_id', associationId)
+        .eq('receiver_id', userId)
+        .eq('status', 'pending');
+    return response.length;
+  }
+
+  Future<int> fetchPendingAproveBaksCount(String associationId) async {
+    final response = await _supabase
         .from('bak_consumed')
-        .select('status')
+        .select()
         .eq('association_id', associationId)
         .eq('status', 'pending');
+    return response.length;
+  }
 
-    return pendingBaksResponse.length;
+  Future<int> fetchPendingBetsCount(String associationId, String userId) async {
+    final response = await _supabase
+        .from('bets')
+        .select()
+        .eq('association_id', associationId)
+        .or('bet_creator_id.eq.$userId,bet_receiver_id.eq.$userId')
+        .inFilter('status', ['pending', 'accepted']);
+    return response.length;
   }
 
   Future<AssociationModel> fetchAssociationById(String associationId) async {

@@ -6,13 +6,15 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onTap;
-  final int pendingBetsCount; // Pass ongoing bets count
+  final int pendingBetsCount; // Ongoing bets count
+  final int pendingBaksCount; // Pending baks count
 
   const BottomNavBar({
     super.key,
     required this.selectedIndex,
     required this.onTap,
-    required this.pendingBetsCount, // Required to show badge
+    required this.pendingBetsCount, // Required to show badge for bets
+    required this.pendingBaksCount, // Required to show badge for baks
   });
 
   @override
@@ -26,8 +28,22 @@ class BottomNavBar extends StatelessWidget {
         icon: Icon(Icons.home),
         label: 'Home',
       ),
-      const BottomNavigationBarItem(
-        icon: FaIcon(FontAwesomeIcons.beerMugEmpty, size: 25),
+      BottomNavigationBarItem(
+        icon: badges.Badge(
+          showBadge:
+              pendingBaksCount > 0, // Only show badge if there are pending baks
+          badgeContent: Text(
+            pendingBaksCount.toString(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+            ),
+          ),
+          badgeStyle: const badges.BadgeStyle(
+            badgeColor: Colors.red, // Badge color for pending baks
+          ),
+          child: const FaIcon(FontAwesomeIcons.beerMugEmpty, size: 25),
+        ),
         label: 'Bak',
       ),
       const BottomNavigationBarItem(
@@ -36,8 +52,8 @@ class BottomNavBar extends StatelessWidget {
       ),
       BottomNavigationBarItem(
         icon: badges.Badge(
-          showBadge: pendingBetsCount >
-              0, // Only show badge if there are on going bets
+          showBadge:
+              pendingBetsCount > 0, // Only show badge if there are pending bets
           badgeContent: Text(
             pendingBetsCount.toString(),
             style: const TextStyle(
@@ -46,7 +62,7 @@ class BottomNavBar extends StatelessWidget {
             ),
           ),
           badgeStyle: const badges.BadgeStyle(
-            badgeColor: Colors.red, // Customize badge color
+            badgeColor: Colors.red, // Badge color for pending bets
           ),
           child: const FaIcon(FontAwesomeIcons.dice, size: 25),
         ),

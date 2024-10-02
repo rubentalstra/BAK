@@ -188,9 +188,7 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
     final date = DateTime.parse(dateString);
     final localDate = date.toLocal(); // Convert to local timezone
 
-    final locale = Intl.getCurrentLocale();
-
-    return DateFormat.Hm(locale).add_yMd().format(localDate);
+    return DateFormat('HH:mm dd-MM-yyyy').format(localDate);
   }
 
   @override

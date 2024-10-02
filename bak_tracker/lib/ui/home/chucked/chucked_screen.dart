@@ -108,20 +108,33 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
                     );
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                       content: Text('Consumed Bak request sent!'),
-                      backgroundColor: Colors.green,
+                      // backgroundColor: Colors.green,
                     ));
                     _amountController.clear();
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Please enter a valid amount'),
-                      backgroundColor: Colors.red,
-                    ));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content:
+                            const Text('Error: Please enter a valid amount'),
+                        action: SnackBarAction(
+                          label: 'OK',
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          },
+                        ),
+                      ),
+                    );
                   }
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error requesting consumed bak: $e'),
-                      backgroundColor: Colors.red,
+                      action: SnackBarAction(
+                        label: 'OK',
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        },
+                      ),
                     ),
                   );
                 }

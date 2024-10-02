@@ -4,6 +4,7 @@ import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/models/member_achievement_model.dart';
 import 'package:flutter/material.dart';
 import 'package:bak_tracker/ui/widgets/full_screen_profile_image.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 
 class LeaderboardProfileScreen extends StatelessWidget {
@@ -227,10 +228,10 @@ class LeaderboardProfileScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatColumn(
-                    'Chucked', member.baksConsumed, Icons.local_drink),
+                _buildStatColumn('Chucked', member.baksConsumed,
+                    FontAwesomeIcons.wineBottle),
                 _buildStatColumn('BAK Debt', member.baksReceived,
-                    Icons.account_balance_wallet),
+                    FontAwesomeIcons.beerMugEmpty),
               ],
             ),
             const SizedBox(height: 24),
@@ -240,7 +241,7 @@ class LeaderboardProfileScreen extends StatelessWidget {
                 _buildStatColumn(
                     'Bets Won', member.betsWon, Icons.emoji_events),
                 _buildStatColumn(
-                    'Bets Lost', member.betsLost, Icons.sports_kabaddi),
+                    'Bets Lost', member.betsLost, FontAwesomeIcons.dice),
               ],
             ),
           ],

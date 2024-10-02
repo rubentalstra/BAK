@@ -9,23 +9,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'association_event.dart';
 import 'association_state.dart';
 
-// Create a logger instance
 var logger = Logger();
 
 class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
   final AssociationService _associationService = AssociationService();
-  SharedPreferences? _prefs; // Cached SharedPreferences instance
+  SharedPreferences? _prefs;
 
   AssociationBloc() : super(AssociationInitial()) {
     on<SelectAssociation>(_onSelectAssociation);
     on<LeaveAssociation>(_onLeaveAssociation);
     on<ClearAssociationError>(_onClearAssociationError);
-    on<RefreshPendingBaks>(_onRefreshPendingBaks);
+    on<RefreshPendingAproveBaks>(_onRefreshPendingBaks);
+    on<RefreshBaksAndBets>(_onRefreshBaksAndBets);
     on<JoinNewAssociation>(_onJoinNewAssociation);
-    _loadSelectedAssociation(); // Load from storage when initialized
+    _loadSelectedAssociation();
   }
 
-  // Load saved association from SharedPreferences
   Future<void> _loadSelectedAssociation() async {
     _prefs ??= await SharedPreferences.getInstance();
     final String? selectedAssociationData =
@@ -35,26 +34,21 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       final associationMap =
           jsonDecode(selectedAssociationData) as Map<String, dynamic>;
       final selectedAssociation = AssociationModel.fromMap(associationMap);
-
-      // Fetch and load member data for the association
       add(SelectAssociation(selectedAssociation: selectedAssociation));
     }
   }
 
-  // Save selected association to SharedPreferences
   Future<void> _saveSelectedAssociation(AssociationModel association) async {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs!
         .setString('selected_association', jsonEncode(association.toMap()));
   }
 
-// Handle selection of an association
   Future<void> _onSelectAssociation(
       SelectAssociation event, Emitter<AssociationState> emit) async {
     emit(AssociationLoading());
 
     try {
-      // Save the selected association to preferences
       await _saveSelectedAssociation(event.selectedAssociation);
 
       final supabase = Supabase.instance.client;
@@ -65,8 +59,8 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         return;
       }
 
-      // Fetch the member data for the current user in the selected association
-      final response = await supabase
+      // Fetch member data first
+      final memberResponse = await supabase
           .from('association_members')
           .select('''
           id, 
@@ -85,42 +79,81 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
           .eq('association_id', event.selectedAssociation.id)
           .single();
 
-      if (response.isEmpty) {
+      if (memberResponse.isEmpty) {
         emit(AssociationError('Failed to load association member data.'));
         return;
       }
 
-      // Convert the response to a member model
-      final memberData = AssociationMemberModel.fromMap(response);
+      // Fetch member data, members list, pending baks, pending approve baks, and pending bets concurrently
+      final List<dynamic> futures = await Future.wait([
+        _fetchMembers(event.selectedAssociation.id),
+        _fetchPendingBaksCount(event.selectedAssociation.id, userId),
+        _fetchPendingAproveBaksCount(event.selectedAssociation.id),
+        _fetchPendingBetsCount(event.selectedAssociation.id, userId),
+      ]);
 
-      // Fetch all members of the selected association
-      final members =
-          await _associationService.fetchMembers(event.selectedAssociation.id);
+      final List<AssociationMemberModel> members = futures[0];
+      final int pendingBaksCount = futures[1];
+      final int pendingAproveBaksCount = futures[2];
+      final int pendingBetsCount = futures[3];
 
-      // Fetch the count of pending baks
-      final responsePendingBaks = await supabase
-          .from('bak_consumed')
-          .select()
-          .eq('association_id', event.selectedAssociation.id)
-          .eq('status', 'pending');
+      final memberData = AssociationMemberModel.fromMap(memberResponse);
 
-      final pendingCount = responsePendingBaks.length;
-
-      // Emit the loaded state with the member data, member list, and pending baks count
       emit(AssociationLoaded(
         selectedAssociation: event.selectedAssociation,
         memberData: memberData,
-        members: members, // Pass members list
-        pendingBaksCount: pendingCount, // Initialize pending baks count
+        members: members,
+        pendingBaksCount: pendingBaksCount,
+        pendingBetsCount: pendingBetsCount,
+        pendingAproveBaksCount: pendingAproveBaksCount,
       ));
     } catch (e) {
-      // Improved error logging with more context
-      print('Error while selecting association: $e');
       emit(AssociationError('Failed to select association: ${e.toString()}'));
     }
   }
 
-  // Handle joining a new association in AssociationBloc
+// Fetch members with error handling
+  Future<List<AssociationMemberModel>> _fetchMembers(
+      String associationId) async {
+    try {
+      return await _associationService.fetchMembers(associationId);
+    } catch (e) {
+      throw Exception('Failed to fetch members: $e');
+    }
+  }
+
+// Fetch pending baks count with error handling
+  Future<int> _fetchPendingBaksCount(
+      String associationId, String userId) async {
+    try {
+      return await _associationService.fetchPendingBaksCount(
+          associationId, userId);
+    } catch (e) {
+      throw Exception('Failed to fetch pending baks count: $e');
+    }
+  }
+
+// Fetch pending approve baks count with error handling
+  Future<int> _fetchPendingAproveBaksCount(String associationId) async {
+    try {
+      return await _associationService
+          .fetchPendingAproveBaksCount(associationId);
+    } catch (e) {
+      throw Exception('Failed to fetch pending approve baks count: $e');
+    }
+  }
+
+// Fetch pending bets count with error handling
+  Future<int> _fetchPendingBetsCount(
+      String associationId, String userId) async {
+    try {
+      return await _associationService.fetchPendingBetsCount(
+          associationId, userId);
+    } catch (e) {
+      throw Exception('Failed to fetch pending bets count: $e');
+    }
+  }
+
   Future<void> _onJoinNewAssociation(
       JoinNewAssociation event, Emitter<AssociationState> emit) async {
     emit(AssociationLoading());
@@ -128,14 +161,12 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     try {
       await _saveSelectedAssociation(event.newAssociation);
 
-      // Emit join success state
       emit(AssociationJoined());
     } catch (e) {
       emit(AssociationError('Failed to join association: $e'));
     }
   }
 
-// Handle leaving the association
   Future<void> _onLeaveAssociation(
       LeaveAssociation event, Emitter<AssociationState> emit) async {
     final currentState = state;
@@ -150,14 +181,12 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         return;
       }
 
-      // Fetch all members of the association excluding the current user
       final otherAdminsResponse = await supabase
           .from('association_members')
           .select('user_id, permissions')
           .eq('association_id', event.associationId)
-          .neq('user_id', userId); // Exclude current user
+          .neq('user_id', userId);
 
-      // Fetch current user's permissions
       final currentUserResponse = await supabase
           .from('association_members')
           .select('permissions')
@@ -168,107 +197,114 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       final currentUserPermissions =
           Map<String, dynamic>.from(currentUserResponse['permissions']);
 
-      // Check if the current user has all permissions
       bool currentUserHasAllPermissions =
           currentUserPermissions['hasAllPermissions'] == true;
 
-      // Check if other members have all permissions
       bool otherMembersHaveAllPermissions = otherAdminsResponse.any((admin) {
         final permissions = Map<String, dynamic>.from(admin['permissions']);
         return permissions['hasAllPermissions'] == true;
       });
 
-      // If the current user has all permissions and no other members have all permissions
       if (currentUserHasAllPermissions && !otherMembersHaveAllPermissions) {
-        // Emit error without changing the current state
         _emitLeaveError(emit, currentState,
             'You cannot leave the association as you are the only member with management permissions.');
         return;
       }
 
-      // Proceed with removing the user from the association_members table
       await supabase
           .from('association_members')
           .delete()
           .eq('user_id', userId)
           .eq('association_id', event.associationId);
 
-      // Check if the user is still part of any associations
       final remainingAssociationsResponse = await supabase
           .from('association_members')
           .select('association_id')
           .eq('user_id', userId);
 
-      // Clear the saved association from SharedPreferences
       _prefs ??= await SharedPreferences.getInstance();
       await _prefs!.remove('selected_association');
 
       if (remainingAssociationsResponse.isEmpty) {
-        // If no associations remain, emit a state to redirect to NoAssociationScreen
         emit(NoAssociationsLeft());
       } else {
-        // Emit leave success state
         emit(AssociationLeave());
       }
     } catch (e) {
-      // Emit the error and keep the current state unchanged
       _emitLeaveError(
           emit, currentState, 'Failed to leave association: ${e.toString()}');
     }
   }
 
-// Updated emitLeaveError method to preserve current state
   void _emitLeaveError(Emitter<AssociationState> emit,
       AssociationState currentState, String message) {
     if (currentState is AssociationLoaded) {
-      // Emit the error message but keep the current state unchanged
       emit(AssociationLoaded(
         selectedAssociation: currentState.selectedAssociation,
         memberData: currentState.memberData,
         members: currentState.members,
         pendingBaksCount: currentState.pendingBaksCount,
-        errorMessage: message, // Ensure this error message is passed
+        pendingBetsCount: currentState.pendingBetsCount,
+        pendingAproveBaksCount: currentState.pendingAproveBaksCount,
+        errorMessage: message,
       ));
     } else {
-      emit(AssociationError(message)); // Ensure the message is passed
+      emit(AssociationError(message));
+    }
+  }
+
+  Future<void> _onRefreshPendingBaks(
+      RefreshPendingAproveBaks event, Emitter<AssociationState> emit) async {
+    final currentState = state;
+    if (currentState is AssociationLoaded) {
+      try {
+        final pendingAproveBaksCount = await _associationService
+            .fetchPendingAproveBaksCount(event.associationId);
+
+        emit(currentState.copyWith(
+            pendingAproveBaksCount: pendingAproveBaksCount));
+      } catch (e) {
+        emit(AssociationError('Failed to refresh pending approve baks: $e'));
+      }
+    }
+  }
+
+  // New method for handling refresh of Baks and Bets
+  Future<void> _onRefreshBaksAndBets(
+      RefreshBaksAndBets event, Emitter<AssociationState> emit) async {
+    final currentState = state;
+    if (currentState is AssociationLoaded) {
+      try {
+        final supabase = Supabase.instance.client;
+        final userId = supabase.auth.currentUser?.id;
+        if (userId == null) {
+          emit(AssociationError('User not authenticated'));
+          return;
+        }
+
+        final pendingBaksCount = await _associationService
+            .fetchPendingBaksCount(event.associationId, userId);
+        final pendingBetsCount = await _associationService
+            .fetchPendingBetsCount(event.associationId, userId);
+
+        emit(currentState.copyWith(
+          pendingBaksCount: pendingBaksCount,
+          pendingBetsCount: pendingBetsCount,
+        ));
+      } catch (e) {
+        emit(AssociationError('Failed to refresh Baks and Bets: $e'));
+      }
+    }
+  }
+
+  void _onClearAssociationError(
+      ClearAssociationError event, Emitter<AssociationState> emit) {
+    if (state is AssociationLoaded) {
+      emit((state as AssociationLoaded).copyWith(errorMessage: null));
     }
   }
 
   void _emitError(Emitter<AssociationState> emit, String message) {
     emit(AssociationError(message));
   }
-
-  // Handler for RefreshPendingBaks event
-  Future<void> _onRefreshPendingBaks(
-      RefreshPendingBaks event, Emitter<AssociationState> emit) async {
-    final currentState = state;
-    if (currentState is AssociationLoaded) {
-      try {
-        final pendingBaksCount = await _associationService
-            .fetchPendingBaksCount(event.associationId);
-
-        emit(AssociationLoaded(
-          selectedAssociation: currentState.selectedAssociation,
-          memberData: currentState.memberData,
-          members: currentState.members,
-          pendingBaksCount: pendingBaksCount, // Updated pending baks count
-        ));
-      } catch (e) {
-        _emitError(emit, 'Failed to refresh pending baks: $e');
-      }
-    }
-  }
-
-  // Clear the error in ClearAssociationError event
-  void _onClearAssociationError(
-      ClearAssociationError event, Emitter<AssociationState> emit) {
-    // Clear the error without triggering other changes
-    if (state is AssociationLoaded) {
-      emit((state as AssociationLoaded).copyWith(errorMessage: null));
-    }
-  }
-}
-
-void logLargeJsonResponse(dynamic response) {
-  logger.d(response); // Debug log will print the entire response
 }

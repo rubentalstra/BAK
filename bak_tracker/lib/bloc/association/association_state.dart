@@ -19,13 +19,17 @@ class AssociationLoaded extends AssociationState {
   final AssociationMemberModel memberData;
   final List<AssociationMemberModel> members;
   final int pendingBaksCount; // Track the number of pending baks
+  final int pendingBetsCount; // Track the number of pending bets
+  final int pendingAproveBaksCount; // Track the number of pending approve baks
   final String? errorMessage;
 
   AssociationLoaded({
     required this.selectedAssociation,
     required this.memberData,
     required this.members,
-    required this.pendingBaksCount, // Include the pending baks count
+    required this.pendingBaksCount,
+    required this.pendingBetsCount, // Include the pending bets count
+    required this.pendingAproveBaksCount, // Include the pending approve baks count
     this.errorMessage,
   });
 
@@ -35,15 +39,19 @@ class AssociationLoaded extends AssociationState {
         memberData,
         members,
         pendingBaksCount,
-        errorMessage
+        pendingBetsCount,
+        pendingAproveBaksCount,
+        errorMessage,
       ];
 
-  // Implementing the copyWith method
+  // Implementing the copyWith method to allow partial updates to state
   AssociationLoaded copyWith({
     AssociationModel? selectedAssociation,
     AssociationMemberModel? memberData,
     List<AssociationMemberModel>? members,
     int? pendingBaksCount,
+    int? pendingBetsCount,
+    int? pendingAproveBaksCount,
     String? errorMessage,
   }) {
     return AssociationLoaded(
@@ -51,6 +59,9 @@ class AssociationLoaded extends AssociationState {
       memberData: memberData ?? this.memberData,
       members: members ?? this.members,
       pendingBaksCount: pendingBaksCount ?? this.pendingBaksCount,
+      pendingBetsCount: pendingBetsCount ?? this.pendingBetsCount,
+      pendingAproveBaksCount:
+          pendingAproveBaksCount ?? this.pendingAproveBaksCount,
       errorMessage: errorMessage, // Explicitly set to null or new value
     );
   }

@@ -2,10 +2,11 @@ import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:flutter/material.dart';
 import 'package:bak_tracker/ui/home/bets/create_bet_tab.dart';
 import 'package:bak_tracker/ui/home/bets/ongoing_bets_tab.dart';
-import 'package:bak_tracker/ui/home/bets/bet_history_screen.dart'; // Import for Bet History
+import 'package:bak_tracker/ui/home/bets/bet_history_screen.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:badges/badges.dart' as badges;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BetsScreen extends StatefulWidget {
@@ -38,12 +39,36 @@ class _BetsScreenState extends State<BetsScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Bets'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Create Bet'),
-            Tab(text: 'Ongoing Bets'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48.0),
+          child: BlocBuilder<AssociationBloc, AssociationState>(
+            builder: (context, state) {
+              int pendingBetsCount = 0;
+              if (state is AssociationLoaded) {
+                pendingBetsCount = state.pendingBetsCount;
+              }
+
+              return TabBar(
+                controller: _tabController,
+                tabs: [
+                  const Tab(text: 'Create Bet'),
+                  badges.Badge(
+                    showBadge: pendingBetsCount > 0,
+                    badgeContent: Text(
+                      pendingBetsCount.toString(),
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                    ),
+                    badgeStyle: const badges.BadgeStyle(
+                      badgeColor: Colors.red,
+                      padding: EdgeInsets.all(6),
+                    ),
+                    position: badges.BadgePosition.topEnd(top: -10, end: -10),
+                    child: const Tab(text: 'Ongoing Bets'),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
         actions: [
           IconButton(
