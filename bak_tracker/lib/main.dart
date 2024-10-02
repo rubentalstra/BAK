@@ -47,6 +47,7 @@ void main() async {
     runApp(const BakTrackerApp());
   } catch (e) {
     print('Error during app initialization: $e');
+    // Optionally, you could run a minimal app that shows an error screen
   }
 }
 
@@ -112,71 +113,64 @@ class AppStartupState extends State<AppStartup> {
 
   Future<void> _initializeApp() async {
     try {
-      // Initialize Notifications
-      flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-      notificationsService =
-          NotificationsService(flutterLocalNotificationsPlugin);
-      await notificationsService.initializeNotifications();
-      await notificationsService.setupFirebaseMessaging();
-
-      // Register background message handler
-      FirebaseMessaging.onBackgroundMessage(
-          NotificationsService.firebaseMessagingBackgroundHandler);
-
-      // Initialize deep link service
-      final associationBloc = BlocProvider.of<AssociationBloc>(context);
-      deepLinkService = DeepLinkService(
-        associationBloc: associationBloc,
-        navigateToMainScreen: _navigateToMainScreen,
-      );
-      await deepLinkService.initialize();
-
-      // Check the initial screen after setting up services
-      await _navigateToInitialScreen();
+      await _initializeNotifications();
+      await _initializeDeepLinks();
     } catch (e) {
-      print('Error during secondary initialization: $e');
+      print('Error during initialization: $e');
+      // Handle initialization errors if necessary
+    } finally {
+      // Remove the splash screen after all initializations
+      if (mounted) {
+        FlutterNativeSplash.remove();
+        await _navigateToInitialScreen();
+      }
     }
+  }
+
+  Future<void> _initializeNotifications() async {
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    notificationsService =
+        NotificationsService(flutterLocalNotificationsPlugin);
+    await notificationsService.initializeNotifications();
+    await notificationsService.setupFirebaseMessaging();
+
+    // Register background message handler
+    FirebaseMessaging.onBackgroundMessage(
+        NotificationsService.firebaseMessagingBackgroundHandler);
+  }
+
+  Future<void> _initializeDeepLinks() async {
+    final associationBloc = context.read<AssociationBloc>();
+    deepLinkService = DeepLinkService(
+      associationBloc: associationBloc,
+      navigateToMainScreen: _navigateToMainScreen,
+    );
+    await deepLinkService.initialize();
   }
 
   Future<void> _navigateToInitialScreen() async {
     final session = Supabase.instance.client.auth.currentSession;
 
     if (session != null) {
+      // User is logged in
       try {
-        final PostgrestList associationData = await Supabase.instance.client
+        final associationData = await Supabase.instance.client
             .from('association_members')
             .select()
-            .eq('user_id', Supabase.instance.client.auth.currentUser!.id);
+            .eq('user_id', session.user.id);
 
-        if (mounted) {
-          FlutterNativeSplash.remove();
-
-          if (associationData.isNotEmpty) {
-            _navigateToMainScreen();
-          } else {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                  builder: (context) => const NoAssociationScreen()),
-            );
-          }
+        if (associationData.isNotEmpty) {
+          _navigateToMainScreen();
+        } else {
+          _navigateToNoAssociationScreen();
         }
       } catch (e) {
         print('Error fetching association data: $e');
-        if (mounted) {
-          FlutterNativeSplash.remove();
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-                builder: (context) => const NoAssociationScreen()),
-          );
-        }
+        _navigateToNoAssociationScreen();
       }
     } else {
-      if (mounted) {
-        FlutterNativeSplash.remove();
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
-      }
+      // User is not logged in
+      _navigateToLoginScreen();
     }
   }
 
@@ -189,8 +183,25 @@ class AppStartupState extends State<AppStartup> {
     }
   }
 
+  void _navigateToNoAssociationScreen() {
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
+      );
+    }
+  }
+
+  void _navigateToLoginScreen() {
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Since all initialization is done asynchronously, we return an empty container here.
     return const SizedBox.shrink();
   }
 }

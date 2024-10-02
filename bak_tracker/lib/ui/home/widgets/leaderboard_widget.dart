@@ -1,29 +1,10 @@
 import 'dart:io';
 import 'package:bak_tracker/models/association_member_model.dart';
+import 'package:bak_tracker/models/leaderboard_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:bak_tracker/ui/home/widgets/leaderboard_profile_screen.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
-
-class LeaderboardEntry {
-  final int rank;
-  final AssociationMemberModel member; // Directly pass the member model
-
-  LeaderboardEntry({
-    required this.rank,
-    required this.member,
-  });
-
-  LeaderboardEntry copyWith({
-    int? rank,
-    AssociationMemberModel? member,
-  }) {
-    return LeaderboardEntry(
-      rank: rank ?? this.rank,
-      member: member ?? this.member,
-    );
-  }
-}
 
 class LeaderboardWidget extends StatelessWidget {
   final List<LeaderboardEntry> entries;
@@ -43,10 +24,8 @@ class LeaderboardWidget extends StatelessWidget {
       duration: const Duration(milliseconds: 500),
       switchInCurve: Curves.easeIn,
       switchOutCurve: Curves.easeOut,
-      child: isLoading
-          ? _buildLoadingSkeleton() // Show skeleton when loading
-          : _buildLeaderboardList(
-              context), // Show the leaderboard data when loaded
+      child:
+          isLoading ? _buildLoadingSkeleton() : _buildLeaderboardList(context),
     );
   }
 
@@ -58,31 +37,40 @@ class LeaderboardWidget extends StatelessWidget {
         final member = entry.member;
 
         return FutureBuilder<File?>(
-          future: member.user.profileImage == null ||
-                  member.user.profileImage!.isEmpty
-              ? Future.value(null)
-              : imageUploadService
-                  .fetchOrDownloadProfileImage(member.user.profileImage!),
+          future: _loadProfileImage(member),
           builder: (context, snapshot) {
             final imageFile = snapshot.data;
 
             return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => LeaderboardProfileScreen(
-                      member: member, // Pass the entire member object
-                      localImageFile: imageFile,
-                    ),
-                  ),
-                );
-              },
+              onTap: () => _navigateToProfileScreen(context, member, imageFile),
               child: _buildEntry(entry, imageFile),
             );
           },
         );
       },
+    );
+  }
+
+  // Optimize image loading logic by moving the FutureBuilder inside this method
+  Future<File?> _loadProfileImage(AssociationMemberModel member) {
+    if (member.user.profileImage == null || member.user.profileImage!.isEmpty) {
+      return Future.value(null);
+    }
+    return imageUploadService
+        .fetchOrDownloadProfileImage(member.user.profileImage!);
+  }
+
+  // Separate navigation logic to avoid placing it inside the FutureBuilder
+  void _navigateToProfileScreen(
+      BuildContext context, AssociationMemberModel member, File? imageFile) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LeaderboardProfileScreen(
+          member: member,
+          localImageFile: imageFile,
+        ),
+      ),
     );
   }
 
@@ -154,27 +142,24 @@ class LeaderboardWidget extends StatelessWidget {
   }
 
   Widget _buildProfileImage(File? imageFile, String userName) {
-    if (imageFile == null) {
-      return CircleAvatar(
-        radius: 24.0,
-        backgroundColor: Colors.grey,
-        child: Text(
-          userName[0].toUpperCase(),
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 24.0,
-          ),
-        ),
-      );
-    }
-
     return CircleAvatar(
       radius: 24.0,
-      backgroundImage: FileImage(imageFile),
+      backgroundColor: imageFile == null ? Colors.grey : Colors.transparent,
+      backgroundImage: imageFile != null ? FileImage(imageFile) : null,
+      child: imageFile == null
+          ? Text(
+              userName[0].toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 24.0,
+              ),
+            )
+          : null,
     );
   }
 
+  // Modularized loading skeleton for readability
   Widget _buildLoadingSkeleton() {
     return ListView.builder(
       itemCount: 6, // Loading skeleton for 6 items

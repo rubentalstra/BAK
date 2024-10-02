@@ -16,7 +16,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     on<SelectAssociation>(_onSelectAssociation);
     on<LeaveAssociation>(_onLeaveAssociation);
     on<ClearAssociationError>(_onClearAssociationError);
-    on<RefreshPendingAproveBaks>(_onRefreshPendingBaks);
+    on<RefreshPendingApproveBaks>(_onRefreshPendingBaks);
     on<RefreshBaksAndBets>(_onRefreshBaksAndBets);
     on<JoinNewAssociation>(_onJoinNewAssociation);
     _loadSelectedAssociation();
@@ -251,7 +251,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
   }
 
   Future<void> _onRefreshPendingBaks(
-      RefreshPendingAproveBaks event, Emitter<AssociationState> emit) async {
+      RefreshPendingApproveBaks event, Emitter<AssociationState> emit) async {
     final currentState = state;
     if (currentState is AssociationLoaded) {
       try {

@@ -2,7 +2,7 @@ import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
-import 'package:bak_tracker/services/bak_service.dart'; // Service for sending bak
+import 'package:bak_tracker/services/bak_service.dart';
 
 class SendBakTab extends StatefulWidget {
   final List<AssociationMemberModel> members;
@@ -29,8 +29,7 @@ class _SendBakTabState extends State<SendBakTab> {
   void initState() {
     super.initState();
     if (widget.members.isNotEmpty) {
-      _selectedReceiverId =
-          widget.members.first.user.id; // Default to first member
+      _selectedReceiverId = widget.members.first.user.id;
     }
   }
 
@@ -38,7 +37,7 @@ class _SendBakTabState extends State<SendBakTab> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        FocusScope.of(context).unfocus(); // Dismiss the keyboard
+        FocusScope.of(context).unfocus();
       },
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -170,47 +169,48 @@ class _SendBakTabState extends State<SendBakTab> {
     return Align(
       alignment: Alignment.center,
       child: ElevatedButton.icon(
-        onPressed: () async {
-          if (_selectedReceiverId == null || _reasonController.text.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                    'Please select a receiver, enter an amount, and provide a reason.'),
-              ),
-            );
-            return;
-          }
-          try {
-            await BakService.sendBak(
-              receiverId: _selectedReceiverId!,
-              associationId: widget.members.first.associationId,
-              amount: int.parse(_amountController.text),
-              reason: _reasonController.text,
-            );
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Bak sent successfully!'),
-                  backgroundColor: Colors.green),
-            );
-            _amountController.clear();
-            _reasonController.clear();
-          } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text('Error sending Bak: $e'),
-                  backgroundColor: Colors.red),
-            );
-          }
-        },
+        onPressed: _handleSendBak,
+        icon: const Icon(Icons.send),
+        label: const Text('Send Bak', style: TextStyle(fontSize: 18)),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        icon: const Icon(Icons.send),
-        label: const Text('Send Bak', style: TextStyle(fontSize: 18)),
       ),
     );
+  }
+
+  Future<void> _handleSendBak() async {
+    if (_selectedReceiverId == null ||
+        _reasonController.text.isEmpty ||
+        _amountController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Please select a receiver, enter an amount, and provide a reason.'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await BakService.sendBak(
+        receiverId: _selectedReceiverId!,
+        associationId: widget.members.first.associationId,
+        amount: int.parse(_amountController.text),
+        reason: _reasonController.text,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bak sent successfully!')),
+      );
+      _amountController.clear();
+      _reasonController.clear();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending Bak: $e')),
+      );
+    }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/models/bak_send_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -14,14 +15,15 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
-  List<Map<String, dynamic>> _transactions = [];
+  List<BakSendModel> _transactions = [];
   bool _isLoading = true;
   bool _isFetchingMore = false;
   String? _selectedAssociationId;
 
   // Pagination variables
-  final int _limit = 10;
-  int _offset = 0;
+  final int _limit = 10; // Number of items to fetch at a time
+  int _offset = 0; // Offset to keep track of how much data has been fetched
+  bool _hasMoreData = true; // To check if more data is available
 
   @override
   void initState() {
@@ -31,6 +33,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _fetchTransactions(String associationId,
       {bool isLoadMore = false}) async {
+    if (_isFetchingMore || !_hasMoreData) {
+      return; // Prevent multiple fetches or fetching when no more data is available
+    }
+
     setState(() {
       if (!isLoadMore) {
         _isLoading = true;
@@ -40,25 +46,39 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     });
 
     final supabase = Supabase.instance.client;
-    final currentUserId = supabase.auth.currentUser!.id;
+    final currentUserId = supabase.auth.currentUser?.id;
+
+    if (currentUserId == null) {
+      return; // Handle null user ID case
+    }
 
     try {
-      // Fetch both sent and received baks by the current user in a single query
+      // Fetch the transactions with pagination
       final response = await supabase
           .from('bak_send')
           .select(
-              'id, amount, status, created_at, reason, receiver_id (id, name), giver_id (id, name)')
-          .or('giver_id.eq.$currentUserId,receiver_id.eq.$currentUserId') // Fetch where the current user is either the giver or the receiver
+              'id, association_id, amount, status, created_at, reason, receiver_id (id, name), giver_id (id, name)')
+          .or('giver_id.eq.$currentUserId,receiver_id.eq.$currentUserId')
           .eq('association_id', associationId)
           .order('created_at', ascending: false)
           .range(_offset, _offset + _limit - 1); // Pagination
 
+      final List<BakSendModel> fetchedTransactions =
+          (response as List).map((map) => BakSendModel.fromMap(map)).toList();
+
       setState(() {
         if (isLoadMore) {
-          _transactions.addAll(List<Map<String, dynamic>>.from(response));
+          _transactions.addAll(fetchedTransactions);
         } else {
-          _transactions = List<Map<String, dynamic>>.from(response);
+          _transactions = fetchedTransactions;
         }
+
+        // Check if more data is available
+        if (fetchedTransactions.length < _limit) {
+          _hasMoreData =
+              false; // No more data if less than the limit is returned
+        }
+
         _isLoading = false;
         _isFetchingMore = false;
         _offset += _limit; // Increase the offset for the next batch
@@ -69,6 +89,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _isLoading = false;
         _isFetchingMore = false;
       });
+      _showErrorSnackBar('Failed to load transactions. Please try again.');
     }
   }
 
@@ -85,9 +106,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             if (_selectedAssociationId != associationId) {
               _selectedAssociationId = associationId;
 
-              // Fetch transactions only when the association changes or on first load
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                _offset = 0; // Reset offset on association change
+                _resetPagination(); // Reset pagination when association changes
                 _fetchTransactions(associationId);
               });
             }
@@ -97,7 +117,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 : RefreshIndicator(
                     color: AppColors.lightSecondary,
                     onRefresh: () {
-                      _offset = 0; // Reset pagination on refresh
+                      _resetPagination(); // Reset pagination on refresh
                       return _fetchTransactions(_selectedAssociationId!);
                     },
                     child: _buildTransactionsList(),
@@ -110,8 +130,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
+  // Build the list of transactions with pagination
   Widget _buildTransactionsList() {
-    final currentUserId = Supabase.instance.client.auth.currentUser!.id;
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
 
     if (_transactions.isEmpty) {
       return const Center(child: Text('No transactions found.'));
@@ -120,7 +141,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return NotificationListener<ScrollNotification>(
       onNotification: (scrollInfo) {
         if (!_isFetchingMore &&
-            scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
+            scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent &&
+            _hasMoreData) {
           _fetchTransactions(_selectedAssociationId!, isLoadMore: true);
         }
         return false;
@@ -136,48 +158,77 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           }
 
           final bak = _transactions[index];
-          final date = DateTime.parse(bak['created_at']);
-          final bakReason = bak['reason'] ?? 'No reason provided';
-          final isRejected = bak['status'] == 'rejected';
-          final rejectionReason = bak['reason'] ?? 'No reason provided';
-          final isSent = bak['giver_id']['id'] == currentUserId;
-          final recipientName = bak['receiver_id']['name'];
-          final senderName = bak['giver_id']['name'];
-
-          return ListTile(
-            title: Text(
-              isSent ? 'Sent to: $recipientName' : 'Received from: $senderName',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Amount: ${bak['amount']}'),
-                Text('Reason: $bakReason'),
-                Text(
-                  'Date: ${DateFormat.yMd('nl_NL').format(date)} at ${DateFormat.Hm('nl_NL').format(date)}',
-                ),
-                if (isRejected)
-                  Text(
-                    'Rejection Reason: $rejectionReason',
-                    style: const TextStyle(color: Colors.redAccent),
-                  ),
-              ],
-            ),
-            trailing: Text(
-              bak['status'].toString().toUpperCase(),
-              style: TextStyle(
-                fontSize: 16,
-                color: bak['status'] == 'approved'
-                    ? Colors.green
-                    : bak['status'] == 'declined'
-                        ? Colors.red
-                        : Colors.orange,
-              ),
-            ),
-          );
+          return _buildTransactionTile(bak, currentUserId!);
         },
       ),
+    );
+  }
+
+  // Build individual transaction tile using BakSendModel
+  Widget _buildTransactionTile(BakSendModel bak, String currentUserId) {
+    final isSent = bak.giver.id == currentUserId;
+    final recipientName = bak.receiver.name;
+    final senderName = bak.giver.name;
+
+    return ListTile(
+      title: Text(
+        isSent ? 'Sent to: $recipientName' : 'Received from: $senderName',
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Amount: ${bak.amount}'),
+          Text('Reason: ${bak.reason ?? 'No reason provided'}'),
+          Text(
+            'Date: ${DateFormat.yMd('nl_NL').format(bak.createdAt)} at ${DateFormat.Hm('nl_NL').format(bak.createdAt)}',
+          ),
+          if (bak.status == 'rejected')
+            Text(
+              'Rejection Reason: ${bak.reason}',
+              style: const TextStyle(color: Colors.redAccent),
+            ),
+        ],
+      ),
+      trailing: _buildTransactionStatus(bak.status),
+    );
+  }
+
+  // Build status widget for each transaction
+  Widget _buildTransactionStatus(String status) {
+    return Text(
+      status.toUpperCase(),
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: _getStatusColor(status),
+      ),
+    );
+  }
+
+  // Get the status color based on the transaction status
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'approved':
+        return Colors.green;
+      case 'declined':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  // Reset the pagination variables when switching associations or refreshing
+  void _resetPagination() {
+    _offset = 0;
+    _hasMoreData = true;
+    _transactions.clear();
+  }
+
+  // Show error snackbar in case of failure
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 }

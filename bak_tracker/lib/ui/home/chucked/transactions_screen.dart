@@ -21,7 +21,6 @@ class _ChuckedTransactionsScreenState extends State<ChuckedTransactionsScreen> {
   @override
   void initState() {
     super.initState();
-    // Initial fetching is deferred until the association is loaded
   }
 
   Future<void> _fetchChuckedTransactions(String associationId) async {
@@ -33,7 +32,6 @@ class _ChuckedTransactionsScreenState extends State<ChuckedTransactionsScreen> {
     final currentUserId = supabase.auth.currentUser!.id;
 
     try {
-      // Fetch chucked bakken transactions (those consumed by the current user)
       final chuckedResponse = await supabase
           .from('bak_consumed')
           .select(
@@ -84,7 +82,7 @@ class _ChuckedTransactionsScreenState extends State<ChuckedTransactionsScreen> {
     );
   }
 
-// Build the list of chucked transactions
+  // Build the list of chucked transactions
   Widget _buildTransactionsList() {
     if (_chuckedBakken.isEmpty) {
       return const Center(child: Text('No transactions found.'));
@@ -95,11 +93,8 @@ class _ChuckedTransactionsScreenState extends State<ChuckedTransactionsScreen> {
       itemBuilder: (context, index) {
         final bak = _chuckedBakken[index];
         final date = DateTime.parse(bak['created_at']);
-
-        // Check if the bak status is 'rejected' and get the reason if available
         final isRejected = bak['status'] == 'rejected';
-        final rejectionReason = bak['reason'] ??
-            'No reason provided'; // Assuming 'reason' field exists
+        final rejectionReason = bak['reason'] ?? 'No reason provided';
 
         return ListTile(
           title: Text(
@@ -112,26 +107,38 @@ class _ChuckedTransactionsScreenState extends State<ChuckedTransactionsScreen> {
               Text(
                 'Date: ${DateFormat.yMd('nl_NL').format(date)} at ${DateFormat.Hm('nl_NL').format(date)}',
               ),
-              if (isRejected) ...[
-                const SizedBox(height: 4), // Spacing between date and reason
-                Text(
-                  'Rejection Reason: $rejectionReason',
-                  style: const TextStyle(color: Colors.redAccent),
+              if (isRejected)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Text(
+                    'Rejection Reason: $rejectionReason',
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
                 ),
-              ]
             ],
           ),
           trailing: Text(
-            bak['status'],
+            bak['status'].toString().toUpperCase(),
             style: TextStyle(
-                color: bak['status'] == 'approved'
-                    ? Colors.green
-                    : bak['status'] == 'rejected'
-                        ? Colors.red
-                        : Colors.grey),
+              color: _getStatusColor(bak['status']),
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         );
       },
     );
+  }
+
+  // Extracted method for status color
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'approved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 }

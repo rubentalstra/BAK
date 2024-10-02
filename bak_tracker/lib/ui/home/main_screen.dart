@@ -28,13 +28,13 @@ class _MainScreenState extends State<MainScreen> {
   bool _canApproveBaks = false;
   List<AssociationModel> _associations = [];
   AssociationModel? _selectedAssociation;
-  List<Widget> _pages = [];
   Timer? _approveBaksTimer;
   Timer? _pendingBaksAndBetsTimer;
 
   // Store badge counts outside the build method to prevent them from resetting
   int pendingBaksCount = 0;
   int pendingBetsCount = 0;
+  List<Widget>? _cachedPages;
 
   @override
   void initState() {
@@ -54,9 +54,14 @@ class _MainScreenState extends State<MainScreen> {
     final associationBloc = context.read<AssociationBloc>();
     associationBloc.stream.listen((state) {
       if (state is AssociationLoaded) {
-        _canApproveBaks = state.memberData
+        final hasApproveBaksPermission = state.memberData
                 .hasPermission(PermissionEnum.canApproveBaks) ||
             state.memberData.hasPermission(PermissionEnum.hasAllPermissions);
+
+        if (_canApproveBaks != hasApproveBaksPermission) {
+          _canApproveBaks = hasApproveBaksPermission;
+          _startPollingApproveBaks();
+        }
 
         // Update badge counts only if they have changed
         setState(() {
@@ -65,20 +70,18 @@ class _MainScreenState extends State<MainScreen> {
         });
 
         // Set up pages and polling based on loaded associations
-        _setPages();
-        _startPollingAproveBaks();
         _startPollingPendingBaksAndBets();
       }
     });
   }
 
-  void _startPollingAproveBaks() {
+  void _startPollingApproveBaks() {
     _approveBaksTimer?.cancel();
     if (_canApproveBaks && _selectedAssociation != null) {
       _approveBaksTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
         context
             .read<AssociationBloc>()
-            .add(RefreshPendingAproveBaks(_selectedAssociation!.id));
+            .add(RefreshPendingApproveBaks(_selectedAssociation!.id));
       });
     }
   }
@@ -138,7 +141,6 @@ class _MainScreenState extends State<MainScreen> {
           .read<AssociationBloc>()
           .add(SelectAssociation(selectedAssociation: _selectedAssociation!));
     }
-    _setPages();
   }
 
   Future<void> _saveSelectedAssociation(AssociationModel association) async {
@@ -149,47 +151,48 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onAssociationChanged(AssociationModel? newAssociation) {
     if (_selectedAssociation?.id != newAssociation?.id) {
-      _selectedAssociation = newAssociation;
-      _pages.clear();
-      _saveSelectedAssociation(newAssociation!);
+      setState(() {
+        _selectedAssociation = newAssociation;
+        _cachedPages = null; // Invalidate cached pages
+        _saveSelectedAssociation(newAssociation!);
+      });
       context
           .read<AssociationBloc>()
-          .add(SelectAssociation(selectedAssociation: newAssociation));
-      _setPages();
+          .add(SelectAssociation(selectedAssociation: newAssociation!));
     }
   }
 
-  void _setPages() {
-    if (_selectedAssociation != null) {
-      _pages = [
-        HomeScreen(
-          associations: _associations,
-          selectedAssociation: _selectedAssociation,
-          onAssociationChanged: _onAssociationChanged,
-        ),
-        const BakScreen(),
-        const ChuckedScreen(),
-        const BetsScreen(),
-        const SettingsScreen(),
-      ];
-    }
+  // Use lazy loading for pages
+  List<Widget> get _pages {
+    _cachedPages ??= [
+      HomeScreen(
+        associations: _associations,
+        selectedAssociation: _selectedAssociation,
+        onAssociationChanged: _onAssociationChanged,
+      ),
+      const BakScreen(),
+      const ChuckedScreen(),
+      const BetsScreen(),
+      const SettingsScreen(),
+    ];
+    return _cachedPages!;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_selectedIndex >= _pages.length && _pages.isNotEmpty) {
-      _selectedIndex = 0;
+    if (_selectedAssociation == null || _associations.isEmpty) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
-      body: _pages.isNotEmpty
-          ? _pages[_selectedIndex]
-          : const Center(child: CircularProgressIndicator()),
+      body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
-        pendingBaksCount: pendingBaksCount, // Persisted value
-        pendingBetsCount: pendingBetsCount, // Persisted value
+        pendingBaksCount: pendingBaksCount, // Get from Bloc
+        pendingBetsCount: pendingBetsCount, // Get from Bloc
       ),
     );
   }

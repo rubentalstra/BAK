@@ -25,10 +25,10 @@ class LeaveAssociation extends AssociationEvent {
   List<Object?> get props => [associationId];
 }
 
-class RefreshPendingAproveBaks extends AssociationEvent {
+class RefreshPendingApproveBaks extends AssociationEvent {
   final String associationId;
 
-  RefreshPendingAproveBaks(this.associationId);
+  RefreshPendingApproveBaks(this.associationId);
 }
 
 class RefreshBaksAndBets extends AssociationEvent {

@@ -39,7 +39,6 @@ class _BakScreenState extends State<BakScreen>
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () {
-              // Navigate to the Bak History screen
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -88,8 +87,8 @@ class _BakScreenState extends State<BakScreen>
             return TabBarView(
               controller: _tabController,
               children: [
-                SendBakTab(members: state.members), // Modularized Send Bak Tab
-                const ReceivedBakTab(), // Already exists
+                SendBakTab(members: state.members),
+                const ReceivedBakTab(),
               ],
             );
           } else {

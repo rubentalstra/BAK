@@ -6,15 +6,15 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onTap;
-  final int pendingBetsCount; // Ongoing bets count
-  final int pendingBaksCount; // Pending baks count
+  final int pendingBetsCount;
+  final int pendingBaksCount;
 
   const BottomNavBar({
     super.key,
     required this.selectedIndex,
     required this.onTap,
-    required this.pendingBetsCount, // Required to show badge for bets
-    required this.pendingBaksCount, // Required to show badge for baks
+    required this.pendingBetsCount,
+    required this.pendingBaksCount,
   });
 
   @override

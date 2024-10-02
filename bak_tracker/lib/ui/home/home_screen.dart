@@ -3,6 +3,7 @@ import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/models/leaderboard_entry.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:bak_tracker/ui/association_settings/association_settings_screen.dart';
 import 'package:flutter/material.dart';
@@ -109,15 +110,21 @@ class _HomeScreenState extends State<HomeScreen> {
             ? DropdownButtonHideUnderline(
                 child: DropdownButton<AssociationModel>(
                   value: widget.selectedAssociation,
-                  onChanged: widget.onAssociationChanged,
+                  onChanged: (AssociationModel? newAssociation) {
+                    widget.onAssociationChanged(newAssociation);
+                  },
                   dropdownColor: AppColors.lightPrimaryVariant,
-                  icon: Icon(Icons.keyboard_arrow_down,
-                      color: Theme.of(context).iconTheme.color),
+                  icon: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Theme.of(context).iconTheme.color,
+                  ),
                   items: widget.associations.map((association) {
                     return DropdownMenuItem(
                       value: association,
-                      child: Text(association.name,
-                          style: Theme.of(context).dropdownMenuTheme.textStyle),
+                      child: Text(
+                        association.name,
+                        style: Theme.of(context).dropdownMenuTheme.textStyle,
+                      ),
                     );
                   }).toList(),
                 ),

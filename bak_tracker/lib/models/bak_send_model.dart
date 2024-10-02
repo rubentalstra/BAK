@@ -1,21 +1,22 @@
+import 'package:bak_tracker/models/user_model.dart';
 import 'package:equatable/equatable.dart';
 
 class BakSendModel extends Equatable {
   final String id;
-  final String giverId;
-  final String receiverId;
+  final UserModel giver;
+  final UserModel receiver;
   final String associationId;
-  final String reason;
+  final String? reason;
   final int amount;
   final String status;
   final DateTime createdAt;
 
   const BakSendModel({
     required this.id,
-    required this.giverId,
-    required this.receiverId,
+    required this.giver,
+    required this.receiver,
     required this.associationId,
-    required this.reason,
+    this.reason,
     required this.amount,
     required this.status,
     required this.createdAt,
@@ -24,8 +25,8 @@ class BakSendModel extends Equatable {
   factory BakSendModel.fromMap(Map<String, dynamic> map) {
     return BakSendModel(
       id: map['id'],
-      giverId: map['giver_id'],
-      receiverId: map['receiver_id'],
+      giver: UserModel.fromMap(map['giver_id']),
+      receiver: UserModel.fromMap(map['receiver_id']),
       associationId: map['association_id'],
       reason: map['reason'],
       amount: map['amount'],
@@ -37,8 +38,8 @@ class BakSendModel extends Equatable {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'giver_id': giverId,
-      'receiver_id': receiverId,
+      'giver_id': giver.toMap(),
+      'receiver_id': receiver.toMap(),
       'association_id': associationId,
       'reason': reason,
       'amount': amount,
@@ -49,14 +50,6 @@ class BakSendModel extends Equatable {
 
   // Override props for Equatable
   @override
-  List<Object?> get props => [
-        id,
-        giverId,
-        receiverId,
-        associationId,
-        reason,
-        amount,
-        status,
-        createdAt
-      ];
+  List<Object?> get props =>
+      [id, giver, receiver, associationId, reason, amount, status, createdAt];
 }
