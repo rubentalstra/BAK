@@ -10,6 +10,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'active_invites_tab.dart';
 import 'expired_invites_tab.dart';
+import 'package:bak_tracker/core/const/permissions_constants.dart';
 
 class InviteMembersScreen extends StatefulWidget {
   final String associationId;
@@ -54,19 +55,17 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
 
   // Create an invite with expiration date and permissions
   Future<void> _createInvite(
-      DateTime? expiryDate, Map<String, dynamic> permissions) async {
+      DateTime? expiryDate, PermissionsModel permissions) async {
     final supabase = Supabase.instance.client;
-    final String userId = supabase.auth.currentUser!.id;
     final String inviteKey = _generateInviteKey();
 
     try {
       await supabase.from('invites').insert({
         'association_id': widget.associationId,
         'invite_key': inviteKey,
-        'created_by': userId,
         'expires_at': expiryDate?.toIso8601String(),
         'is_expired': false,
-        'permissions': permissions,
+        'permissions': permissions.toMap(),
       });
 
       _fetchInvites(); // Refresh the list of invites
@@ -249,19 +248,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
   // Show a dialog to select permissions and create invite
   Future<void> _showCreateInviteDialog() async {
     DateTime? selectedExpiryDate;
-    Map<String, dynamic> permissions = {
-      'hasAllPermissions': false,
-      'canInviteMembers': false,
-      'canRemoveMembers': false,
-      'canManageRoles': false,
-      'canManageBaks': false,
-      'canApproveBaks': false,
-      'canManagePermissions': false,
-    };
-
-    bool hasSelectedPermissions() {
-      return permissions.entries.any((entry) => entry.value == true);
-    }
+    PermissionsModel permissions = PermissionsModel();
 
     return showDialog<void>(
       context: context,
@@ -311,91 +298,18 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
                     ),
                   const Divider(),
                   const Text('Assign Permissions for this Invite:'),
-                  CheckboxListTile(
-                    title: const Text('Has All Permissions'),
-                    value: permissions['hasAllPermissions'],
-                    onChanged: (bool? value) {
-                      setState(() {
-                        permissions['hasAllPermissions'] = value ?? false;
-                        if (value ?? false) {
-                          // Uncheck all other permissions when hasAllPermissions is selected
-                          permissions['canInviteMembers'] = false;
-                          permissions['canRemoveMembers'] = false;
-                          permissions['canManageRoles'] = false;
-                          permissions['canManageBaks'] = false;
-                          permissions['canApproveBaks'] = false;
-                          permissions['canManagePermissions'] = false;
-                        }
-                      });
-                    },
-                  ),
-                  CheckboxListTile(
-                    title: const Text('Can Invite Members'),
-                    value: permissions['canInviteMembers'],
-                    onChanged: permissions['hasAllPermissions']
-                        ? null
-                        : (bool? value) {
-                            setState(() {
-                              permissions['canInviteMembers'] = value ?? false;
-                            });
-                          },
-                  ),
-                  CheckboxListTile(
-                    title: const Text('Can Remove Members'),
-                    value: permissions['canRemoveMembers'],
-                    onChanged: permissions['hasAllPermissions']
-                        ? null
-                        : (bool? value) {
-                            setState(() {
-                              permissions['canRemoveMembers'] = value ?? false;
-                            });
-                          },
-                  ),
-                  CheckboxListTile(
-                    title: const Text('Can Manage Roles'),
-                    value: permissions['canManageRoles'],
-                    onChanged: permissions['hasAllPermissions']
-                        ? null
-                        : (bool? value) {
-                            setState(() {
-                              permissions['canManageRoles'] = value ?? false;
-                            });
-                          },
-                  ),
-                  CheckboxListTile(
-                    title: const Text('Can Manage Baks'),
-                    value: permissions['canManageBaks'],
-                    onChanged: permissions['hasAllPermissions']
-                        ? null
-                        : (bool? value) {
-                            setState(() {
-                              permissions['canManageBaks'] = value ?? false;
-                            });
-                          },
-                  ),
-                  CheckboxListTile(
-                    title: const Text('Can Approve Baks'),
-                    value: permissions['canApproveBaks'],
-                    onChanged: permissions['hasAllPermissions']
-                        ? null
-                        : (bool? value) {
-                            setState(() {
-                              permissions['canApproveBaks'] = value ?? false;
-                            });
-                          },
-                  ),
-                  CheckboxListTile(
-                    title: const Text('Can Manage Permissions'),
-                    value: permissions['canManagePermissions'],
-                    onChanged: permissions['hasAllPermissions']
-                        ? null
-                        : (bool? value) {
-                            setState(() {
-                              permissions['canManagePermissions'] =
-                                  value ?? false;
-                            });
-                          },
-                  ),
+                  ...PermissionEnum.values.map((permission) {
+                    return CheckboxListTile(
+                      title: Text(permission.toString().split('.').last),
+                      value: permissions.permissions[permission],
+                      onChanged: (bool? value) {
+                        setState(() {
+                          permissions.updatePermission(
+                              permission, value ?? false);
+                        });
+                      },
+                    );
+                  }).toList(),
                 ],
               ),
               actions: <Widget>[
@@ -408,19 +322,25 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
                 ElevatedButton(
                   child: const Text('Create Invite'),
                   onPressed: () {
-                    // Enforce expiration date if any permissions are selected
-                    if (hasSelectedPermissions() &&
-                        selectedExpiryDate == null) {
+                    // Check if permissions are assigned
+                    bool hasPermissions =
+                        permissions.permissions.values.any((v) => v);
+
+                    // Create invite if no permissions are set or if an expiration date is set
+                    if (!hasPermissions || selectedExpiryDate != null) {
+                      Navigator.of(context).pop(); // Close the dialog
+                      _createInvite(
+                          selectedExpiryDate, permissions); // Create the invite
+                    } else {
+                      // Show a SnackBar if permissions are set but no expiration date is provided
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                              'Please set an expiration date when assigning permissions.'),
+                            'Please set an expiration date when assigning permissions.',
+                          ),
                         ),
                       );
-                      return;
                     }
-                    Navigator.of(context).pop();
-                    _createInvite(selectedExpiryDate, permissions);
                   },
                 ),
               ],

@@ -1,15 +1,14 @@
-import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/models/bak_consumed_model.dart';
 import 'package:bak_tracker/ui/association_settings/approve_baks/approve_bak_transactions_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:bak_tracker/bloc/association/association_bloc.dart';
 
 class ApproveBaksScreen extends StatefulWidget {
-  const ApproveBaksScreen({super.key});
+  final String associationId;
+
+  const ApproveBaksScreen({super.key, required this.associationId});
 
   @override
   _ApproveBaksScreenState createState() => _ApproveBaksScreenState();
@@ -22,17 +21,10 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchBaksFromBloc();
+    _fetchBaks();
   }
 
-  void _fetchBaksFromBloc() {
-    final state = context.read<AssociationBloc>().state;
-    if (state is AssociationLoaded) {
-      _fetchBaks(state.selectedAssociation.id);
-    }
-  }
-
-  Future<void> _fetchBaks(String associationId) async {
+  Future<void> _fetchBaks() async {
     setState(() {
       _isLoading = true;
     });
@@ -43,7 +35,8 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
           .select(
               'id, amount, created_at, taker_id (id, name), association_id, status, created_at')
           .eq('status', 'pending')
-          .eq('association_id', associationId);
+          .eq('association_id',
+              widget.associationId); // Use widget.associationId
 
       setState(() {
         _requestedBaks = (requestedResponse as List)
@@ -81,7 +74,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
             bak.taker.id, bak.amount, bak.associationId);
       }
 
-      _fetchBaks(bak.associationId);
+      _fetchBaks(); // No need to pass associationId since we are using widget.associationId
       _sendNotification(bak.taker.id, status);
     } catch (e) {
       _showSnackBar('Error updating bak status: $e');
@@ -209,7 +202,8 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (_) => const ProcessedBaksTransactionsScreen()),
+                  builder: (_) => ProcessedBaksTransactionsScreen(
+                      associationId: widget.associationId)),
             ),
             tooltip: 'Transactions',
           ),
@@ -218,10 +212,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
       body: RefreshIndicator(
         color: AppColors.lightSecondary,
         onRefresh: () async {
-          final state = context.read<AssociationBloc>().state;
-          if (state is AssociationLoaded) {
-            await _fetchBaks(state.selectedAssociation.id); // Re-fetch data
-          }
+          await _fetchBaks(); // Use the existing associationId
         },
         child: _isLoading
             ? const Center(

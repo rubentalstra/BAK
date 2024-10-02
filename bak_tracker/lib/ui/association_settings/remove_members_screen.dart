@@ -3,6 +3,8 @@ import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
+import 'package:bak_tracker/core/const/permissions_constants.dart';
+import 'package:bak_tracker/models/association_member_model.dart';
 
 class RemoveMembersScreen extends StatefulWidget {
   final String associationId;
@@ -14,7 +16,7 @@ class RemoveMembersScreen extends StatefulWidget {
 }
 
 class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
-  List<Map<String, dynamic>> _members = [];
+  List<AssociationMemberModel> _members = [];
   bool _isLoading = true;
   String? _currentUserId;
   late final ImageUploadService _imageUploadService;
@@ -41,11 +43,16 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
     try {
       final response = await supabase
           .from('association_members')
-          .select('user_id (id, name, profile_image), role, permissions')
+          .select(
+              'id, association_id, joined_at, user_id (id, name, bio, profile_image), role, permissions, member_achievements (id, assigned_at, achievement_id(id, name, description, created_at))')
           .eq('association_id', widget.associationId);
 
       setState(() {
-        _members = List<Map<String, dynamic>>.from(response);
+        _members = List<AssociationMemberModel>.from(
+          response.map((data) {
+            return AssociationMemberModel.fromMap(data);
+          }),
+        );
         _isLoading = false;
       });
     } catch (e) {
@@ -73,8 +80,8 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
 
   // Show confirmation dialog
   Future<void> _confirmRemoveMember(BuildContext context, String userId,
-      String memberName, bool hasAllPermissions) async {
-    if (hasAllPermissions) {
+      String memberName, PermissionsModel permissions) async {
+    if (permissions.hasPermission(PermissionEnum.hasAllPermissions)) {
       // Show message for members with full permissions
       _showCannotRemoveDialog(context, memberName);
     } else {
@@ -129,13 +136,13 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
   }
 
   // Build list tile for each member
-  Widget _buildMemberTile(Map<String, dynamic> member) {
-    final memberId = member['user_id']['id'];
-    final memberName = member['user_id']['name'];
+  Widget _buildMemberTile(AssociationMemberModel member) {
+    final memberId = member.user.id;
+    final memberName = member.user.name;
     final hasAllPermissions =
-        member['permissions']['hasAllPermissions'] ?? false;
+        member.permissions.hasPermission(PermissionEnum.hasAllPermissions);
     final isCurrentUser = memberId == _currentUserId;
-    final profileImage = member['user_id']['profile_image'];
+    final profileImage = member.user.profileImage;
 
     return FutureBuilder<File?>(
       future: profileImage == null || profileImage.isEmpty
@@ -160,7 +167,7 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                member['role'],
+                member.role ?? '',
                 style: TextStyle(
                   color: Colors.grey.shade300,
                   fontWeight: FontWeight.bold,
@@ -168,7 +175,7 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Permissions: ${hasAllPermissions ? "Full Access" : _formatPermissions(member['permissions'])}',
+                'Permissions: ${hasAllPermissions ? "Full Access" : _formatPermissions(member.permissions)}',
                 style: TextStyle(
                   color: hasAllPermissions ? Colors.blue : Colors.grey,
                 ),
@@ -195,7 +202,7 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
                         context,
                         memberId,
                         memberName,
-                        hasAllPermissions,
+                        member.permissions,
                       ),
                     ),
         );
@@ -204,19 +211,17 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
   }
 
   // Function to format the permissions for display
-  String _formatPermissions(Map<String, dynamic> permissions) {
-    final permissionList = [];
-    if (permissions['canInviteMembers'] ?? false) permissionList.add('Invite');
-    if (permissions['canRemoveMembers'] ?? false) permissionList.add('Remove');
-    if (permissions['canManagePermissions'] ?? false) {
-      permissionList.add('Manage Permissions');
-    }
-    if (permissions['canManageRoles'] ?? false) {
-      permissionList.add('Manage Roles');
-    }
-    if (permissions['canApproveBaks'] ?? false) {
-      permissionList.add('Approve Baks');
-    }
+  String _formatPermissions(PermissionsModel permissions) {
+    final permissionList = PermissionEnum.values
+        .where((permission) => permissions.hasPermission(permission))
+        .map((permission) => permission
+            .toString()
+            .split('.')
+            .last
+            .replaceAllMapped(RegExp(r'([A-Z])'), (m) => ' ${m[0]}')
+            .trim())
+        .toList();
+
     return permissionList.isEmpty
         ? 'No Special Permissions'
         : permissionList.join(', ');

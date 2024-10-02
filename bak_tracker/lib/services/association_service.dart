@@ -1,8 +1,6 @@
-import 'dart:convert';
-
+import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:bak_tracker/models/achievement_model.dart';
 import 'package:bak_tracker/models/member_achievement_model.dart';
-import 'package:bak_tracker/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/models/association_model.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
@@ -31,33 +29,11 @@ class AssociationService {
         .eq('association_id', associationId)
         .order('user_id(name)', ascending: true);
 
-    return response.map((data) {
-      // Safely handle `member_achievements`
-      final List<dynamic> achievementsData = data['member_achievements'] ?? [];
-      final List<MemberAchievementModel> achievements =
-          achievementsData.map((achievementData) {
-        return MemberAchievementModel.fromMap(
-            achievementData as Map<String, dynamic>);
-      }).toList();
-
-      // Return the AssociationMemberModel, mapping fields properly
-      return AssociationMemberModel(
-        id: data['id'],
-        user: UserModel.fromMap(
-            data['user_id'] as Map<String, dynamic>), // Safely map user data
-        associationId: data['association_id'],
-        role: data['role'] ?? 'Unknown Role',
-        permissions: data['permissions'] is String
-            ? jsonDecode(data['permissions']) as Map<String, dynamic>
-            : data['permissions'] as Map<String, dynamic>,
-        joinedAt: DateTime.parse(data['joined_at']),
-        baksReceived: data['baks_received'] ?? 0,
-        baksConsumed: data['baks_consumed'] ?? 0,
-        betsWon: data['bets_won'] ?? 0,
-        betsLost: data['bets_lost'] ?? 0,
-        achievements: achievements, // Pass the achievements list
-      );
-    }).toList();
+    return List<AssociationMemberModel>.from(
+      response.map((data) {
+        return AssociationMemberModel.fromMap(data);
+      }),
+    );
   }
 
   Future<int> fetchPendingBaksCount(String associationId, String userId) async {
@@ -214,5 +190,13 @@ class AssociationService {
         await removeAchievement(memberId, achievementId);
       }
     }
+  }
+
+  // Method to update permissions for a member
+  Future<void> updateMemberPermissions(
+      String memberId, PermissionsModel permissions) async {
+    await _supabase
+        .from('association_members')
+        .update({'permissions': permissions.toMap()}).eq('user_id', memberId);
   }
 }

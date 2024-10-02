@@ -84,7 +84,7 @@ class _MembersTabState extends State<MembersTab> {
                       ),
                     ),
                     subtitle: Text(
-                      member.role,
+                      member.role ?? '',
                       style: const TextStyle(color: Colors.grey),
                     ),
                     trailing: IconButton(

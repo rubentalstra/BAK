@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
+import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:bak_tracker/ui/association_settings/association_settings_screen.dart';
@@ -130,20 +131,27 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context, state) {
               if (state is AssociationLoaded) {
                 final memberData = state.memberData;
-                bool hasAssociationPermissions =
-                    memberData.canManagePermissions ||
-                        memberData.canInviteMembers ||
-                        memberData.canRemoveMembers ||
-                        memberData.canManageRoles ||
-                        memberData.canManageBaks ||
-                        memberData.canApproveBaks;
+
+                // Check if the member has any relevant permissions
+                bool hasAssociationPermissions = memberData.permissions
+                        .hasPermission(PermissionEnum.canManagePermissions) ||
+                    memberData.permissions
+                        .hasPermission(PermissionEnum.canInviteMembers) ||
+                    memberData.permissions
+                        .hasPermission(PermissionEnum.canRemoveMembers) ||
+                    memberData.permissions
+                        .hasPermission(PermissionEnum.canManageRoles) ||
+                    memberData.permissions
+                        .hasPermission(PermissionEnum.canManageBaks) ||
+                    memberData.permissions
+                        .hasPermission(PermissionEnum.canApproveBaks);
 
                 if (hasAssociationPermissions) {
                   return badges.Badge(
                     position: badges.BadgePosition.topEnd(top: 0, end: 3),
-                    showBadge: state.pendingBaksCount > 0,
+                    showBadge: state.pendingAproveBaksCount > 0,
                     badgeContent: Text(
-                      state.pendingBaksCount.toString(),
+                      state.pendingAproveBaksCount.toString(),
                       style: const TextStyle(color: Colors.white, fontSize: 10),
                     ),
                     badgeStyle: const badges.BadgeStyle(badgeColor: Colors.red),
@@ -156,7 +164,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             builder: (context) => AssociationSettingsScreen(
                               memberData: memberData,
                               associationId: state.selectedAssociation.id,
-                              pendingBaksCount: state.pendingBaksCount,
+                              pendingAproveBaksCount:
+                                  state.pendingAproveBaksCount,
                             ),
                           ),
                         )

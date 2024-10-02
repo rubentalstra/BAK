@@ -205,7 +205,7 @@ class LeaderboardProfileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoRow('Role', member.role, Icons.supervisor_account),
+            _buildInfoRow('Role', member.role ?? '', Icons.supervisor_account),
             const SizedBox(height: 12),
             _buildInfoRow(
                 'Bio', member.user.bio ?? 'No bio available', Icons.info),

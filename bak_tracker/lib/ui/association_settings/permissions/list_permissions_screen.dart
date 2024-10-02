@@ -1,6 +1,6 @@
-import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/ui/association_settings/permissions/edit_permissions_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UpdatePermissionsScreen extends StatefulWidget {
@@ -62,7 +62,6 @@ class _UpdatePermissionsScreenState extends State<UpdatePermissionsScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              color: AppColors.lightSecondary,
               onRefresh: _refreshMembers, // Pull to refresh
               child: ListView.builder(
                 padding: const EdgeInsets.all(8.0),
@@ -70,16 +69,12 @@ class _UpdatePermissionsScreenState extends State<UpdatePermissionsScreen> {
                 itemBuilder: (context, index) {
                   final member = _members[index];
                   final permissions =
-                      Map<String, dynamic>.from(member['permissions']);
+                      PermissionsModel.fromMap(member['permissions']);
 
                   return Card(
                     elevation: 4,
                     margin: const EdgeInsets.symmetric(vertical: 8.0),
                     child: ListTile(
-                      // leading: const CircleAvatar(
-                      //   backgroundColor: AppColors.lightSecondary,
-                      //   child: Icon(Icons.person, color: Colors.white),
-                      // ),
                       title: Text(
                         member['user_id']['name'],
                         style: const TextStyle(
@@ -113,33 +108,17 @@ class _UpdatePermissionsScreenState extends State<UpdatePermissionsScreen> {
   }
 
   // Build a summary of current permissions
-  String _buildPermissionsSummary(Map<String, dynamic> permissions) {
+  String _buildPermissionsSummary(PermissionsModel permissions) {
     List<String> permissionLabels = [];
 
     // Check if the user has all permissions
-    if (permissions['hasAllPermissions'] == true) {
+    if (permissions.hasPermission(PermissionEnum.hasAllPermissions)) {
       permissionLabels.add('Has All Permissions');
     } else {
-      if (permissions['canInviteMembers'] == true) {
-        permissionLabels.add('Invite Members');
-      }
-      if (permissions['canRemoveMembers'] == true) {
-        permissionLabels.add('Remove Members');
-      }
-      if (permissions['canManageRoles'] == true) {
-        permissionLabels.add('Manage Roles');
-      }
-      if (permissions['canManageBaks'] == true) {
-        permissionLabels.add('Manage Baks');
-      }
-      if (permissions['canApproveBaks'] == true) {
-        permissionLabels.add('Approve Baks');
-      }
-      if (permissions['canManagePermissions'] == true) {
-        permissionLabels.add('Manage Permissions');
-      }
-      if (permissions['canManageAchievements'] == true) {
-        permissionLabels.add('Manage Achievements');
+      for (var permission in PermissionEnum.values) {
+        if (permissions.hasPermission(permission)) {
+          permissionLabels.add(permission.label);
+        }
       }
     }
 

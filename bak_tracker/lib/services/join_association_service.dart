@@ -7,56 +7,81 @@ class JoinAssociationService {
   Future<AssociationModel> joinAssociation(String inviteCode) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
-      throw 'User not authenticated.';
+      throw UserNotAuthenticatedException();
     }
 
-    try {
-      // Fetch the invite details, including permissions
-      final inviteResponse = await _supabase
-          .from('invites')
-          .select('association_id, permissions')
-          .eq('invite_key', inviteCode)
-          .eq('is_expired', false)
-          .maybeSingle();
+    final inviteDetails = await _fetchInviteDetails(inviteCode);
+    if (inviteDetails == null) {
+      throw InvalidInviteCodeException();
+    }
 
-      if (inviteResponse == null) {
-        throw 'Invalid or expired invite code.';
-      }
+    final associationId = inviteDetails['association_id'];
+    final invitePermissions = inviteDetails['permissions'];
 
-      final associationId = inviteResponse['association_id'];
-      final invitePermissions = inviteResponse['permissions'];
+    await _checkMembership(associationId, userId);
 
-      // Check if the user is already a member of the association
-      final isMember = await _supabase
-          .from('association_members')
-          .select('id')
-          .eq('association_id', associationId)
-          .eq('user_id', userId)
-          .maybeSingle();
+    await _addMemberToAssociation(userId, associationId, invitePermissions);
 
-      if (isMember != null) {
-        throw 'You are already a member of this association.';
-      }
+    return await _fetchAssociationDetails(associationId);
+  }
 
-      // Insert the new member with the permissions from the invite
-      await _supabase.from('association_members').insert({
-        'user_id': userId,
-        'association_id': associationId,
-        'role': 'member',
-        'permissions': invitePermissions,
-        'joined_at': DateTime.now().toIso8601String(),
-      });
+  Future<Map<String, dynamic>?> _fetchInviteDetails(String inviteCode) async {
+    return await _supabase
+        .from('invites')
+        .select('association_id, permissions')
+        .eq('invite_key', inviteCode)
+        .eq('is_expired', false)
+        .maybeSingle();
+  }
 
-      // Fetch and return the associated association details
-      final associationResponse = await _supabase
-          .from('associations')
-          .select()
-          .eq('id', associationId)
-          .single();
+  Future<void> _checkMembership(String associationId, String userId) async {
+    final isMember = await _supabase
+        .from('association_members')
+        .select('id')
+        .eq('association_id', associationId)
+        .eq('user_id', userId)
+        .maybeSingle();
 
-      return AssociationModel.fromMap(associationResponse);
-    } catch (e) {
-      throw 'Error joining association: $e';
+    if (isMember != null) {
+      throw AlreadyAMemberException();
     }
   }
+
+  Future<void> _addMemberToAssociation(String userId, String associationId,
+      Map<String, dynamic> invitePermissions) async {
+    await _supabase.from('association_members').insert({
+      'user_id': userId,
+      'association_id': associationId,
+      'role': 'member',
+      'permissions': invitePermissions,
+      'joined_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<AssociationModel> _fetchAssociationDetails(
+      String associationId) async {
+    final associationResponse = await _supabase
+        .from('associations')
+        .select()
+        .eq('id', associationId)
+        .single();
+
+    return AssociationModel.fromMap(associationResponse);
+  }
+}
+
+// Custom Exceptions
+class UserNotAuthenticatedException implements Exception {
+  @override
+  String toString() => 'User is not authenticated.';
+}
+
+class InvalidInviteCodeException implements Exception {
+  @override
+  String toString() => 'Invalid or expired invite code.';
+}
+
+class AlreadyAMemberException implements Exception {
+  @override
+  String toString() => 'You are already a member of this association.';
 }

@@ -1,5 +1,4 @@
-import 'dart:convert';
-import 'package:bak_tracker/core/const/permissions.dart';
+import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:bak_tracker/models/member_achievement_model.dart';
 import 'package:bak_tracker/models/user_model.dart';
 import 'package:equatable/equatable.dart';
@@ -8,8 +7,8 @@ class AssociationMemberModel extends Equatable {
   final String id;
   final UserModel user;
   final String associationId;
-  final String role;
-  final Map<String, dynamic> permissions;
+  final String? role;
+  final PermissionsModel permissions;
   final DateTime joinedAt;
   final int baksReceived;
   final int baksConsumed;
@@ -21,42 +20,33 @@ class AssociationMemberModel extends Equatable {
     required this.id,
     required this.user,
     required this.associationId,
-    required this.role,
+    this.role,
     required this.permissions,
     required this.joinedAt,
-    required this.baksReceived,
-    required this.baksConsumed,
-    required this.betsWon,
-    required this.betsLost,
+    this.baksReceived = 0,
+    this.baksConsumed = 0,
+    this.betsWon = 0,
+    this.betsLost = 0,
     this.achievements = const [],
   });
 
   factory AssociationMemberModel.fromMap(Map<String, dynamic> map) {
     return AssociationMemberModel(
-      id: map['id'] ?? 'Unknown ID',
+      id: map['id'],
       user: UserModel.fromMap(map['user_id']),
       associationId: map['association_id'],
       role: map['role'],
-      permissions: map['permissions'] != null
-          ? (map['permissions'] is String
-              ? jsonDecode(map['permissions']) as Map<String, dynamic>
-              : map['permissions'] as Map<String, dynamic>)
-          : {}, // Default to empty permissions if null
-      joinedAt: map['joined_at'] != null
-          ? DateTime.parse(map['joined_at'])
-          : DateTime.now(), // Default to current time if null
+      permissions: PermissionsModel.fromMap(map['permissions'] ?? {}),
+      joinedAt: DateTime.parse(map['joined_at']),
       baksReceived: map['baks_received'] ?? 0,
       baksConsumed: map['baks_consumed'] ?? 0,
       betsWon: map['bets_won'] ?? 0,
       betsLost: map['bets_lost'] ?? 0,
-      achievements: map['member_achievements'] != null
-          ? List<MemberAchievementModel>.from(
-              (map['member_achievements'] as List).map(
-                (achievementMap) =>
-                    MemberAchievementModel.fromMap(achievementMap),
-              ),
-            )
-          : [], // Default to empty achievements list if null
+      achievements: List<MemberAchievementModel>.from(
+        (map['member_achievements'] as List).map(
+          (achievementMap) => MemberAchievementModel.fromMap(achievementMap),
+        ),
+      ),
     );
   }
 
@@ -66,7 +56,7 @@ class AssociationMemberModel extends Equatable {
       'user_id': user.toMap(),
       'association_id': associationId,
       'role': role,
-      'permissions': jsonEncode(permissions),
+      'permissions': permissions.toMap(),
       'joined_at': joinedAt.toIso8601String(),
       'baks_received': baksReceived,
       'baks_consumed': baksConsumed,
@@ -76,22 +66,10 @@ class AssociationMemberModel extends Equatable {
     };
   }
 
-  // Permissions checkers
-  bool get hasAllPermissions => hasPermission(permissions, 'hasAllPermissions');
-  bool get canManagePermissions =>
-      hasAllPermissions || hasPermission(permissions, 'canManagePermissions');
-  bool get canInviteMembers =>
-      hasAllPermissions || hasPermission(permissions, 'canInviteMembers');
-  bool get canRemoveMembers =>
-      hasAllPermissions || hasPermission(permissions, 'canRemoveMembers');
-  bool get canManageRoles =>
-      hasAllPermissions || hasPermission(permissions, 'canManageRoles');
-  bool get canManageBaks =>
-      hasAllPermissions || hasPermission(permissions, 'canManageBaks');
-  bool get canApproveBaks =>
-      hasAllPermissions || hasPermission(permissions, 'canApproveBaks');
-  bool get canManageAchievements =>
-      hasAllPermissions || hasPermission(permissions, 'canManageAchievements');
+  // Method to check if the member has a specific permission
+  bool hasPermission(PermissionEnum permission) {
+    return permissions.hasPermission(permission);
+  }
 
   @override
   List<Object?> get props => [

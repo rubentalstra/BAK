@@ -14,6 +14,7 @@ import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/models/association_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:bak_tracker/core/const/permissions_constants.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -53,8 +54,9 @@ class _MainScreenState extends State<MainScreen> {
     final associationBloc = context.read<AssociationBloc>();
     associationBloc.stream.listen((state) {
       if (state is AssociationLoaded) {
-        _canApproveBaks = state.memberData.canApproveBaks ||
-            state.memberData.hasAllPermissions;
+        _canApproveBaks = state.memberData
+                .hasPermission(PermissionEnum.canApproveBaks) ||
+            state.memberData.hasPermission(PermissionEnum.hasAllPermissions);
 
         // Update badge counts only if they have changed
         setState(() {

@@ -1,4 +1,5 @@
 import 'package:bak_tracker/models/invite_model.dart';
+import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
@@ -187,30 +188,22 @@ class ActiveInvitesTab extends StatelessWidget {
     );
   }
 
-  // Build a summary of permissions for display
+  // Build a summary of current permissions using the new method
   String _buildPermissionsSummary(Map<String, dynamic> permissions) {
     List<String> permissionLabels = [];
 
     if (permissions['hasAllPermissions'] == true) {
       permissionLabels.add('Has All Permissions');
     } else {
-      if (permissions['canInviteMembers'] == true) {
-        permissionLabels.add('Invite Members');
-      }
-      if (permissions['canRemoveMembers'] == true) {
-        permissionLabels.add('Remove Members');
-      }
-      if (permissions['canManageRoles'] == true) {
-        permissionLabels.add('Manage Roles');
-      }
-      if (permissions['canManageBaks'] == true) {
-        permissionLabels.add('Manage Baks');
-      }
-      if (permissions['canApproveBaks'] == true) {
-        permissionLabels.add('Approve Baks');
-      }
-      if (permissions['canManagePermissions'] == true) {
-        permissionLabels.add('Manage Permissions');
+      for (var permission in PermissionEnum.values) {
+        if (permissions[permission.toString().split('.').last] == true) {
+          permissionLabels.add(permission
+              .toString()
+              .split('.')
+              .last
+              .replaceAllMapped(RegExp(r'([A-Z])'), (m) => ' ${m[0]}')
+              .trim());
+        }
       }
     }
 

@@ -1,3 +1,4 @@
+import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -5,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class EditPermissionsScreen extends StatefulWidget {
   final String memberId;
   final String associationId;
-  final Map<String, dynamic> currentPermissions;
+  final PermissionsModel currentPermissions; // Change to use PermissionsModel
 
   const EditPermissionsScreen({
     super.key,
@@ -19,37 +20,25 @@ class EditPermissionsScreen extends StatefulWidget {
 }
 
 class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
-  late Map<String, bool> _permissions;
+  late PermissionsModel _permissions; // Use PermissionsModel
   bool _isSaving = false;
-
-  // Map of permission keys to their display labels
-  final Map<String, String> _permissionLabels = {
-    'hasAllPermissions': 'Has All Permissions',
-    'canManagePermissions': 'Manage Permissions',
-    'canInviteMembers': 'Invite Members',
-    'canRemoveMembers': 'Remove Members',
-    'canManageRoles': 'Manage Roles',
-    'canManageBaks': 'Manage Baks',
-    'canApproveBaks': 'Approve Baks',
-    'canManageAchievements': 'Manage Achievements',
-  };
 
   // Grouping permissions for better UI organization
   final List<Map<String, dynamic>> _permissionGroups = [
     {
       'groupName': 'All Permissions',
-      'permissions': ['hasAllPermissions'],
+      'permissions': [PermissionEnum.hasAllPermissions],
     },
     {
       'groupName': 'Specific Permissions',
       'permissions': [
-        'canManagePermissions',
-        'canInviteMembers',
-        'canRemoveMembers',
-        'canManageRoles',
-        'canManageBaks',
-        'canApproveBaks',
-        'canManageAchievements',
+        PermissionEnum.canManagePermissions,
+        PermissionEnum.canInviteMembers,
+        PermissionEnum.canRemoveMembers,
+        PermissionEnum.canManageRoles,
+        PermissionEnum.canManageBaks,
+        PermissionEnum.canApproveBaks,
+        PermissionEnum.canManageAchievements,
       ],
     },
   ];
@@ -60,12 +49,9 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
     _initializePermissions();
   }
 
-  // Initialize the permissions map based on current permissions
+  // Initialize the permissions model based on current permissions
   void _initializePermissions() {
-    _permissions = {};
-    for (var key in _permissionLabels.keys) {
-      _permissions[key] = widget.currentPermissions[key] ?? false;
-    }
+    _permissions = widget.currentPermissions;
   }
 
   // Save the updated permissions to Supabase
@@ -78,7 +64,7 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
       final supabase = Supabase.instance.client;
       await supabase
           .from('association_members')
-          .update({'permissions': _permissions})
+          .update({'permissions': _permissions.toMap()})
           .eq('user_id', widget.memberId)
           .eq('association_id', widget.associationId);
 
@@ -98,26 +84,10 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
     }
   }
 
-  // Update the permissions map when a switch is toggled
-  void _updatePermission(String permissionKey, bool value) {
+  // Update the permissions model when a switch is toggled
+  void _updatePermission(PermissionEnum permission, bool value) {
     setState(() {
-      if (permissionKey == 'hasAllPermissions') {
-        _permissions['hasAllPermissions'] = value;
-        if (value) {
-          // Deselect all other permissions
-          for (var key in _permissionLabels.keys) {
-            if (key != 'hasAllPermissions') {
-              _permissions[key] = false;
-            }
-          }
-        }
-      } else {
-        _permissions[permissionKey] = value;
-        if (value) {
-          // Deselect 'hasAllPermissions' if any other permission is selected
-          _permissions['hasAllPermissions'] = false;
-        }
-      }
+      _permissions.updatePermission(permission, value);
     });
   }
 
@@ -127,7 +97,7 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
     final List<Widget> permissionGroups = _permissionGroups.map((group) {
       return _buildPermissionGroup(
         groupName: group['groupName'],
-        permissionKeys: List<String>.from(group['permissions']),
+        permissionEnums: List<PermissionEnum>.from(group['permissions']),
       );
     }).toList();
 
@@ -174,7 +144,7 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
   // Build each permission group with its switches
   Widget _buildPermissionGroup({
     required String groupName,
-    required List<String> permissionKeys,
+    required List<PermissionEnum> permissionEnums,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,10 +158,10 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        ...permissionKeys.map((key) {
+        ...permissionEnums.map((permission) {
           return _buildPermissionSwitch(
-            label: _permissionLabels[key] ?? key,
-            permissionKey: key,
+            label: permission.label,
+            permissionKey: permission,
           );
         }),
         const SizedBox(height: 20),
@@ -202,14 +172,14 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
   // Build each permission switch
   Widget _buildPermissionSwitch({
     required String label,
-    required String permissionKey,
+    required PermissionEnum permissionKey,
   }) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6.0),
       child: SwitchListTile(
         title: Text(label),
         activeColor: AppColors.lightSecondary,
-        value: _permissions[permissionKey] ?? false,
+        value: _permissions.permissions[permissionKey] ?? false,
         onChanged: (bool value) {
           _updatePermission(permissionKey, value);
         },

@@ -1,11 +1,12 @@
+import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/services/association_service.dart';
 import 'package:bak_tracker/ui/association_settings/achievements/achievement_screen.dart';
 import 'package:bak_tracker/ui/association_settings/approve_baks/approve_baks_screen.dart';
 import 'package:bak_tracker/ui/association_settings/invite_members/invite_members_screen.dart';
-import 'package:bak_tracker/ui/association_settings/remove_members_screen.dart';
 import 'package:bak_tracker/ui/association_settings/permissions/list_permissions_screen.dart';
+import 'package:bak_tracker/ui/association_settings/remove_members_screen.dart';
 import 'package:bak_tracker/ui/association_settings/update_roles_screen.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:flutter/material.dart';
@@ -15,13 +16,13 @@ class AssociationSettingsScreen extends StatelessWidget {
   final AssociationMemberModel memberData;
   final String associationId;
   final AssociationService associationService = AssociationService();
-  final int pendingBaksCount; // Pass the pending baks count
+  final int pendingAproveBaksCount; // Pass the pending baks count
 
   AssociationSettingsScreen({
     super.key,
     required this.memberData,
     required this.associationId,
-    required this.pendingBaksCount, // Required for badge
+    required this.pendingAproveBaksCount, // Required for badge
   });
 
   @override
@@ -32,143 +33,122 @@ class AssociationSettingsScreen extends StatelessWidget {
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
-        children: [
-          // Show Invite Members option if the user has permission
-          if (memberData.canInviteMembers)
-            _buildOptionTile(
-              context,
-              icon: Icons.group_add,
-              title: 'Invite Members',
-              subtitle: 'Send invites to new members',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => InviteMembersScreen(
-                      associationId: associationId,
-                    ),
-                  ),
-                );
-              },
-            ),
-          if (memberData.canInviteMembers) const Divider(),
-
-          // Show Remove Members option if the user has permission
-          if (memberData.canRemoveMembers)
-            _buildOptionTile(
-              context,
-              icon: Icons.person_remove,
-              title: 'Remove Members',
-              subtitle: 'Remove members from the association',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => RemoveMembersScreen(
-                      associationId: associationId,
-                    ),
-                  ),
-                );
-              },
-            ),
-          if (memberData.canRemoveMembers) const Divider(),
-
-          // Show Manage Permissions option if the user has permission
-          if (memberData.canManagePermissions)
-            _buildOptionTile(
-              context,
-              icon: Icons.admin_panel_settings,
-              title: 'Manage Permissions',
-              subtitle: 'Update member permissions',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => UpdatePermissionsScreen(
-                      associationId: associationId,
-                    ),
-                  ),
-                );
-              },
-            ),
-          if (memberData.canManagePermissions) const Divider(),
-
-          // Show Manage Roles option if the user has permission
-          if (memberData.canManageRoles)
-            _buildOptionTile(
-              context,
-              icon: Icons.assignment_ind,
-              title: 'Manage Roles',
-              subtitle: 'Update member roles',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => UpdateRolesScreen(
-                      associationId: associationId,
-                    ),
-                  ),
-                );
-              },
-            ),
-          if (memberData.canManageRoles) const Divider(),
-
-          // Show Manage Achevements option if the user has permission
-          if (memberData.canManageAchievements)
-            _buildOptionTile(
-              context,
-              icon: FontAwesomeIcons.trophy,
-              title: 'Manage Achievements',
-              subtitle: 'Create and manage achievements',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => AchievementManagementScreen(
-                      associationId: associationId,
-                    ),
-                  ),
-                );
-              },
-            ),
-          if (memberData.canManageAchievements) const Divider(),
-
-          // Show Approve Baks option with badge if the user has permission
-          if (memberData.canApproveBaks)
-            _buildOptionTile(
-              context,
-              icon: FontAwesomeIcons.circleCheck,
-              title: 'Approve Baks',
-              subtitle: 'Approve or reject pending baks',
-              trailing: badges.Badge(
-                showBadge: pendingBaksCount > 0,
-                badgeContent: Text(
-                  pendingBaksCount.toString(),
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
-                badgeStyle: const badges.BadgeStyle(
-                  badgeColor: Colors.red,
-                ),
-                child: const Icon(Icons.chevron_right),
-              ),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const ApproveBaksScreen(),
-                  ),
-                );
-              },
-            ),
-          if (memberData.canApproveBaks) const Divider(),
-
-          // Show Reset Bak Amount option if the user has permission
-          if (memberData.canManageBaks)
-            _buildOptionTile(
-              context,
-              icon: Icons.restore,
-              title: 'Reset Member Stats',
-              subtitle:
-                  'Reset the baks received, baks consumed, bets won, and bets lost',
-              titleStyle: TextStyle(color: Colors.red.shade500),
-              onTap: () => _showResetBakDialog(context),
-            ),
-        ],
+        children: _buildOptions(context),
       ),
+    );
+  }
+
+  List<Widget> _buildOptions(BuildContext context) {
+    final options = <_AssociationOption>[
+      _AssociationOption(
+        condition: memberData.hasPermission(PermissionEnum.canInviteMembers),
+        icon: Icons.group_add,
+        title: 'Invite Members',
+        subtitle: 'Send invites to new members',
+        onTap: () => _navigateTo(
+            context,
+            InviteMembersScreen(
+              associationId: associationId,
+            )),
+      ),
+      _AssociationOption(
+        condition: memberData.hasPermission(PermissionEnum.canRemoveMembers),
+        icon: Icons.person_remove,
+        title: 'Remove Members',
+        subtitle: 'Remove members from the association',
+        onTap: () => _navigateTo(
+            context,
+            RemoveMembersScreen(
+              associationId: associationId,
+            )),
+      ),
+      _AssociationOption(
+        condition:
+            memberData.hasPermission(PermissionEnum.canManagePermissions),
+        icon: Icons.admin_panel_settings,
+        title: 'Manage Permissions',
+        subtitle: 'Update member permissions',
+        onTap: () => _navigateTo(
+            context,
+            UpdatePermissionsScreen(
+              associationId: associationId,
+            )),
+      ),
+      _AssociationOption(
+        condition: memberData.hasPermission(PermissionEnum.canManageRoles),
+        icon: Icons.assignment_ind,
+        title: 'Manage Roles',
+        subtitle: 'Update member roles',
+        onTap: () => _navigateTo(
+            context,
+            UpdateRolesScreen(
+              associationId: associationId,
+            )),
+      ),
+      _AssociationOption(
+        condition:
+            memberData.hasPermission(PermissionEnum.canManageAchievements),
+        icon: FontAwesomeIcons.trophy,
+        title: 'Manage Achievements',
+        subtitle: 'Create and manage achievements',
+        onTap: () => _navigateTo(
+            context,
+            AchievementManagementScreen(
+              associationId: associationId,
+            )),
+      ),
+      _AssociationOption(
+        condition: memberData.hasPermission(PermissionEnum.canApproveBaks),
+        icon: FontAwesomeIcons.circleCheck,
+        title: 'Approve Baks',
+        subtitle: 'Approve or reject pending baks',
+        trailing: _buildBadge(),
+        onTap: () => _navigateTo(
+            context,
+            ApproveBaksScreen(
+              associationId: associationId,
+            )),
+      ),
+      _AssociationOption(
+        condition: memberData.hasPermission(PermissionEnum.canManageBaks),
+        icon: Icons.restore,
+        title: 'Reset Member Stats',
+        subtitle:
+            'Reset the baks received, baks consumed, bets won, and bets lost',
+        titleStyle: TextStyle(color: Colors.red.shade500),
+        onTap: () => _showResetBakDialog(context),
+      ),
+    ];
+
+    return options
+        .where(
+            (option) => option.condition) // Filter options based on permissions
+        .expand((option) => [
+              _buildOptionTile(
+                context,
+                icon: option.icon,
+                title: option.title,
+                subtitle: option.subtitle,
+                titleStyle: option.titleStyle,
+                onTap: option.onTap,
+                trailing: option.trailing,
+              ),
+              const Divider(), // Add a divider after each option
+            ])
+        .toList();
+  }
+
+  Widget _buildBadge() {
+    return badges.Badge(
+      showBadge: pendingAproveBaksCount > 0,
+      badgeContent: Text(
+        pendingAproveBaksCount.toString(),
+        style: const TextStyle(color: Colors.white, fontSize: 12),
+      ),
+      badgeStyle: const badges.BadgeStyle(
+        badgeColor: Colors.red,
+      ),
+      child: const Icon(Icons.chevron_right),
     );
   }
 
@@ -179,7 +159,7 @@ class AssociationSettingsScreen extends StatelessWidget {
     required String subtitle,
     TextStyle? titleStyle,
     required VoidCallback? onTap,
-    Widget? trailing, // Allow trailing widgets, like the badge
+    Widget? trailing,
   }) {
     return ListTile(
       leading: Icon(icon, color: AppColors.lightSecondary),
@@ -190,6 +170,12 @@ class AssociationSettingsScreen extends StatelessWidget {
       subtitle: Text(subtitle),
       trailing: trailing ?? const Icon(Icons.chevron_right),
       onTap: onTap,
+    );
+  }
+
+  void _navigateTo(BuildContext context, Widget screen) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => screen),
     );
   }
 
@@ -250,4 +236,24 @@ class AssociationSettingsScreen extends StatelessWidget {
       },
     );
   }
+}
+
+class _AssociationOption {
+  final bool condition;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final TextStyle? titleStyle;
+  final VoidCallback? onTap;
+  final Widget? trailing;
+
+  _AssociationOption({
+    required this.condition,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.titleStyle,
+    this.onTap,
+    this.trailing,
+  });
 }
