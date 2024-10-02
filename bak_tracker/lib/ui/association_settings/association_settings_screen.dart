@@ -1,6 +1,7 @@
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/services/association_service.dart';
+import 'package:bak_tracker/ui/association_settings/achievements/achievement_screen.dart';
 import 'package:bak_tracker/ui/association_settings/approve_baks/approve_baks_screen.dart';
 import 'package:bak_tracker/ui/association_settings/invite_members/invite_members_screen.dart';
 import 'package:bak_tracker/ui/association_settings/remove_members_screen.dart';
@@ -33,84 +34,99 @@ class AssociationSettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         children: [
           // Show Invite Members option if the user has permission
-          _buildOptionTile(
-            context,
-            icon: Icons.group_add,
-            title: 'Invite Members',
-            subtitle: 'Send invites to new members',
-            onTap: memberData.canInviteMembers
-                ? () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => InviteMembersScreen(
-                          associationId: associationId,
-                        ),
-                      ),
-                    );
-                  }
-                : null,
-          ),
+          if (memberData.canInviteMembers)
+            _buildOptionTile(
+              context,
+              icon: Icons.group_add,
+              title: 'Invite Members',
+              subtitle: 'Send invites to new members',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => InviteMembersScreen(
+                      associationId: associationId,
+                    ),
+                  ),
+                );
+              },
+            ),
           if (memberData.canInviteMembers) const Divider(),
 
           // Show Remove Members option if the user has permission
-          _buildOptionTile(
-            context,
-            icon: Icons.person_remove,
-            title: 'Remove Members',
-            subtitle: 'Remove members from the association',
-            onTap: memberData.canRemoveMembers
-                ? () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => RemoveMembersScreen(
-                          associationId: associationId,
-                        ),
-                      ),
-                    );
-                  }
-                : null,
-          ),
+          if (memberData.canRemoveMembers)
+            _buildOptionTile(
+              context,
+              icon: Icons.person_remove,
+              title: 'Remove Members',
+              subtitle: 'Remove members from the association',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => RemoveMembersScreen(
+                      associationId: associationId,
+                    ),
+                  ),
+                );
+              },
+            ),
           if (memberData.canRemoveMembers) const Divider(),
 
           // Show Manage Permissions option if the user has permission
-          _buildOptionTile(
-            context,
-            icon: Icons.admin_panel_settings,
-            title: 'Manage Permissions',
-            subtitle: 'Update member permissions',
-            onTap: memberData.canManagePermissions
-                ? () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => UpdatePermissionsScreen(
-                          associationId: associationId,
-                        ),
-                      ),
-                    );
-                  }
-                : null,
-          ),
+          if (memberData.canManagePermissions)
+            _buildOptionTile(
+              context,
+              icon: Icons.admin_panel_settings,
+              title: 'Manage Permissions',
+              subtitle: 'Update member permissions',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => UpdatePermissionsScreen(
+                      associationId: associationId,
+                    ),
+                  ),
+                );
+              },
+            ),
           if (memberData.canManagePermissions) const Divider(),
 
           // Show Manage Roles option if the user has permission
-          _buildOptionTile(
-            context,
-            icon: Icons.assignment_ind,
-            title: 'Manage Roles',
-            subtitle: 'Update member roles',
-            onTap: memberData.canManageRoles
-                ? () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => UpdateRolesScreen(
-                          associationId: associationId,
-                        ),
-                      ),
-                    );
-                  }
-                : null,
-          ),
+          if (memberData.canManageRoles)
+            _buildOptionTile(
+              context,
+              icon: Icons.assignment_ind,
+              title: 'Manage Roles',
+              subtitle: 'Update member roles',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => UpdateRolesScreen(
+                      associationId: associationId,
+                    ),
+                  ),
+                );
+              },
+            ),
           if (memberData.canManageRoles) const Divider(),
+
+          // Show Manage Achevements option if the user has permission
+          if (memberData.canManageAchievements)
+            _buildOptionTile(
+              context,
+              icon: FontAwesomeIcons.trophy,
+              title: 'Manage Achievements',
+              subtitle: 'Create and manage achievements',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => AchievementManagementScreen(
+                      associationId: associationId,
+                    ),
+                  ),
+                );
+              },
+            ),
+          if (memberData.canManageAchievements) const Divider(),
 
           // Show Approve Baks option with badge if the user has permission
           if (memberData.canApproveBaks)

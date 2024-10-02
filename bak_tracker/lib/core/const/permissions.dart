@@ -7,6 +7,7 @@ const Map<String, bool> defaultPermissions = {
   'canManageRoles': false,
   'canManageBaks': false,
   'canApproveBaks': false,
+  'canManageAchievements': false,
   // Add any other permissions here
 };
 

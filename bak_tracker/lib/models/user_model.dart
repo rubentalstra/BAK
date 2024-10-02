@@ -3,28 +3,36 @@ import 'package:equatable/equatable.dart';
 class UserModel extends Equatable {
   final String id;
   final String name;
-  final String bio;
-  final String? fcmToken;
-  final DateTime createdAt;
-  final String? profileImage;
+  final String? bio; // Nullable
+  final String? fcmToken; // Nullable
+  final String? profileImage; // Nullable
 
   const UserModel({
     required this.id,
     required this.name,
-    required this.bio,
-    this.fcmToken,
-    required this.createdAt,
-    this.profileImage,
+    this.bio, // Nullable
+    this.fcmToken, // Nullable
+    this.profileImage, // Nullable
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
-      id: map['id'],
-      name: map['name'],
-      bio: map['bio'],
-      fcmToken: map['fcm_token'],
-      createdAt: DateTime.parse(map['created_at']),
-      profileImage: map['profile_image'],
+      id: map['id'] ?? 'Unknown ID',
+      name: map['name'] ?? 'Unknown Name',
+      bio: map['bio'], // This can be null
+      fcmToken: map['fcm_token'], // This can be null
+      profileImage: map['profile_image'], // This can be null
+    );
+  }
+
+  // Create an empty factory method for default value
+  factory UserModel.empty() {
+    return UserModel(
+      id: 'Unknown ID',
+      name: 'Unknown Name',
+      bio: null,
+      fcmToken: null,
+      profileImage: null,
     );
   }
 
@@ -34,12 +42,10 @@ class UserModel extends Equatable {
       'name': name,
       'bio': bio,
       'fcm_token': fcmToken,
-      'created_at': createdAt.toIso8601String(),
       'profile_image': profileImage,
     };
   }
 
-  // Override props for Equatable
   @override
-  List<Object?> get props => [id, name, bio, fcmToken, createdAt, profileImage];
+  List<Object?> get props => [id, name, bio, fcmToken, profileImage];
 }

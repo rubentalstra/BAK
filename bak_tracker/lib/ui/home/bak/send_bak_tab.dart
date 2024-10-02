@@ -30,7 +30,7 @@ class _SendBakTabState extends State<SendBakTab> {
     super.initState();
     if (widget.members.isNotEmpty) {
       _selectedReceiverId =
-          widget.members.first.userId; // Default to first member
+          widget.members.first.user.id; // Default to first member
     }
   }
 
@@ -86,8 +86,8 @@ class _SendBakTabState extends State<SendBakTab> {
               },
               items: widget.members.map((member) {
                 return DropdownMenuItem<String>(
-                  value: member.userId,
-                  child: Text(member.name ?? 'Unknown'),
+                  value: member.user.id,
+                  child: Text(member.user.name),
                 );
               }).toList(),
               isExpanded: true,

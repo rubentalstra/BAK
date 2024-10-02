@@ -138,6 +138,9 @@ class _UpdatePermissionsScreenState extends State<UpdatePermissionsScreen> {
       if (permissions['canManagePermissions'] == true) {
         permissionLabels.add('Manage Permissions');
       }
+      if (permissions['canManageAchievements'] == true) {
+        permissionLabels.add('Manage Achievements');
+      }
     }
 
     return permissionLabels.isNotEmpty

@@ -1,74 +1,141 @@
 import 'dart:io';
+import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/models/association_member_model.dart';
+import 'package:bak_tracker/models/member_achievement_model.dart';
 import 'package:flutter/material.dart';
 import 'package:bak_tracker/ui/widgets/full_screen_profile_image.dart';
+import 'package:intl/intl.dart';
 
-class LeaderboardProfileScreen extends StatefulWidget {
-  final String username;
-  final File? localImageFile; // File? instead of String
-  final String? bio;
-  final String? role;
-  final int baksConsumed;
-  final int baksDebt;
-  final int betsWon; // New field for bets won
-  final int betsLost; // New field for bets lost
+class LeaderboardProfileScreen extends StatelessWidget {
+  final AssociationMemberModel member;
+  final File? localImageFile;
 
   const LeaderboardProfileScreen({
     super.key,
-    required this.username,
-    this.localImageFile, // Receiving File? directly
-    this.bio,
-    required this.role,
-    required this.baksConsumed,
-    required this.baksDebt,
-    required this.betsWon, // Required bets won
-    required this.betsLost, // Required bets lost
+    required this.member,
+    this.localImageFile,
   });
 
-  @override
-  _LeaderboardProfileScreenState createState() =>
-      _LeaderboardProfileScreenState();
-}
-
-class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen> {
-  File? _localImageFile;
-
-  @override
-  void initState() {
-    super.initState();
-    _localImageFile = widget.localImageFile; // Directly use the passed File?
-  }
-
   // Method to show full-screen image view
-  void _showFullScreenImage() {
-    if (_localImageFile != null) {
+  void _showFullScreenImage(BuildContext context) {
+    if (localImageFile != null) {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) =>
-              FullScreenImage(localImageFile: _localImageFile!),
+              FullScreenImage(localImageFile: localImageFile!),
         ),
       );
     }
+  }
+
+  // Method to show achievement details in a modal bottom sheet
+  void _showAchievementDetails(
+      BuildContext context, MemberAchievementModel achievement) {
+    final localDate = achievement.assignedAt.toLocal();
+    final formattedDate = DateFormat('HH:mm dd-MM-yyyy').format(localDate);
+
+    showModalBottomSheet(
+      backgroundColor: AppColors.cardBackground,
+      context: context,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.star, color: Colors.orangeAccent, size: 28),
+                  const SizedBox(width: 12),
+                  Text(
+                    achievement.achievement.name,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orangeAccent,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Description:',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                achievement.achievement.description ??
+                    'No description available',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Earned on: $formattedDate',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.username),
+        title: Text(member.user.name),
         centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment:
+                CrossAxisAlignment.start, // Align content to the start
             children: [
-              _buildProfileImageSection(),
-              const SizedBox(height: 30),
-              _buildProfileCard(), // Profile information in a card
-              const SizedBox(height: 20),
-              _buildStatsCard(), // Stats information in a card
+              Center(
+                child: GestureDetector(
+                  onTap: () => _showFullScreenImage(context),
+                  child: CircleAvatar(
+                    radius: 80,
+                    backgroundColor: Colors.grey,
+                    backgroundImage: localImageFile != null
+                        ? FileImage(localImageFile!)
+                        : null,
+                    // If there's no image, show initials
+                    child: localImageFile == null
+                        ? Text(
+                            member.user.name[0]
+                                .toUpperCase(), // Display the first letter of the username
+                            style: const TextStyle(
+                              fontSize:
+                                  70, // Make the text size appropriate for the avatar size
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _buildAchievementsSection(context), // Achievements at the top
+              const SizedBox(height: 10),
+              _buildProfileCard(),
+              const SizedBox(height: 10),
+              _buildStatsCard(),
             ],
           ),
         ),
@@ -76,27 +143,56 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen> {
     );
   }
 
-  // Method to build the profile image section
-  Widget _buildProfileImageSection() {
-    return GestureDetector(
-      onTap: _localImageFile != null ? _showFullScreenImage : null,
-      child: CircleAvatar(
-        radius: 80,
-        backgroundColor: Colors.grey[200],
-        backgroundImage:
-            _localImageFile != null ? FileImage(_localImageFile!) : null,
-        child: _localImageFile == null
-            ? const Icon(
-                Icons.person,
-                size: 100,
-                color: Colors.grey,
-              )
-            : null,
+  // Method to build the achievements section with matching padding and margin
+  Widget _buildAchievementsSection(BuildContext context) {
+    return Padding(
+      padding:
+          const EdgeInsets.all(16.0), // Match the padding of other sections
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start, // Align achievements to the start
+        children: [
+          const Text(
+            'Achievements',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.orangeAccent,
+            ),
+          ),
+          const SizedBox(height: 12),
+          member.achievements.isEmpty
+              ? const Text('No achievements earned yet.')
+              : Wrap(
+                  // Using Wrap to display badges in rows
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: member.achievements.map((achievement) {
+                    return GestureDetector(
+                      onTap: () =>
+                          _showAchievementDetails(context, achievement),
+                      child: _buildAchievementBadge(achievement),
+                    );
+                  }).toList(),
+                ),
+        ],
       ),
     );
   }
 
-  // Method to build the profile information card
+  // Badge for each achievement with a good design using colors and icons
+  Widget _buildAchievementBadge(MemberAchievementModel achievement) {
+    return Chip(
+      avatar: const Icon(Icons.star, color: Colors.white), // Add a star icon
+      label: Text(achievement.achievement.name),
+      backgroundColor: Colors.orangeAccent,
+      labelStyle: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+
   Widget _buildProfileCard() {
     return Card(
       shape: RoundedRectangleBorder(
@@ -108,17 +204,51 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoRow('Role', widget.role ?? 'No role available',
-                Icons.supervisor_account),
+            _buildInfoRow('Role', member.role, Icons.supervisor_account),
             const SizedBox(height: 12),
-            _buildInfoRow('Bio', widget.bio ?? 'No bio available', Icons.info),
+            _buildInfoRow(
+                'Bio', member.user.bio ?? 'No bio available', Icons.info),
           ],
         ),
       ),
     );
   }
 
-  // Method to create an info row for profile data
+  Widget _buildStatsCard() {
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      elevation: 6,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatColumn(
+                    'Chucked', member.baksConsumed, Icons.local_drink),
+                _buildStatColumn('BAK Debt', member.baksReceived,
+                    Icons.account_balance_wallet),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatColumn(
+                    'Bets Won', member.betsWon, Icons.emoji_events),
+                _buildStatColumn(
+                    'Bets Lost', member.betsLost, Icons.sports_kabaddi),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildInfoRow(String label, String value, IconData icon) {
     return Row(
       children: [
@@ -142,7 +272,6 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen> {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  // color: Colors.black87,
                 ),
               ),
             ],
@@ -152,42 +281,6 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen> {
     );
   }
 
-  // Method to build the stats card, with new fields for Bets Won and Bets Lost
-  Widget _buildStatsCard() {
-    return Card(
-      color: Colors.white.withOpacity(0.85),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 6,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatColumn(
-                    'Chucked', widget.baksConsumed, Icons.local_drink),
-                _buildStatColumn(
-                    'BAK Debt', widget.baksDebt, Icons.account_balance_wallet),
-              ],
-            ),
-            const SizedBox(height: 24), // Spacer between stat rows
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatColumn('Bets Won', widget.betsWon,
-                    Icons.emoji_events), // New Bets Won stat
-                _buildStatColumn('Bets Lost', widget.betsLost,
-                    Icons.sports_kabaddi), // New Bets Lost stat
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Method to create a column for displaying stats
   Widget _buildStatColumn(String label, int value, IconData icon) {
     return Column(
       children: [
@@ -198,7 +291,6 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen> {
           style: const TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
           ),
         ),
         const SizedBox(height: 4),

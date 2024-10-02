@@ -31,6 +31,7 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
     'canManageRoles': 'Manage Roles',
     'canManageBaks': 'Manage Baks',
     'canApproveBaks': 'Approve Baks',
+    'canManageAchievements': 'Manage Achievements',
   };
 
   // Grouping permissions for better UI organization
@@ -48,6 +49,7 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
         'canManageRoles',
         'canManageBaks',
         'canApproveBaks',
+        'canManageAchievements',
       ],
     },
   ];

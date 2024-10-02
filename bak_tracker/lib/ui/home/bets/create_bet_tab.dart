@@ -27,7 +27,8 @@ class _CreateBetTabState extends State<CreateBetTab> {
   void initState() {
     super.initState();
     if (widget.members.isNotEmpty) {
-      _selectedReceiverId = widget.members.first.userId;
+      _selectedReceiverId =
+          widget.members.first.user.id; // Default to first member
     }
   }
 
@@ -74,8 +75,8 @@ class _CreateBetTabState extends State<CreateBetTab> {
                     },
                     items: widget.members.map((member) {
                       return DropdownMenuItem<String>(
-                        value: member.userId,
-                        child: Text(member.name!),
+                        value: member.user.id,
+                        child: Text(member.user.name),
                       );
                     }).toList(),
                     isExpanded: true,

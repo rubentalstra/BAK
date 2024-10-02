@@ -6,15 +6,13 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onTap;
-  final int pendingBets; // Pass ongoing bets count
-  final bool canApproveBaks; // Pass permission flag
+  final int pendingBetsCount; // Pass ongoing bets count
 
   const BottomNavBar({
     super.key,
     required this.selectedIndex,
     required this.onTap,
-    required this.pendingBets, // Required to show badge
-    required this.canApproveBaks, // Required to conditionally show "Approve Baks"
+    required this.pendingBetsCount, // Required to show badge
   });
 
   @override
@@ -38,10 +36,10 @@ class BottomNavBar extends StatelessWidget {
       ),
       BottomNavigationBarItem(
         icon: badges.Badge(
-          showBadge:
-              pendingBets > 0, // Only show badge if there are on going bets
+          showBadge: pendingBetsCount >
+              0, // Only show badge if there are on going bets
           badgeContent: Text(
-            pendingBets.toString(),
+            pendingBetsCount.toString(),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 10,

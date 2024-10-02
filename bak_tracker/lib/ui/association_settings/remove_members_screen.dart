@@ -17,12 +17,12 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
   List<Map<String, dynamic>> _members = [];
   bool _isLoading = true;
   String? _currentUserId;
-  final ImageUploadService _imageUploadService =
-      ImageUploadService(Supabase.instance.client);
+  late final ImageUploadService _imageUploadService;
 
   @override
   void initState() {
     super.initState();
+    _imageUploadService = ImageUploadService(Supabase.instance.client);
     _fetchMembers();
     _getCurrentUserId();
   }

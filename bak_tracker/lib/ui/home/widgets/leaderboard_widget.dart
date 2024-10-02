@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:flutter/material.dart';
 import 'package:bak_tracker/ui/home/widgets/leaderboard_profile_screen.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
@@ -6,48 +7,20 @@ import 'package:bak_tracker/core/themes/colors.dart';
 
 class LeaderboardEntry {
   final int rank;
-  final String name;
-  final String? bio;
-  final String? role;
-  final String? profileImage;
-  final int baksConsumed;
-  final int baksDebt;
-  final int betsWon;
-  final int betsLost;
+  final AssociationMemberModel member; // Directly pass the member model
 
   LeaderboardEntry({
     required this.rank,
-    required this.name,
-    this.bio,
-    this.role,
-    this.profileImage,
-    required this.baksConsumed,
-    required this.baksDebt,
-    required this.betsWon,
-    required this.betsLost,
+    required this.member,
   });
 
   LeaderboardEntry copyWith({
     int? rank,
-    String? name,
-    String? bio,
-    String? role,
-    String? profileImage,
-    int? baksConsumed,
-    int? baksDebt,
-    int? betsWon,
-    int? betsLost,
+    AssociationMemberModel? member,
   }) {
     return LeaderboardEntry(
       rank: rank ?? this.rank,
-      name: name ?? this.name,
-      bio: bio ?? this.bio,
-      role: role ?? this.role,
-      profileImage: profileImage ?? this.profileImage,
-      baksConsumed: baksConsumed ?? this.baksConsumed,
-      baksDebt: baksDebt ?? this.baksDebt,
-      betsWon: betsWon ?? this.betsWon,
-      betsLost: betsLost ?? this.betsLost,
+      member: member ?? this.member,
     );
   }
 }
@@ -82,32 +55,25 @@ class LeaderboardWidget extends StatelessWidget {
       itemCount: entries.length,
       itemBuilder: (context, index) {
         final entry = entries[index];
+        final member = entry.member;
 
         return FutureBuilder<File?>(
-          future: entry.profileImage == null || entry.profileImage!.isEmpty
-              ? Future.value(null) // If no profile image, return null
-              : imageUploadService.fetchOrDownloadProfileImage(
-                  entry.profileImage!,
-                ),
+          future: member.user.profileImage == null ||
+                  member.user.profileImage!.isEmpty
+              ? Future.value(null)
+              : imageUploadService
+                  .fetchOrDownloadProfileImage(member.user.profileImage!),
           builder: (context, snapshot) {
             final imageFile = snapshot.data;
 
-            // Wrap the entry with GestureDetector to allow navigation to profile page
             return GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => LeaderboardProfileScreen(
-                      username: entry.name,
-                      localImageFile:
-                          imageFile, // Pass the local image if it exists
-                      bio: entry.bio,
-                      role: entry.role,
-                      baksConsumed: entry.baksConsumed,
-                      baksDebt: entry.baksDebt,
-                      betsWon: entry.betsWon,
-                      betsLost: entry.betsLost,
+                      member: member, // Pass the entire member object
+                      localImageFile: imageFile,
                     ),
                   ),
                 );
@@ -121,25 +87,26 @@ class LeaderboardWidget extends StatelessWidget {
   }
 
   Widget _buildEntry(LeaderboardEntry entry, File? imageFile) {
+    final member = entry.member;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground, // Updated card background
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(8.0),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _buildProfileImage(
-              imageFile), // Display profile image or default icon
+          _buildProfileImage(imageFile, member.user.name),
           const SizedBox(width: 16.0),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  entry.name,
+                  member.user.name,
                   style: const TextStyle(
                     fontSize: 16.0,
                     fontWeight: FontWeight.w600,
@@ -149,7 +116,7 @@ class LeaderboardWidget extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      'Chucked: ${entry.baksConsumed}',
+                      'Chucked: ${member.baksConsumed}',
                       style: TextStyle(
                         fontSize: 14.0,
                         color: Colors.green[700],
@@ -158,7 +125,7 @@ class LeaderboardWidget extends StatelessWidget {
                     ),
                     const SizedBox(width: 16.0),
                     Text(
-                      'BAK: ${entry.baksDebt}',
+                      'BAK: ${member.baksReceived}',
                       style: TextStyle(
                         fontSize: 14.0,
                         color: Colors.red[700],
@@ -186,29 +153,28 @@ class LeaderboardWidget extends StatelessWidget {
     );
   }
 
-  // Show profile image or default icon
-  Widget _buildProfileImage(File? imageFile) {
+  Widget _buildProfileImage(File? imageFile, String userName) {
     if (imageFile == null) {
-      // Default icon for missing image
-      return const CircleAvatar(
+      return CircleAvatar(
         radius: 24.0,
         backgroundColor: Colors.grey,
-        child: Icon(
-          size: 30.0,
-          Icons.person,
-          color: Colors.white,
+        child: Text(
+          userName[0].toUpperCase(),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 24.0,
+          ),
         ),
       );
     }
 
-    // Display the profile image
     return CircleAvatar(
       radius: 24.0,
       backgroundImage: FileImage(imageFile),
     );
   }
 
-  // Updated skeleton with card background color
   Widget _buildLoadingSkeleton() {
     return ListView.builder(
       itemCount: 6, // Loading skeleton for 6 items
@@ -217,7 +183,7 @@ class LeaderboardWidget extends StatelessWidget {
           margin: const EdgeInsets.symmetric(vertical: 8.0),
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
-            color: AppColors.cardBackground, // Updated card background
+            color: AppColors.cardBackground,
             borderRadius: BorderRadius.circular(8.0),
           ),
           child: Row(

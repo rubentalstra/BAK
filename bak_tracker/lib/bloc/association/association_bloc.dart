@@ -3,10 +3,14 @@ import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/models/association_model.dart';
 import 'package:bak_tracker/services/association_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:logger/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'association_event.dart';
 import 'association_state.dart';
+
+// Create a logger instance
+var logger = Logger();
 
 class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
   final AssociationService _associationService = AssociationService();
@@ -44,7 +48,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         .setString('selected_association', jsonEncode(association.toMap()));
   }
 
-  // Handle selection of an association
+// Handle selection of an association
   Future<void> _onSelectAssociation(
       SelectAssociation event, Emitter<AssociationState> emit) async {
     emit(AssociationLoading());
@@ -55,15 +59,28 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
 
       final supabase = Supabase.instance.client;
       final userId = supabase.auth.currentUser?.id;
+
       if (userId == null) {
         emit(AssociationError('User not authenticated'));
         return;
       }
 
-      // Fetch permissions for the current user
+      // Fetch the member data for the current user in the selected association
       final response = await supabase
           .from('association_members')
-          .select()
+          .select('''
+          id, 
+          user_id (id, name, profile_image, bio, fcm_token), 
+          association_id, 
+          role, 
+          permissions, 
+          joined_at, 
+          baks_received, 
+          baks_consumed, 
+          bets_won, 
+          bets_lost,
+          member_achievements (id, assigned_at, achievement_id(id, name, association_id, description, created_at))
+        ''')
           .eq('user_id', userId)
           .eq('association_id', event.selectedAssociation.id)
           .single();
@@ -73,13 +90,14 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         return;
       }
 
+      // Convert the response to a member model
       final memberData = AssociationMemberModel.fromMap(response);
 
-      // Fetch all members for the selected association
+      // Fetch all members of the selected association
       final members =
           await _associationService.fetchMembers(event.selectedAssociation.id);
 
-      // Fetch the updated pending baks count for the association
+      // Fetch the count of pending baks
       final responsePendingBaks = await supabase
           .from('bak_consumed')
           .select()
@@ -88,6 +106,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
 
       final pendingCount = responsePendingBaks.length;
 
+      // Emit the loaded state with the member data, member list, and pending baks count
       emit(AssociationLoaded(
         selectedAssociation: event.selectedAssociation,
         memberData: memberData,
@@ -95,7 +114,9 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         pendingBaksCount: pendingCount, // Initialize pending baks count
       ));
     } catch (e) {
-      _emitError(emit, 'Failed to select association: $e');
+      // Improved error logging with more context
+      print('Error while selecting association: $e');
+      emit(AssociationError('Failed to select association: ${e.toString()}'));
     }
   }
 
@@ -246,4 +267,8 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       emit((state as AssociationLoaded).copyWith(errorMessage: null));
     }
   }
+}
+
+void logLargeJsonResponse(dynamic response) {
+  logger.d(response); // Debug log will print the entire response
 }

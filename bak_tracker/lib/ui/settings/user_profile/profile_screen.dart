@@ -16,8 +16,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _displayNameController = TextEditingController();
   final _bioController = TextEditingController();
-  bool _isSavingProfile = false; // For saving profile (name/bio)
-  bool _isUploadingImage = false; // For uploading the image
+  bool _isSavingProfile = false;
+  bool _isUploadingImage = false;
   String? _profileImage;
   File? _localImageFile;
 
@@ -32,9 +32,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadUserProfile() async {
-    final userId = _supabaseClient.auth.currentUser!.id;
     try {
-      // Fetch user profile data from Supabase
+      final userId = _supabaseClient.auth.currentUser!.id;
       final response = await _supabaseClient
           .from('users')
           .select('name, profile_image, bio')
@@ -42,32 +41,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .single();
 
       if (response.isNotEmpty) {
-        // Update controllers with the fetched data
         _displayNameController.text = response['name'];
         _bioController.text = response['bio'] ?? '';
         _profileImage = response['profile_image'];
 
-        // Check if profile image exists
         if (_profileImage != null) {
           final localImage = await _imageUploadService
               .fetchOrDownloadProfileImage(_profileImage!);
-
-          if (localImage != null) {
-            setState(() {
-              _localImageFile = localImage;
-            });
-          }
+          setState(() {
+            _localImageFile = localImage;
+          });
         }
       }
     } catch (e) {
-      print('Error loading user profile: $e');
+      _showSnackBar('Error loading profile: $e');
     }
   }
 
   Future<void> _updateProfile() async {
     final displayName = _displayNameController.text.trim();
     final bio = _bioController.text.trim();
-    final userId = _supabaseClient.auth.currentUser!.id;
 
     if (displayName.isEmpty) {
       _showSnackBar('Display name cannot be empty.');
@@ -79,13 +72,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
+      final userId = _supabaseClient.auth.currentUser!.id;
       await _supabaseClient
           .from('users')
           .update({'name': displayName, 'bio': bio}).eq('id', userId);
-
       _showSnackBar('Profile updated successfully!');
     } catch (e) {
-      print('Error updating profile: $e');
       _showSnackBar('Error updating profile.');
     } finally {
       setState(() {
@@ -99,23 +91,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
+      File? pickedImageFile = File(pickedFile.path);
       setState(() {
-        _localImageFile = File(pickedFile.path);
-        _isUploadingImage = true; // Set to true while uploading image
+        _isUploadingImage = true;
       });
-      _uploadProfileImage();
+
+      await _uploadProfileImage(pickedImageFile);
+      setState(() {
+        _isUploadingImage = false;
+      });
     }
   }
 
-  Future<void> _uploadProfileImage() async {
-    if (_localImageFile == null) return;
-
+  Future<void> _uploadProfileImage(File pickedImageFile) async {
     final userId = _supabaseClient.auth.currentUser!.id;
+    final hadPreviousImage = _profileImage != null;
 
     try {
       final newImageHashExtension =
           await _imageUploadService.uploadProfileImage(
-        _localImageFile!,
+        pickedImageFile,
         _profileImage,
       );
 
@@ -126,18 +121,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         setState(() {
           _profileImage = newImageHashExtension;
+          _localImageFile = pickedImageFile;
         });
-
         _showSnackBar('Profile image updated successfully!');
       } else {
-        _showSnackBar('Image already up-to-date.');
+        _showSnackBar('Image already up-to-date or no upload needed.');
       }
     } catch (e) {
-      print('Error uploading profile image: $e');
-    } finally {
-      setState(() {
-        _isUploadingImage = false; // Reset after upload is complete
-      });
+      _showSnackBar(
+          'Error: ${e.toString().replaceAll('Exception:', '').trim()}');
+      if (!hadPreviousImage) {
+        setState(() {
+          _localImageFile = null;
+        });
+      }
     }
   }
 
@@ -160,10 +157,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _profileImage = null;
         _localImageFile = null;
       });
-
       _showSnackBar('Profile image deleted successfully!');
     } catch (e) {
-      print('Error deleting profile image: $e');
+      _showSnackBar('Error deleting profile image.');
     } finally {
       setState(() {
         _isUploadingImage = false;
@@ -191,9 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Profile'),
-      ),
+      appBar: AppBar(title: const Text('Edit Profile')),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: SingleChildScrollView(
@@ -213,19 +207,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ? FileImage(_localImageFile!)
                           : null,
                       child: _localImageFile == null
-                          ? const Icon(
-                              Icons.person,
-                              size: 80,
-                              color: Colors.grey,
-                            )
+                          ? const Icon(Icons.person,
+                              size: 80, color: Colors.grey)
                           : null,
                     ),
                   ),
-                  // Show loader only over the profile image while uploading
                   if (_isUploadingImage)
-                    const Positioned(
-                      child: CircularProgressIndicator(),
-                    ),
+                    const Positioned(child: CircularProgressIndicator()),
                   Positioned(
                     right: 10,
                     bottom: 0,
@@ -250,9 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _deleteProfileImage();
                           }
                         },
-                        icon: const Icon(
-                          Icons.more_vert,
-                        ),
+                        icon: const Icon(Icons.more_vert),
                         itemBuilder: (context) => [
                           const PopupMenuItem(
                             value: 'Upload',
@@ -305,9 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   textStyle: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                      fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
             ],

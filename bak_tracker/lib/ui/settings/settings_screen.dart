@@ -9,7 +9,7 @@ import 'package:bak_tracker/main.dart';
 import 'package:bak_tracker/ui/home/main_screen.dart';
 import 'package:bak_tracker/ui/legal/privacy_policy_screen.dart';
 import 'package:bak_tracker/ui/legal/terms_conditions_screen.dart';
-import 'package:bak_tracker/ui/no_association/association_request_screen.dart';
+import 'package:bak_tracker/ui/settings/association_request_screen.dart';
 import 'package:bak_tracker/ui/no_association/no_association_screen.dart';
 import 'package:bak_tracker/ui/settings/account_deletion_screen.dart';
 import 'package:bak_tracker/ui/settings/user_profile/profile_screen.dart';

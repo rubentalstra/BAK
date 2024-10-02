@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:bak_tracker/bloc/association/association_event.dart';
+import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:bak_tracker/ui/association_settings/association_settings_screen.dart';
@@ -8,9 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/models/association_model.dart';
 import 'package:bak_tracker/ui/home/widgets/leaderboard_widget.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
-import 'package:bak_tracker/bloc/association/association_event.dart';
-import 'package:bak_tracker/bloc/association/association_state.dart';
-import 'package:badges/badges.dart' as badges; // Import badges
+import 'package:badges/badges.dart' as badges;
 
 class HomeScreen extends StatefulWidget {
   final List<AssociationModel> associations;
@@ -33,14 +33,13 @@ class _HomeScreenState extends State<HomeScreen> {
   final supabase = Supabase.instance.client;
   late ImageUploadService _imageUploadService;
   StreamSubscription? _associationBlocSubscription;
-
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _imageUploadService = ImageUploadService(supabase);
-    _fetchLeaderboard(); // Initial fetch for the leaderboard
+    _fetchLeaderboard();
   }
 
   @override
@@ -65,36 +64,24 @@ class _HomeScreenState extends State<HomeScreen> {
       _leaderboardEntries = [];
     });
 
-    // Dispatch event to update the association in the bloc
     context.read<AssociationBloc>().add(SelectAssociation(
           selectedAssociation: widget.selectedAssociation!,
         ));
 
-    // Listen for the AssociationBloc updates
     _associationBlocSubscription?.cancel();
     _associationBlocSubscription =
         context.read<AssociationBloc>().stream.listen((state) {
       if (state is AssociationLoaded &&
           state.selectedAssociation.id == widget.selectedAssociation?.id) {
-        if (!mounted) return;
-
-        List<LeaderboardEntry> newLeaderboardEntries =
-            state.members.map((member) {
+        final newLeaderboardEntries = state.members.map((member) {
           return LeaderboardEntry(
             rank: 0,
-            name: member.name!,
-            bio: member.bio,
-            role: member.role,
-            profileImage: member.profileImage,
-            baksConsumed: member.baksConsumed,
-            baksDebt: member.baksReceived,
-            betsWon: member.betsWon,
-            betsLost: member.betsLost,
+            member: member,
           );
         }).toList();
 
-        newLeaderboardEntries
-            .sort((a, b) => b.baksConsumed.compareTo(a.baksConsumed));
+        newLeaderboardEntries.sort(
+            (a, b) => b.member.baksConsumed.compareTo(a.member.baksConsumed));
 
         for (int i = 0; i < newLeaderboardEntries.length; i++) {
           newLeaderboardEntries[i] =
@@ -113,10 +100,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await _fetchLeaderboard();
   }
 
-  void _handleAssociationChange(AssociationModel? newAssociation) {
-    widget.onAssociationChanged(newAssociation);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? DropdownButtonHideUnderline(
                 child: DropdownButton<AssociationModel>(
                   value: widget.selectedAssociation,
-                  onChanged: _handleAssociationChange,
+                  onChanged: widget.onAssociationChanged,
                   dropdownColor: AppColors.lightPrimaryVariant,
                   icon: Icon(Icons.keyboard_arrow_down,
                       color: Theme.of(context).iconTheme.color),
@@ -155,21 +138,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         memberData.canManageBaks ||
                         memberData.canApproveBaks;
 
-                // Display a badge if there are pending approval baks
                 if (hasAssociationPermissions) {
                   return badges.Badge(
                     position: badges.BadgePosition.topEnd(top: 0, end: 3),
                     showBadge: state.pendingBaksCount > 0,
                     badgeContent: Text(
                       state.pendingBaksCount.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
                     ),
-                    badgeStyle: const badges.BadgeStyle(
-                      badgeColor: Colors.red, // Customize badge color
-                    ),
+                    badgeStyle: const badges.BadgeStyle(badgeColor: Colors.red),
                     child: IconButton(
                       icon: const Icon(Icons.settings),
                       onPressed: () {
@@ -184,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         )
                             .then((_) {
-                          // Reload the leaderboard when returning from the settings screen
+                          // Reload the leaderboard when returning from the Association settings screen
                           _fetchLeaderboard();
                         });
                       },
@@ -192,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 }
               }
-              return const SizedBox(); // Return empty widget if no permission
+              return const SizedBox();
             },
           ),
         ],

@@ -55,25 +55,29 @@ class ImageUploadService {
     }
   }
 
-  // Upload a profile image, compare hashes, and save with hash.extension format
+// Upload a profile image, compare hashes, and save with hash.extension format
   Future<String?> uploadProfileImage(
       File imageFile, String? existingImage) async {
     try {
+      // Check if the file size exceeds the limit
       if (imageFile.lengthSync() > maxFileSizeInBytes) {
-        throw Exception('File size exceeds $maxFileSizeInMB MB limit');
+        throw Exception('The file size exceeds the $maxFileSizeInMB MB limit.');
       }
 
+      // Compute the hash of the new image file
       final newImageHash = await _computeImageHash(imageFile);
       final fileExt = imageFile.path.split('.').last;
       final newFilePath = 'user-profile-images/$newImageHash.$fileExt';
 
-      // If there's an existing image, compare hash and delete the old image
+      // If there's an existing image, compare hash and delete the old image if necessary
       if (existingImage != null && existingImage.contains('.')) {
         final existingImageHash = existingImage.split('.').first;
         if (existingImageHash == newImageHash) {
           print('Image hash matches, no need to upload.');
-          return null; // No upload needed, image is the same
+          return null; // No upload needed, the image is the same
         }
+
+        // Delete the old image from Supabase
         await deleteProfileImage(existingImage);
       }
 
@@ -81,10 +85,15 @@ class ImageUploadService {
       await supabase.storage
           .from('user-profile-images')
           .upload(newFilePath, imageFile);
-      return '$newImageHash.$fileExt'; // Return new hash and extension after successful upload
+
+      // Return the new image file name if successful
+      return '$newImageHash.$fileExt';
     } catch (e) {
       print('Error uploading profile image: $e');
-      return null;
+
+      // Throw a more specific message without the "Exception" prefix
+      throw Exception(
+          'Failed to upload profile image: ${e.toString().replaceAll('Exception:', '').trim()}');
     }
   }
 

@@ -1,6 +1,6 @@
-import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart'; // For date formatting and localization
 
 class AssociationRequestScreen extends StatefulWidget {
   const AssociationRequestScreen({super.key});
@@ -15,7 +15,8 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
   final _nameController = TextEditingController();
   final _websiteUrlController = TextEditingController();
   bool _isSubmitting = false;
-  bool _isLoadingRequests = false;
+  bool _isLoadingRequests = true; // Start with loading true
+  bool _canSubmitRequest = true;
   List<Map<String, dynamic>> _requests = [];
 
   late TabController _tabController;
@@ -25,6 +26,8 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_handleTabSelection);
+    _preloadRequests(); // Preload requests during initialization
+    _checkSubmissionEligibility(); // Check if the user can submit a request
   }
 
   @override
@@ -36,19 +39,63 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
     super.dispose();
   }
 
-  // Handle tab switching
   void _handleTabSelection() {
     if (_tabController.index == 1 && _requests.isEmpty) {
       _fetchRequests();
     }
   }
 
-  // Fetch existing association requests
-  Future<void> _fetchRequests() async {
-    setState(() {
-      _isLoadingRequests = true;
-    });
+  // Preload the request data on initialization for better UX
+  Future<void> _preloadRequests() async {
+    await _fetchRequests();
+  }
 
+  Future<void> _checkSubmissionEligibility() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      // Fetch the user's pending requests
+      final existingRequests = await Supabase.instance.client
+          .from('association_requests')
+          .select()
+          .eq('user_id', userId)
+          .eq('status', 'Pending')
+          .order('created_at', ascending: false);
+
+      final pendingRequests = List<Map<String, dynamic>>.from(existingRequests);
+
+      // Check if the user has more than 3 pending requests
+      if (pendingRequests.length >= 3) {
+        setState(() {
+          _canSubmitRequest = false;
+        });
+        return;
+      }
+
+      // Check if the last request was made within the last week
+      if (pendingRequests.isNotEmpty) {
+        final lastRequestDate =
+            DateTime.parse(pendingRequests.first['created_at']);
+        final oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
+
+        if (lastRequestDate.isAfter(oneWeekAgo)) {
+          setState(() {
+            _canSubmitRequest = false;
+          });
+          return;
+        }
+      }
+
+      setState(() {
+        _canSubmitRequest = true;
+      });
+    } catch (e) {
+      _showSnackBar('Error checking request eligibility: $e');
+    }
+  }
+
+  Future<void> _fetchRequests() async {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
@@ -62,7 +109,7 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
 
       setState(() {
         _requests = List<Map<String, dynamic>>.from(response);
-        _isLoadingRequests = false;
+        _isLoadingRequests = false; // Stop loading once data is fetched
       });
     } catch (e) {
       _showSnackBar('Error fetching requests: $e');
@@ -72,7 +119,6 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
     }
   }
 
-  // Submit a new request to join an association
   Future<void> _submitRequest() async {
     final name = _nameController.text.trim();
     final websiteUrl = _websiteUrlController.text.trim();
@@ -98,8 +144,9 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
       _nameController.clear();
       _websiteUrlController.clear();
 
-      _tabController.animateTo(1); // Switch to the "View Requests" tab
-      await _fetchRequests(); // Fetch requests after submitting
+      _tabController.animateTo(1); // Switch to "View Requests" tab
+      await _fetchRequests(); // Fetch requests after submission
+      _checkSubmissionEligibility(); // Re-check eligibility after submission
     } catch (e) {
       _showSnackBar('Failed to submit request: $e');
     } finally {
@@ -109,10 +156,41 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
     }
   }
 
-  // Helper to show SnackBar messages
+  Future<void> _deleteRequest(String requestId) async {
+    setState(() {
+      _isLoadingRequests = true;
+    });
+
+    try {
+      await Supabase.instance.client
+          .from('association_requests')
+          .delete()
+          .eq('id', requestId);
+
+      _showSnackBar('Request deleted successfully');
+      await _fetchRequests(); // Refresh the list after deletion
+      _checkSubmissionEligibility(); // Re-check eligibility after deletion
+    } catch (e) {
+      _showSnackBar('Failed to delete request: $e');
+    } finally {
+      setState(() {
+        _isLoadingRequests = false;
+      });
+    }
+  }
+
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _formatDate(String dateString) {
+    final date = DateTime.parse(dateString);
+    final localDate = date.toLocal(); // Convert to local timezone
+
+    final locale = Intl.getCurrentLocale();
+
+    return DateFormat.Hm(locale).add_yMd().format(localDate);
   }
 
   @override
@@ -138,8 +216,23 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
     );
   }
 
-  // Build the request form UI
   Widget _buildRequestForm() {
+    if (_isLoadingRequests) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (!_canSubmitRequest) {
+      return const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Center(
+          child: Text(
+            'You cannot submit more requests at this time.\nEither you have 3 pending requests or you submitted a request in the past week.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -150,18 +243,14 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          TextField(
+          _buildTextField(
             controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Association Name',
-            ),
+            labelText: 'Association Name',
           ),
           const SizedBox(height: 16),
-          TextField(
+          _buildTextField(
             controller: _websiteUrlController,
-            decoration: const InputDecoration(
-              labelText: 'Association Website URL',
-            ),
+            labelText: 'Association Website URL',
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -175,9 +264,22 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
     );
   }
 
-  // Build the list of existing requests
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String labelText,
+  }) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: labelText,
+        border: const OutlineInputBorder(),
+      ),
+    );
+  }
+
   Widget _buildRequestsList() {
     if (_isLoadingRequests) {
+      // Show a centered loading spinner instead of a loading ListView
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -197,6 +299,8 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
         final request = _requests[index];
         final status = request['status'];
         final declineReason = request['decline_reason'];
+        final requestId = request['id'];
+        final createdAt = request['created_at'];
 
         return Card(
           child: ListTile(
@@ -204,19 +308,24 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
               request['name'],
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: AppColors.lightPrimary,
               ),
             ),
             subtitle: Text(
-              'Status: $status${status == 'Declined' && declineReason != null ? '\nReason: $declineReason' : ''}',
+              'Status: $status\nSubmitted: ${_formatDate(createdAt)}${status == 'Declined' && declineReason != null ? '\nReason: $declineReason' : ''}',
               style: TextStyle(
                 color: status == 'Approved'
                     ? Colors.green
                     : status == 'Declined'
                         ? Colors.red
-                        : Colors.black,
+                        : Colors.grey,
               ),
             ),
+            trailing: status == 'Pending'
+                ? IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _deleteRequest(requestId),
+                  )
+                : null,
           ),
         );
       },

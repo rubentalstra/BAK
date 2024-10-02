@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bak_tracker/ui/widgets/invite_code_input_widget.dart';
-import 'association_request_screen.dart';
+import '../settings/association_request_screen.dart';
 
 class NoAssociationHomeScreen extends StatelessWidget {
   const NoAssociationHomeScreen({super.key});
