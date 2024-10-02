@@ -309,7 +309,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
                         });
                       },
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
               actions: <Widget>[

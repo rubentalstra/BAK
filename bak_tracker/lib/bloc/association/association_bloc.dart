@@ -3,13 +3,10 @@ import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/models/association_model.dart';
 import 'package:bak_tracker/services/association_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:logger/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'association_event.dart';
 import 'association_state.dart';
-
-var logger = Logger();
 
 class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
   final AssociationService _associationService = AssociationService();
