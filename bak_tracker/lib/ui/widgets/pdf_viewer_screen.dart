@@ -35,7 +35,7 @@ class _PDFViewerScreenState extends State<PDFViewerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('PDF Viewer'),
+        title: const Text('BAK Regulations'),
         actions: [
           if (_totalPages != null)
             Center(

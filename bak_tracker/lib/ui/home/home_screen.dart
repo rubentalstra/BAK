@@ -1,18 +1,16 @@
-import 'dart:async';
-import 'package:bak_tracker/bloc/association/association_event.dart';
-import 'package:bak_tracker/bloc/association/association_state.dart';
-import 'package:bak_tracker/core/const/permissions_constants.dart';
-import 'package:bak_tracker/core/themes/colors.dart';
-import 'package:bak_tracker/models/leaderboard_entry.dart';
-import 'package:bak_tracker/services/image_upload_service.dart';
-import 'package:bak_tracker/ui/association_settings/association_settings_screen.dart';
+import 'package:badges/badges.dart' as badges;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:bak_tracker/models/association_model.dart';
-import 'package:bak_tracker/ui/home/widgets/leaderboard_widget.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
-import 'package:badges/badges.dart' as badges;
+import 'package:bak_tracker/bloc/association/association_event.dart';
+import 'package:bak_tracker/bloc/association/association_state.dart';
+import 'package:bak_tracker/models/association_model.dart';
+import 'package:bak_tracker/models/leaderboard_entry.dart';
+import 'package:bak_tracker/services/image_upload_service.dart';
+import 'package:bak_tracker/ui/association_settings/association_settings_screen.dart';
+import 'package:bak_tracker/ui/home/widgets/leaderboard_widget.dart';
+import 'package:bak_tracker/core/themes/colors.dart';
 
 class HomeScreen extends StatefulWidget {
   final List<AssociationModel> associations;
@@ -39,13 +37,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _imageUploadService = ImageUploadService(Supabase.instance.client);
-    _fetchLeaderboard(); // Call the fetch leaderboard once during initialization.
+    _fetchLeaderboard();
   }
 
   @override
   void didUpdateWidget(covariant HomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Fetch leaderboard only if the selected association has changed
     if (oldWidget.selectedAssociation?.id != widget.selectedAssociation?.id) {
       _fetchLeaderboard();
     }
@@ -63,7 +60,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ));
   }
 
-  // Handle pull to refresh
   Future<void> _handlePullToRefresh() async {
     await _fetchLeaderboard();
   }
@@ -81,11 +77,9 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }).toList();
 
-          // Sort the leaderboard by 'baksConsumed'
           newLeaderboardEntries.sort(
               (a, b) => b.member.baksConsumed.compareTo(a.member.baksConsumed));
 
-          // Assign ranks to leaderboard entries
           for (int i = 0; i < newLeaderboardEntries.length; i++) {
             newLeaderboardEntries[i] =
                 newLeaderboardEntries[i].copyWith(rank: i + 1);
@@ -132,21 +126,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (state is AssociationLoaded) {
                   final memberData = state.memberData;
 
-                  // Check if the member has any relevant permissions
-                  bool hasAssociationPermissions = memberData.permissions
-                          .hasPermission(PermissionEnum.canManagePermissions) ||
-                      memberData.permissions
-                          .hasPermission(PermissionEnum.canInviteMembers) ||
-                      memberData.permissions
-                          .hasPermission(PermissionEnum.canRemoveMembers) ||
-                      memberData.permissions
-                          .hasPermission(PermissionEnum.canManageRoles) ||
-                      memberData.permissions
-                          .hasPermission(PermissionEnum.canManageBaks) ||
-                      memberData.permissions
-                          .hasPermission(PermissionEnum.canApproveBaks);
-
-                  if (hasAssociationPermissions) {
+                  // Use the centralized permission check to show the settings page
+                  if (memberData.permissions.canAccessSettings()) {
                     return badges.Badge(
                       position: badges.BadgePosition.topEnd(top: 0, end: 3),
                       showBadge: state.pendingAproveBaksCount > 0,
@@ -172,7 +153,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           )
                               .then((_) {
-                            // Reload the leaderboard when returning from the Association settings screen
                             _fetchLeaderboard();
                           });
                         },
