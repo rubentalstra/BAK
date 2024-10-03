@@ -25,13 +25,11 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  bool _canApproveBaks = false;
   List<AssociationModel> _associations = [];
   AssociationModel? _selectedAssociation;
   Timer? _approveBaksTimer;
   Timer? _pendingBaksAndBetsTimer;
 
-  // Store badge counts outside the build method to prevent them from resetting
   int pendingBaksCount = 0;
   int pendingBetsCount = 0;
   List<Widget>? _cachedPages;
@@ -40,7 +38,6 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _fetchAssociations();
-    _subscribeToBloc();
   }
 
   @override
@@ -48,54 +45,6 @@ class _MainScreenState extends State<MainScreen> {
     _approveBaksTimer?.cancel();
     _pendingBaksAndBetsTimer?.cancel();
     super.dispose();
-  }
-
-  void _subscribeToBloc() {
-    final associationBloc = context.read<AssociationBloc>();
-    associationBloc.stream.listen((state) {
-      if (state is AssociationLoaded) {
-        final hasApproveBaksPermission = state.memberData
-                .hasPermission(PermissionEnum.canApproveBaks) ||
-            state.memberData.hasPermission(PermissionEnum.hasAllPermissions);
-
-        if (_canApproveBaks != hasApproveBaksPermission) {
-          _canApproveBaks = hasApproveBaksPermission;
-          _startPollingApproveBaks();
-        }
-
-        // Update badge counts only if they have changed
-        setState(() {
-          pendingBaksCount = state.pendingBaksCount;
-          pendingBetsCount = state.pendingBetsCount;
-        });
-
-        // Set up pages and polling based on loaded associations
-        _startPollingPendingBaksAndBets();
-      }
-    });
-  }
-
-  void _startPollingApproveBaks() {
-    _approveBaksTimer?.cancel();
-    if (_canApproveBaks && _selectedAssociation != null) {
-      _approveBaksTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-        context
-            .read<AssociationBloc>()
-            .add(RefreshPendingApproveBaks(_selectedAssociation!.id));
-      });
-    }
-  }
-
-  void _startPollingPendingBaksAndBets() {
-    _pendingBaksAndBetsTimer?.cancel();
-    if (_selectedAssociation != null) {
-      _pendingBaksAndBetsTimer =
-          Timer.periodic(const Duration(seconds: 30), (timer) {
-        context
-            .read<AssociationBloc>()
-            .add(RefreshBaksAndBets(_selectedAssociation!.id));
-      });
-    }
   }
 
   Future<void> _fetchAssociations() async {
@@ -153,7 +102,7 @@ class _MainScreenState extends State<MainScreen> {
     if (_selectedAssociation?.id != newAssociation?.id) {
       setState(() {
         _selectedAssociation = newAssociation;
-        _cachedPages = null; // Invalidate cached pages
+        _cachedPages = null;
         _saveSelectedAssociation(newAssociation!);
       });
       context
@@ -162,7 +111,31 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  // Use lazy loading for pages
+  void _startPollingApproveBaks() {
+    _approveBaksTimer?.cancel(); // Cancel the previous timer
+
+    if (_selectedAssociation != null) {
+      _approveBaksTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+        context
+            .read<AssociationBloc>()
+            .add(RefreshPendingApproveBaks(_selectedAssociation!.id));
+      });
+    }
+  }
+
+  void _startPollingPendingBaksAndBets() {
+    _pendingBaksAndBetsTimer?.cancel();
+
+    if (_selectedAssociation != null) {
+      _pendingBaksAndBetsTimer =
+          Timer.periodic(const Duration(seconds: 30), (timer) {
+        context
+            .read<AssociationBloc>()
+            .add(RefreshBaksAndBets(_selectedAssociation!.id));
+      });
+    }
+  }
+
   List<Widget> get _pages {
     _cachedPages ??= [
       HomeScreen(
@@ -180,20 +153,38 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_selectedAssociation == null || _associations.isEmpty) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+    return BlocListener<AssociationBloc, AssociationState>(
+      listener: (context, state) {
+        if (state is AssociationLoaded) {
+          final hasApproveBaksPermission = state.memberData
+                  .hasPermission(PermissionEnum.canApproveBaks) ||
+              state.memberData.hasPermission(PermissionEnum.hasAllPermissions);
 
-    return Scaffold(
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavBar(
-        selectedIndex: _selectedIndex,
-        onTap: (index) => setState(() => _selectedIndex = index),
-        pendingBaksCount: pendingBaksCount, // Get from Bloc
-        pendingBetsCount: pendingBetsCount, // Get from Bloc
-      ),
+          if (hasApproveBaksPermission) {
+            _startPollingApproveBaks();
+          }
+
+          setState(() {
+            pendingBaksCount = state.pendingBaksCount;
+            pendingBetsCount = state.pendingBetsCount;
+          });
+
+          _startPollingPendingBaksAndBets();
+        }
+      },
+      child: _selectedAssociation == null || _associations.isEmpty
+          ? const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            )
+          : Scaffold(
+              body: _pages[_selectedIndex],
+              bottomNavigationBar: BottomNavBar(
+                selectedIndex: _selectedIndex,
+                onTap: (index) => setState(() => _selectedIndex = index),
+                pendingBaksCount: pendingBaksCount,
+                pendingBetsCount: pendingBetsCount,
+              ),
+            ),
     );
   }
 }

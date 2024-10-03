@@ -141,11 +141,20 @@ class AppStartupState extends State<AppStartup> {
 
   Future<void> _initializeDeepLinks() async {
     final associationBloc = context.read<AssociationBloc>();
+    // Initialize deepLinkService properly
     deepLinkService = DeepLinkService(
       associationBloc: associationBloc,
       navigateToMainScreen: _navigateToMainScreen,
+      onError: (String error) {
+        // Use BuildContext here to show the snackbar in the UI layer
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error)),
+        );
+      },
     );
-    await deepLinkService.initialize();
+
+    // Now call initialize on deepLinkService
+    deepLinkService.initialize();
   }
 
   Future<void> _navigateToInitialScreen() async {

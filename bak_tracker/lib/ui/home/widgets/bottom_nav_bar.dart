@@ -87,7 +87,6 @@ class BottomNavBar extends StatelessWidget {
             currentIndex: selectedIndex,
             onTap: onTap,
             selectedItemColor: theme.colorScheme.secondary, // Active tab color
-            backgroundColor: theme.colorScheme.primary, // Background color
             unselectedItemColor: theme.colorScheme.onPrimary.withOpacity(0.6),
             items: items,
           );

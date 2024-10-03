@@ -51,7 +51,6 @@ class LeaderboardWidget extends StatelessWidget {
     );
   }
 
-  // Optimize image loading logic by moving the FutureBuilder inside this method
   Future<File?> _loadProfileImage(AssociationMemberModel member) {
     if (member.user.profileImage == null || member.user.profileImage!.isEmpty) {
       return Future.value(null);
@@ -60,7 +59,6 @@ class LeaderboardWidget extends StatelessWidget {
         .fetchOrDownloadProfileImage(member.user.profileImage!);
   }
 
-  // Separate navigation logic to avoid placing it inside the FutureBuilder
   void _navigateToProfileScreen(
       BuildContext context, AssociationMemberModel member, File? imageFile) {
     Navigator.push(
@@ -159,10 +157,9 @@ class LeaderboardWidget extends StatelessWidget {
     );
   }
 
-  // Modularized loading skeleton for readability
   Widget _buildLoadingSkeleton() {
     return ListView.builder(
-      itemCount: 6, // Loading skeleton for 6 items
+      itemCount: 9, // Loading skeleton for 6 items
       itemBuilder: (context, index) {
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 8.0),

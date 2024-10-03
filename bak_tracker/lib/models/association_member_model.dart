@@ -30,6 +30,7 @@ class AssociationMemberModel extends Equatable {
     this.achievements = const [],
   });
 
+  // Factory method to create the model from a Map
   factory AssociationMemberModel.fromMap(Map<String, dynamic> map) {
     return AssociationMemberModel(
       id: map['id'],
@@ -50,6 +51,7 @@ class AssociationMemberModel extends Equatable {
     );
   }
 
+  // Convert the model to a Map
   Map<String, dynamic> toMap() {
     return {
       'id': id,

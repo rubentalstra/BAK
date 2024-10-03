@@ -32,30 +32,23 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<LeaderboardEntry> _leaderboardEntries = [];
-  final supabase = Supabase.instance.client;
   late ImageUploadService _imageUploadService;
-  StreamSubscription? _associationBlocSubscription;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _imageUploadService = ImageUploadService(supabase);
-    _fetchLeaderboard();
+    _imageUploadService = ImageUploadService(Supabase.instance.client);
+    _fetchLeaderboard(); // Call the fetch leaderboard once during initialization.
   }
 
   @override
   void didUpdateWidget(covariant HomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Fetch leaderboard only if the selected association has changed
     if (oldWidget.selectedAssociation?.id != widget.selectedAssociation?.id) {
       _fetchLeaderboard();
     }
-  }
-
-  @override
-  void dispose() {
-    _associationBlocSubscription?.cancel();
-    super.dispose();
   }
 
   Future<void> _fetchLeaderboard() async {
@@ -63,151 +56,154 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() {
       _isLoading = true;
-      _leaderboardEntries = [];
     });
 
     context.read<AssociationBloc>().add(SelectAssociation(
           selectedAssociation: widget.selectedAssociation!,
         ));
-
-    _associationBlocSubscription?.cancel();
-    _associationBlocSubscription =
-        context.read<AssociationBloc>().stream.listen((state) {
-      if (state is AssociationLoaded &&
-          state.selectedAssociation.id == widget.selectedAssociation?.id) {
-        final newLeaderboardEntries = state.members.map((member) {
-          return LeaderboardEntry(
-            rank: 0,
-            member: member,
-          );
-        }).toList();
-
-        newLeaderboardEntries.sort(
-            (a, b) => b.member.baksConsumed.compareTo(a.member.baksConsumed));
-
-        for (int i = 0; i < newLeaderboardEntries.length; i++) {
-          newLeaderboardEntries[i] =
-              newLeaderboardEntries[i].copyWith(rank: i + 1);
-        }
-
-        setState(() {
-          _leaderboardEntries = newLeaderboardEntries;
-          _isLoading = false;
-        });
-      }
-    });
   }
 
+  // Handle pull to refresh
   Future<void> _handlePullToRefresh() async {
     await _fetchLeaderboard();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: widget.associations.length > 1
-            ? DropdownButtonHideUnderline(
-                child: DropdownButton<AssociationModel>(
-                  value: widget.selectedAssociation,
-                  onChanged: (AssociationModel? newAssociation) {
-                    widget.onAssociationChanged(newAssociation);
-                  },
-                  dropdownColor: AppColors.lightPrimaryVariant,
-                  icon: Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Theme.of(context).iconTheme.color,
+    return BlocListener<AssociationBloc, AssociationState>(
+      listener: (context, state) {
+        if (state is AssociationLoaded &&
+            state.selectedAssociation.id == widget.selectedAssociation?.id) {
+          final newLeaderboardEntries = state.members.map((member) {
+            return LeaderboardEntry(
+              rank: 0,
+              member: member,
+            );
+          }).toList();
+
+          // Sort the leaderboard by 'baksConsumed'
+          newLeaderboardEntries.sort(
+              (a, b) => b.member.baksConsumed.compareTo(a.member.baksConsumed));
+
+          // Assign ranks to leaderboard entries
+          for (int i = 0; i < newLeaderboardEntries.length; i++) {
+            newLeaderboardEntries[i] =
+                newLeaderboardEntries[i].copyWith(rank: i + 1);
+          }
+
+          setState(() {
+            _leaderboardEntries = newLeaderboardEntries;
+            _isLoading = false;
+          });
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: widget.associations.length > 1
+              ? DropdownButtonHideUnderline(
+                  child: DropdownButton<AssociationModel>(
+                    value: widget.selectedAssociation,
+                    onChanged: (AssociationModel? newAssociation) {
+                      widget.onAssociationChanged(newAssociation);
+                    },
+                    dropdownColor: AppColors.lightPrimaryVariant,
+                    icon: Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Theme.of(context).iconTheme.color,
+                    ),
+                    items: widget.associations.map((association) {
+                      return DropdownMenuItem(
+                        value: association,
+                        child: Text(
+                          association.name,
+                          style: Theme.of(context).dropdownMenuTheme.textStyle,
+                        ),
+                      );
+                    }).toList(),
                   ),
-                  items: widget.associations.map((association) {
-                    return DropdownMenuItem(
-                      value: association,
-                      child: Text(
-                        association.name,
-                        style: Theme.of(context).dropdownMenuTheme.textStyle,
+                )
+              : Text(
+                  widget.selectedAssociation?.name ?? 'Loading...',
+                  style: Theme.of(context).dropdownMenuTheme.textStyle,
+                ),
+          actions: [
+            BlocBuilder<AssociationBloc, AssociationState>(
+              builder: (context, state) {
+                if (state is AssociationLoaded) {
+                  final memberData = state.memberData;
+
+                  // Check if the member has any relevant permissions
+                  bool hasAssociationPermissions = memberData.permissions
+                          .hasPermission(PermissionEnum.canManagePermissions) ||
+                      memberData.permissions
+                          .hasPermission(PermissionEnum.canInviteMembers) ||
+                      memberData.permissions
+                          .hasPermission(PermissionEnum.canRemoveMembers) ||
+                      memberData.permissions
+                          .hasPermission(PermissionEnum.canManageRoles) ||
+                      memberData.permissions
+                          .hasPermission(PermissionEnum.canManageBaks) ||
+                      memberData.permissions
+                          .hasPermission(PermissionEnum.canApproveBaks);
+
+                  if (hasAssociationPermissions) {
+                    return badges.Badge(
+                      position: badges.BadgePosition.topEnd(top: 0, end: 3),
+                      showBadge: state.pendingAproveBaksCount > 0,
+                      badgeContent: Text(
+                        state.pendingAproveBaksCount.toString(),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 10),
+                      ),
+                      badgeStyle:
+                          const badges.BadgeStyle(badgeColor: Colors.red),
+                      child: IconButton(
+                        icon: const Icon(Icons.settings),
+                        onPressed: () {
+                          Navigator.of(context)
+                              .push(
+                            MaterialPageRoute(
+                              builder: (context) => AssociationSettingsScreen(
+                                memberData: memberData,
+                                associationId: state.selectedAssociation.id,
+                                pendingAproveBaksCount:
+                                    state.pendingAproveBaksCount,
+                              ),
+                            ),
+                          )
+                              .then((_) {
+                            // Reload the leaderboard when returning from the Association settings screen
+                            _fetchLeaderboard();
+                          });
+                        },
                       ),
                     );
-                  }).toList(),
-                ),
-              )
-            : Text(
-                widget.selectedAssociation?.name ?? 'Loading...',
-                style: Theme.of(context).dropdownMenuTheme.textStyle,
-              ),
-        actions: [
-          BlocBuilder<AssociationBloc, AssociationState>(
-            builder: (context, state) {
-              if (state is AssociationLoaded) {
-                final memberData = state.memberData;
-
-                // Check if the member has any relevant permissions
-                bool hasAssociationPermissions = memberData.permissions
-                        .hasPermission(PermissionEnum.canManagePermissions) ||
-                    memberData.permissions
-                        .hasPermission(PermissionEnum.canInviteMembers) ||
-                    memberData.permissions
-                        .hasPermission(PermissionEnum.canRemoveMembers) ||
-                    memberData.permissions
-                        .hasPermission(PermissionEnum.canManageRoles) ||
-                    memberData.permissions
-                        .hasPermission(PermissionEnum.canManageBaks) ||
-                    memberData.permissions
-                        .hasPermission(PermissionEnum.canApproveBaks);
-
-                if (hasAssociationPermissions) {
-                  return badges.Badge(
-                    position: badges.BadgePosition.topEnd(top: 0, end: 3),
-                    showBadge: state.pendingAproveBaksCount > 0,
-                    badgeContent: Text(
-                      state.pendingAproveBaksCount.toString(),
-                      style: const TextStyle(color: Colors.white, fontSize: 10),
-                    ),
-                    badgeStyle: const badges.BadgeStyle(badgeColor: Colors.red),
-                    child: IconButton(
-                      icon: const Icon(Icons.settings),
-                      onPressed: () {
-                        Navigator.of(context)
-                            .push(
-                          MaterialPageRoute(
-                            builder: (context) => AssociationSettingsScreen(
-                              memberData: memberData,
-                              associationId: state.selectedAssociation.id,
-                              pendingAproveBaksCount:
-                                  state.pendingAproveBaksCount,
-                            ),
-                          ),
-                        )
-                            .then((_) {
-                          // Reload the leaderboard when returning from the Association settings screen
-                          _fetchLeaderboard();
-                        });
-                      },
-                    ),
-                  );
+                  }
                 }
-              }
-              return const SizedBox();
-            },
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (widget.selectedAssociation != null)
-              Expanded(
-                child: RefreshIndicator(
-                  color: AppColors.lightSecondary,
-                  onRefresh: _handlePullToRefresh,
-                  child: LeaderboardWidget(
-                    entries: _leaderboardEntries,
-                    imageUploadService: _imageUploadService,
-                    isLoading: _isLoading,
+                return const SizedBox();
+              },
+            ),
+          ],
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (widget.selectedAssociation != null)
+                Expanded(
+                  child: RefreshIndicator(
+                    color: AppColors.lightSecondary,
+                    onRefresh: _handlePullToRefresh,
+                    child: LeaderboardWidget(
+                      entries: _leaderboardEntries,
+                      imageUploadService: _imageUploadService,
+                      isLoading: _isLoading,
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

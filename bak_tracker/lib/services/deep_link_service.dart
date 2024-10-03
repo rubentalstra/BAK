@@ -9,10 +9,12 @@ class DeepLinkService {
   final JoinAssociationService _joinAssociationService =
       JoinAssociationService();
   final Function navigateToMainScreen;
+  final Function(String error) onError; // Callback for error handling
 
   DeepLinkService({
     required this.associationBloc,
     required this.navigateToMainScreen,
+    required this.onError, // Use callback for error handling
   });
 
   Future<void> initialize() async {
@@ -31,6 +33,7 @@ class DeepLinkService {
       });
     } catch (e) {
       print('Error initializing deep link service: $e');
+      onError('Error initializing deep link: $e');
     }
   }
 
@@ -53,8 +56,9 @@ class DeepLinkService {
         // Navigate to the MainScreen
         navigateToMainScreen();
       } catch (error) {
-        // Error handling can be similar to the invite code widget
+        // Handle the error and pass it to the UI via the onError callback
         print('Error joining association via deep link: $error');
+        onError('Error joining association: $error');
       }
     }
   }
