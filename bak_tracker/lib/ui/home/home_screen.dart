@@ -165,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             MaterialPageRoute(
                               builder: (context) => AssociationSettingsScreen(
                                 memberData: memberData,
-                                associationId: state.selectedAssociation.id,
+                                association: state.selectedAssociation,
                                 pendingAproveBaksCount:
                                     state.pendingAproveBaksCount,
                               ),

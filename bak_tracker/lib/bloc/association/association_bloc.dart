@@ -43,7 +43,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         .setString('selected_association', jsonEncode(association.toMap()));
   }
 
-  // Handle selecting an association.
+// Handle selecting an association.
   Future<void> _onSelectAssociation(
       SelectAssociation event, Emitter<AssociationState> emit) async {
     emit(AssociationLoading());
@@ -62,6 +62,8 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         _fetchPendingBaksCount(event.selectedAssociation.id, userId),
         _fetchPendingApproveBaksCount(event.selectedAssociation.id),
         _fetchPendingBetsCount(event.selectedAssociation.id, userId),
+        _fetchAssociation(
+            event.selectedAssociation.id), // Add fetching the association
       ]);
 
       final AssociationMemberModel memberData =
@@ -71,9 +73,12 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       final int pendingBaksCount = responses[2] as int;
       final int pendingApproveBaksCount = responses[3] as int;
       final int pendingBetsCount = responses[4] as int;
+      final AssociationModel updatedAssociation =
+          responses[5] as AssociationModel; // Update the association
 
       emit(AssociationLoaded(
-        selectedAssociation: event.selectedAssociation,
+        selectedAssociation:
+            updatedAssociation, // Use the updated association data
         memberData: memberData,
         members: members,
         pendingBaksCount: pendingBaksCount,
@@ -121,6 +126,16 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       String associationId, String userId) async {
     return await _associationService.fetchPendingBetsCount(
         associationId, userId);
+  }
+
+  // Fetch updated association data from the database
+  Future<AssociationModel> _fetchAssociation(String associationId) async {
+    final response = await Supabase.instance.client
+        .from('associations')
+        .select()
+        .eq('id', associationId)
+        .single();
+    return AssociationModel.fromMap(response);
   }
 
   // Handle joining a new association.

@@ -5,12 +5,14 @@ class AssociationModel extends Equatable {
   final String name;
   final DateTime createdAt;
   final String? websiteUrl;
+  final String? bakRegulations;
 
   const AssociationModel({
     required this.id,
     required this.name,
     required this.createdAt,
     this.websiteUrl,
+    this.bakRegulations,
   });
 
   // Factory method to create an AssociationModel from a map (e.g., from Supabase)
@@ -20,6 +22,7 @@ class AssociationModel extends Equatable {
       name: map['name'],
       createdAt: DateTime.parse(map['created_at']),
       websiteUrl: map['website_url'],
+      bakRegulations: map['bak_regulations'],
     );
   }
 
@@ -30,9 +33,10 @@ class AssociationModel extends Equatable {
       'name': name,
       'created_at': createdAt.toIso8601String(),
       'website_url': websiteUrl,
+      'bak_regulations': bakRegulations,
     };
   }
 
   @override
-  List<Object?> get props => [id, name, createdAt, websiteUrl];
+  List<Object?> get props => [id, name, createdAt, websiteUrl, bakRegulations];
 }

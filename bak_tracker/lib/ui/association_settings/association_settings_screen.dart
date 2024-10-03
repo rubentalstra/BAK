@@ -1,10 +1,12 @@
 import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
+import 'package:bak_tracker/models/association_model.dart';
 import 'package:bak_tracker/services/association_service.dart';
 import 'package:bak_tracker/ui/association_settings/achievements/achievement_screen.dart';
 import 'package:bak_tracker/ui/association_settings/approve_baks/approve_baks_screen.dart';
 import 'package:bak_tracker/ui/association_settings/invite_members/invite_members_screen.dart';
+import 'package:bak_tracker/ui/association_settings/manage_regulations_screen.dart';
 import 'package:bak_tracker/ui/association_settings/permissions/list_permissions_screen.dart';
 import 'package:bak_tracker/ui/association_settings/remove_members_screen.dart';
 import 'package:bak_tracker/ui/association_settings/update_roles_screen.dart';
@@ -14,14 +16,14 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class AssociationSettingsScreen extends StatelessWidget {
   final AssociationMemberModel memberData;
-  final String associationId;
+  final AssociationModel association;
   final AssociationService associationService = AssociationService();
   final int pendingAproveBaksCount; // Pass the pending baks count
 
   AssociationSettingsScreen({
     super.key,
     required this.memberData,
-    required this.associationId,
+    required this.association,
     required this.pendingAproveBaksCount, // Required for badge
   });
 
@@ -48,7 +50,7 @@ class AssociationSettingsScreen extends StatelessWidget {
         onTap: () => _navigateTo(
             context,
             InviteMembersScreen(
-              associationId: associationId,
+              associationId: association.id,
             )),
       ),
       _AssociationOption(
@@ -59,7 +61,7 @@ class AssociationSettingsScreen extends StatelessWidget {
         onTap: () => _navigateTo(
             context,
             RemoveMembersScreen(
-              associationId: associationId,
+              associationId: association.id,
             )),
       ),
       _AssociationOption(
@@ -71,7 +73,7 @@ class AssociationSettingsScreen extends StatelessWidget {
         onTap: () => _navigateTo(
             context,
             UpdatePermissionsScreen(
-              associationId: associationId,
+              associationId: association.id,
             )),
       ),
       _AssociationOption(
@@ -82,7 +84,7 @@ class AssociationSettingsScreen extends StatelessWidget {
         onTap: () => _navigateTo(
             context,
             UpdateRolesScreen(
-              associationId: associationId,
+              associationId: association.id,
             )),
       ),
       _AssociationOption(
@@ -94,7 +96,7 @@ class AssociationSettingsScreen extends StatelessWidget {
         onTap: () => _navigateTo(
             context,
             AchievementManagementScreen(
-              associationId: associationId,
+              associationId: association.id,
             )),
       ),
       _AssociationOption(
@@ -106,8 +108,16 @@ class AssociationSettingsScreen extends StatelessWidget {
         onTap: () => _navigateTo(
             context,
             ApproveBaksScreen(
-              associationId: associationId,
+              associationId: association.id,
             )),
+      ),
+      _AssociationOption(
+        condition:
+            memberData.hasPermission(PermissionEnum.canManageRegulations),
+        icon: FontAwesomeIcons.filePdf,
+        title: 'Association Regulations',
+        subtitle: 'Manage association regulations',
+        onTap: () => _navigateTo(context, ManageRegulationsScreen()),
       ),
       _AssociationOption(
         condition: memberData.hasPermission(PermissionEnum.canManageBaks),
@@ -204,7 +214,7 @@ class AssociationSettingsScreen extends StatelessWidget {
               onPressed: () async {
                 try {
                   // Call the reset method
-                  await associationService.resetAllStats(associationId);
+                  await associationService.resetAllStats(association.id);
 
                   // Show success SnackBar
                   ScaffoldMessenger.of(context).showSnackBar(

@@ -6,6 +6,7 @@ import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/core/utils/locale_utils.dart';
 import 'package:bak_tracker/main.dart';
+import 'package:bak_tracker/services/pdf_upload_service.dart';
 import 'package:bak_tracker/ui/home/main_screen.dart';
 import 'package:bak_tracker/ui/legal/privacy_policy_screen.dart';
 import 'package:bak_tracker/ui/legal/terms_conditions_screen.dart';
@@ -19,6 +20,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/ui/login/login_screen.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -164,6 +166,14 @@ class SettingsScreen extends StatelessWidget {
         _buildSectionTitle('Association Settings'),
         _buildListTile(
           context,
+          title: 'View BAK Regulations',
+          subtitle: 'Read the association\'s regulations',
+          icon: FontAwesomeIcons.filePdf,
+          onTap: () => _handleViewAssociationPdf(context, state),
+        ),
+        _buildDivider(),
+        _buildListTile(
+          context,
           title: 'Join Another Association',
           subtitle: 'Enter an invite code to join',
           icon: FontAwesomeIcons.circlePlus,
@@ -192,6 +202,38 @@ class SettingsScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  // Handle viewing the association's PDF document
+  void _handleViewAssociationPdf(
+      BuildContext context, AssociationLoaded state) async {
+    final pdfService = PDFUploadService(Supabase.instance.client);
+
+    // Fetch the association's PDF file name and ID
+    final pdfFileName = state.selectedAssociation.bakRegulations;
+    final associationId = state.selectedAssociation.id;
+
+    if (pdfFileName == null || pdfFileName.isEmpty) {
+      _showErrorSnackBar(
+          context, 'No Regulation uploaded for this association.');
+      return;
+    }
+
+    try {
+      // Fetch or download the PDF
+      final pdfFile =
+          await pdfService.fetchOrDownloadPdf(pdfFileName, associationId);
+
+      if (pdfFile != null) {
+        // Open the PDF for reading
+        await pdfService.openPdf(context, pdfFile);
+      } else {
+        _showErrorSnackBar(context, 'Failed to retrieve the PDF.');
+      }
+    } catch (e) {
+      print('Error during PDF download or opening: $e');
+      _showErrorSnackBar(context, 'An error occurred while opening the PDF.');
+    }
   }
 
   // Widget to display version and build number in a compact "version+build" format

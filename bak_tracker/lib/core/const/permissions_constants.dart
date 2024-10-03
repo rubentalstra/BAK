@@ -7,6 +7,7 @@ enum PermissionEnum {
   canManageBaks,
   canApproveBaks,
   canManageAchievements,
+  canManageRegulations,
 }
 
 // Extension to provide labels for permissions
@@ -29,6 +30,8 @@ extension PermissionEnumLabel on PermissionEnum {
         return 'Approve Baks';
       case PermissionEnum.canManageAchievements:
         return 'Manage Achievements';
+      case PermissionEnum.canManageRegulations:
+        return 'Manage Regulations';
       default:
         return '';
     }

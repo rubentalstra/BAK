@@ -199,4 +199,11 @@ class AssociationService {
         .from('association_members')
         .update({'permissions': permissions.toMap()}).eq('user_id', memberId);
   }
+
+  Future<void> updateBakRegulations(
+      String associationId, String? newFileName) async {
+    await _supabase.from('associations').update({
+      'bak_regulations': newFileName,
+    }).eq('id', associationId);
+  }
 }
