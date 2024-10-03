@@ -63,9 +63,9 @@ dependencies:
   font_awesome_flutter: ^10.7.0
   envied: ^0.5.4+1
   url_launcher: ^6.3.0
-  flutter_pdfview: ^1.3.3
   archive: ^3.6.1
   file_picker: ^8.1.2
+  pdfx: ^2.8.0
 
 
 dev_dependencies:

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:pdfx/pdfx.dart';
 
 class PDFViewerScreen extends StatefulWidget {
   final String pdfFilePath;
@@ -11,68 +11,54 @@ class PDFViewerScreen extends StatefulWidget {
 }
 
 class _PDFViewerScreenState extends State<PDFViewerScreen> {
-  int _totalPages = 0;
+  late PdfController _pdfController;
   int _currentPage = 0;
-  bool _isReady = false;
-  String _errorMessage = '';
+  int? _totalPages;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load the PDF from file path
+    _pdfController = PdfController(
+      document: PdfDocument.openFile(widget.pdfFilePath),
+      initialPage: 1, // Set the initial page
+    );
+  }
+
+  @override
+  void dispose() {
+    _pdfController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('PDF Viewer'),
-        actions: <Widget>[
-          Center(
-            child: Text(
-              _isReady ? '${_currentPage + 1}/$_totalPages' : '',
-              style: TextStyle(fontSize: 16),
+        title: const Text('PDF Viewer'),
+        actions: [
+          if (_totalPages != null)
+            Center(
+              child: Text(
+                '${_currentPage + 1}/$_totalPages',
+                style: const TextStyle(fontSize: 16),
+              ),
             ),
-          ),
-          SizedBox(width: 16),
+          const SizedBox(width: 16),
         ],
       ),
-      body: Stack(
-        children: <Widget>[
-          PDFView(
-            filePath: widget.pdfFilePath,
-            enableSwipe: true,
-            swipeHorizontal: true,
-            autoSpacing: false,
-            pageFling: false,
-            onRender: (pages) {
-              setState(() {
-                _totalPages = pages!;
-                _isReady = true;
-              });
-            },
-            onError: (error) {
-              setState(() {
-                _errorMessage = error.toString();
-              });
-              print(error.toString());
-            },
-            onPageError: (page, error) {
-              setState(() {
-                _errorMessage = '$page: ${error.toString()}';
-              });
-              print('$page: ${error.toString()}');
-            },
-            onViewCreated: (PDFViewController pdfViewController) {},
-            onPageChanged: (int? page, int? total) {
-              setState(() {
-                _currentPage = page!;
-              });
-            },
-          ),
-          if (_errorMessage.isNotEmpty)
-            Center(
-              child: Text(_errorMessage),
-            ),
-          if (!_isReady)
-            Center(
-              child: CircularProgressIndicator(),
-            ),
-        ],
+      body: PdfView(
+        controller: _pdfController,
+        onPageChanged: (int? page) {
+          setState(() {
+            _currentPage = page ?? 0;
+          });
+        },
+        onDocumentLoaded: (document) {
+          setState(() {
+            _totalPages = document.pagesCount;
+          });
+        },
       ),
     );
   }
