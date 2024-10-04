@@ -15,6 +15,14 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
+    buildFeatures {
+        compose true
+        viewBinding true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.4"
+    }
     namespace = "com.baktracker"
     compileSdk = 34
     // ndkVersion = flutter.ndkVersion
@@ -78,11 +86,9 @@ flutter {
 }
 
 dependencies {
-    // Your other dependencies...
-
+    implementation "androidx.glance:glance:1.1.0"
+    implementation "androidx.glance:glance-appwidget:1.1.0"
     implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
-    // Add core library desugaring dependency
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.2'
-
     implementation 'com.google.android.play:integrity:1.4.0'
 }

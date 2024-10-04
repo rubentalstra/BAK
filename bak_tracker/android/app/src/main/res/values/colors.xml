@@ -1,4 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#1d282d</color>
+
+    <!-- Custom colors -->
+    <color name="lightGreen">#4CAF50</color>    <!-- Green for chucked drinks -->
+    <color name="lightRed">#F44336</color>    <!-- Red for drink debt -->
+    <color name="black">#000000</color>    <!-- Text color fallback -->
+
+    <!-- System colors for light and dark mode support -->
+    <color name="system_neutral1_100">#f2f2f2</color>    <!-- Light mode background -->
+    <color name="system_neutral1_900">#1c1c1c</color>
+    <color name="light_blue_50">#FFE1F5FE</color>
+    <color name="light_blue_200">#FF81D4FA</color>
+    <color name="light_blue_600">#FF039BE5</color>
+    <color name="light_blue_900">#FF01579B</color>    <!-- Dark mode background -->
 </resources>

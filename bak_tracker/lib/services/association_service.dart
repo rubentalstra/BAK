@@ -36,6 +36,21 @@ class AssociationService {
     );
   }
 
+  Future<Map<String, int>> fetchDrinkStats(
+      String associationId, String userId) async {
+    final response = await Supabase.instance.client
+        .from('association_members')
+        .select('baks_consumed, baks_received')
+        .eq('user_id', userId)
+        .eq('association_id', associationId)
+        .single();
+
+    return {
+      'chuckedDrinks': response['baks_consumed'] ?? 0,
+      'drinkDebt': response['baks_received'] ?? 0,
+    };
+  }
+
   Future<int> fetchPendingBaksCount(String associationId, String userId) async {
     final response = await _supabase
         .from('bak_send')

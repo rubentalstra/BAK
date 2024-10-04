@@ -1,3 +1,7 @@
 <resources>
     <string name="google_app_id">946312363325-aj5uhhfgum47be31gdivi2jej4annorc.apps.googleusercontent.com</string>
+    <string name="widget_description">BAK Widget</string>
+    <string name="appwidget_text">EXAMPLE</string>
+    <string name="add_widget">Add widget</string>
+    <string name="app_widget_description">This is an app widget description</string>
 </resources>

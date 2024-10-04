@@ -3,6 +3,7 @@ import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/models/association_model.dart';
 import 'package:bak_tracker/services/association_service.dart';
+import 'package:bak_tracker/services/widget_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -62,8 +63,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         _fetchPendingBaksCount(event.selectedAssociation.id, userId),
         _fetchPendingApproveBaksCount(event.selectedAssociation.id),
         _fetchPendingBetsCount(event.selectedAssociation.id, userId),
-        _fetchAssociation(
-            event.selectedAssociation.id), // Add fetching the association
+        _fetchAssociation(event.selectedAssociation.id),
       ]);
 
       final AssociationMemberModel memberData =
@@ -74,11 +74,17 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       final int pendingApproveBaksCount = responses[3] as int;
       final int pendingBetsCount = responses[4] as int;
       final AssociationModel updatedAssociation =
-          responses[5] as AssociationModel; // Update the association
+          responses[5] as AssociationModel;
+
+      // Update the widget with the selected association's name, chucked drinks, and debt.
+      await WidgetService.updateDrinkInfo(
+        updatedAssociation.name,
+        memberData.baksConsumed.toString(),
+        memberData.baksReceived.toString(),
+      );
 
       emit(AssociationLoaded(
-        selectedAssociation:
-            updatedAssociation, // Use the updated association data
+        selectedAssociation: updatedAssociation,
         memberData: memberData,
         members: members,
         pendingBaksCount: pendingBaksCount,

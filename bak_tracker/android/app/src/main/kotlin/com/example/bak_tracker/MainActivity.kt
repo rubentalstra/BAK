@@ -1,5 +1,0 @@
-package com.baktracker
-
-import io.flutter.embedding.android.FlutterActivity
-
-class MainActivity: FlutterActivity()
