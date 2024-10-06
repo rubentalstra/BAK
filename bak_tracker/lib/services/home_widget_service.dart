@@ -19,16 +19,22 @@ class WidgetService {
         defaultValue: defaultValue);
   }
 
-  // Update widget with latest data
+  // Update both widgets with latest data
   static Future<void> reloadWidgets() async {
+    // Update both BAKWidget and BAKLockScreenWidgetExtension for iOS
     await HomeWidget.updateWidget(
       name: 'BAKWidget',
       androidName: 'BAKWidgetReceiver', // Only required for Android
       iOSName: 'BAKWidget',
     );
+
+    await HomeWidget.updateWidget(
+      name: 'BAKLockScreenWidgetExtension',
+      iOSName: 'BAKLockScreenWidgetExtension',
+    );
   }
 
-  // Update drink information and refresh the widget
+  // Update drink information and refresh both widgets
   static Future<void> updateDrinkInfo(
       String associationName, String chucked, String debt) async {
     await saveData('association_name', associationName);

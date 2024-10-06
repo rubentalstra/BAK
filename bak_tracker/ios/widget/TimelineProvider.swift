@@ -27,7 +27,7 @@ struct Provider: TimelineProvider {
     // Consolidate data fetching logic
     private func fetchEntry() -> SimpleEntry {
         let prefs = UserDefaults(suiteName: "group.com.baktracker.shared")
-        let associationName = prefs?.string(forKey: "association_name") ?? "Association"
+        let associationName = prefs?.string(forKey: "association_name") ?? "No Association"
         let chucked = prefs?.string(forKey: "chucked_drinks") ?? "0"
         let debt = prefs?.string(forKey: "drink_debt") ?? "0"
         return SimpleEntry(date: Date(), associationName: associationName, chucked: chucked, debt: debt)
