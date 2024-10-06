@@ -158,6 +158,7 @@ class NotificationsService {
       android: androidDetails,
       iOS: DarwinNotificationDetails(),
     );
+
     await flutterLocalNotificationsPlugin.show(
       body.hashCode, // Unique ID
       title,
@@ -165,6 +166,9 @@ class NotificationsService {
       platformChannelSpecifics,
       payload: body,
     );
+
+    // Increment the badge count after showing the notification
+    await _incrementBadgeCount();
   }
 
   // Background message handler
@@ -196,7 +200,7 @@ class NotificationsService {
       payload: body,
     );
 
-    // Handle badge count increment in background
+    // Increment badge count in the background
     final prefs = await SharedPreferences.getInstance();
     int currentBadgeCount = prefs.getInt('badge_count') ?? 0;
     currentBadgeCount++;

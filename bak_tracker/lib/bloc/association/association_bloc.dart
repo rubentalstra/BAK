@@ -55,6 +55,8 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       return;
     }
 
+    _saveSelectedAssociation(event.selectedAssociation);
+
     try {
       final responses = await Future.wait([
         _fetchMemberData(event.selectedAssociation.id, userId),
