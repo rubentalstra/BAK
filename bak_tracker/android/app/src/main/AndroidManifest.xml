@@ -50,13 +50,16 @@
             <!-- Disable Flutter's default deep linking -->
             <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
 
-            <!-- App Link setup for https://baktracker.com/invite -->
+
+            <!-- Use this snippet as guidance to implement your intent filter. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="baktracker.com" android:pathPrefix="/invite/" />
+                <data android:scheme="https" android:host="baktracker.com" android:path="/" />
+                <!-- note that the leading "/" is required for path -->
             </intent-filter>
+
 
         </activity>
 
