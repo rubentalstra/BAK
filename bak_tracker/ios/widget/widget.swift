@@ -13,7 +13,7 @@ struct BAKWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
-            WidgetEntryView(entry: entry, widgetFamily: .systemSmall)
+            WidgetView(entry: entry, widgetFamily: .systemSmall)
         }
         .configurationDisplayName("BAK")
         .description("Track your chucked drinks and drink debt within your association.")

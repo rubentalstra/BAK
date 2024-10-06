@@ -1,8 +1,11 @@
+// association_event.dart
 import 'package:equatable/equatable.dart';
 import 'package:bak_tracker/models/association_model.dart';
 
 // Association Events
 abstract class AssociationEvent extends Equatable {
+  const AssociationEvent();
+
   @override
   List<Object?> get props => [];
 }
@@ -10,7 +13,7 @@ abstract class AssociationEvent extends Equatable {
 class SelectAssociation extends AssociationEvent {
   final AssociationModel selectedAssociation;
 
-  SelectAssociation({required this.selectedAssociation});
+  const SelectAssociation({required this.selectedAssociation});
 
   @override
   List<Object?> get props => [selectedAssociation];
@@ -19,7 +22,7 @@ class SelectAssociation extends AssociationEvent {
 class LeaveAssociation extends AssociationEvent {
   final String associationId;
 
-  LeaveAssociation({required this.associationId});
+  const LeaveAssociation({required this.associationId});
 
   @override
   List<Object?> get props => [associationId];
@@ -28,24 +31,29 @@ class LeaveAssociation extends AssociationEvent {
 class RefreshPendingApproveBaks extends AssociationEvent {
   final String associationId;
 
-  RefreshPendingApproveBaks(this.associationId);
-}
-
-class RefreshBaksAndBets extends AssociationEvent {
-  final String associationId;
-
-  RefreshBaksAndBets(this.associationId);
+  const RefreshPendingApproveBaks(this.associationId);
 
   @override
   List<Object?> get props => [associationId];
 }
 
-class ClearAssociationError extends AssociationEvent {}
+class RefreshBaksAndBets extends AssociationEvent {
+  final String associationId;
+
+  const RefreshBaksAndBets(this.associationId);
+
+  @override
+  List<Object?> get props => [associationId];
+}
+
+class ClearAssociationError extends AssociationEvent {
+  const ClearAssociationError();
+}
 
 class JoinNewAssociation extends AssociationEvent {
   final AssociationModel newAssociation;
 
-  JoinNewAssociation({required this.newAssociation});
+  const JoinNewAssociation({required this.newAssociation});
 
   @override
   List<Object?> get props => [newAssociation];

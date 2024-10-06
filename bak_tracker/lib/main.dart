@@ -1,3 +1,4 @@
+import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:bak_tracker/services/deep_link_service.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
@@ -29,10 +30,18 @@ void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
+  // Ensure that core services like Supabase and Firebase are initialized before running the app
+  await _initializeCoreServices();
+
+  runApp(const BakTrackerApp()); // Run the app only after initialization
+}
+
+Future<void> _initializeCoreServices() async {
   try {
     // Initialize Firebase and Supabase
     await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform);
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
 
     await Supabase.initialize(
       url: Env.supabaseUrl,
@@ -45,12 +54,8 @@ void main() async {
     await appInfoService.initializeAppInfo();
 
     await HomeWidget.setAppGroupId('group.com.baktracker.shared');
-
-    // Run the main app
-    runApp(const BakTrackerApp());
   } catch (e) {
     print('Error during app initialization: $e');
-    // Optionally, you could run a minimal app that shows an error screen
   }
 }
 
@@ -68,7 +73,7 @@ class BakTrackerApp extends StatelessWidget {
       child: BlocBuilder<LocaleBloc, LocaleState>(
         builder: (context, localeState) {
           return MaterialApp(
-            title: 'BAK*',
+            title: 'BAK',
             theme: AppThemes.darkTheme,
             locale: localeState.locale,
             debugShowCheckedModeBanner: false,
@@ -105,66 +110,35 @@ class AppStartupState extends State<AppStartup> {
     _initializeApp();
   }
 
-  @override
-  void dispose() {
-    // Clean up services and handlers
-    deepLinkService.dispose();
-    flutterLocalNotificationsPlugin
-        .cancelAll(); // Ensure notifications are cancelled
-    super.dispose();
-  }
-
-  Future<void> _initializeApp() async {
+  void _initializeApp() async {
     try {
-      await _initializeNotifications();
-      await _initializeDeepLinks();
+      await _navigateToInitialScreen();
+      // Start loading non-critical services in the background
+      _initializeBackgroundServices();
     } catch (e) {
       print('Error during initialization: $e');
-      // Handle initialization errors if necessary
     } finally {
-      // Remove the splash screen after all initializations
       if (mounted) {
-        FlutterNativeSplash.remove();
-        await _navigateToInitialScreen();
+        FlutterNativeSplash.remove(); // Remove splash screen early
       }
     }
   }
 
-  Future<void> _initializeNotifications() async {
-    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    notificationsService =
-        NotificationsService(flutterLocalNotificationsPlugin);
-    await notificationsService.initializeNotifications();
-    await notificationsService.setupFirebaseMessaging();
-
-    // Register background message handler
-    FirebaseMessaging.onBackgroundMessage(
-        NotificationsService.firebaseMessagingBackgroundHandler);
+  // Initialize services that are not essential for startup
+  Future<void> _initializeBackgroundServices() async {
+    try {
+      await _initializeNotifications();
+      await _initializeDeepLinks();
+    } catch (e) {
+      print('Error during background service initialization: $e');
+    }
   }
 
-  Future<void> _initializeDeepLinks() async {
-    final associationBloc = context.read<AssociationBloc>();
-    // Initialize deepLinkService properly
-    deepLinkService = DeepLinkService(
-      associationBloc: associationBloc,
-      navigateToMainScreen: _navigateToMainScreen,
-      onError: (String error) {
-        // Use BuildContext here to show the snackbar in the UI layer
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error)),
-        );
-      },
-    );
-
-    // Now call initialize on deepLinkService
-    deepLinkService.initialize();
-  }
-
+  // Navigate directly to the initial screen (MainScreen or LoginScreen)
   Future<void> _navigateToInitialScreen() async {
     final session = Supabase.instance.client.auth.currentSession;
 
     if (session != null) {
-      // User is logged in
       try {
         final associationData = await Supabase.instance.client
             .from('association_members')
@@ -181,39 +155,77 @@ class AppStartupState extends State<AppStartup> {
         _navigateToNoAssociationScreen();
       }
     } else {
-      // User is not logged in
       _navigateToLoginScreen();
+    }
+  }
+
+  // Initialize notifications (non-blocking)
+  Future<void> _initializeNotifications() async {
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    notificationsService =
+        NotificationsService(flutterLocalNotificationsPlugin);
+
+    // Set up local notifications and Firebase Messaging
+    await notificationsService.initializeNotifications();
+    await notificationsService.setupFirebaseMessaging();
+
+    FirebaseMessaging.onBackgroundMessage(
+        NotificationsService.firebaseMessagingBackgroundHandler);
+
+    // Reset badge at startup
+    AppBadgePlus.updateBadge(0);
+  }
+
+  Future<void> _initializeDeepLinks() async {
+    final associationBloc = context.read<AssociationBloc>();
+
+    deepLinkService = DeepLinkService(
+      associationBloc: associationBloc,
+      navigateToMainScreen: _navigateToMainScreen,
+      onError: (String error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error)),
+          );
+        }
+      },
+    );
+
+    await deepLinkService.initialize();
+  }
+
+  void _navigateToLoginScreen() {
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      });
     }
   }
 
   void _navigateToMainScreen() {
     if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const MainScreen()),
-        (Route<dynamic> route) => false,
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainScreen()),
+        );
+      });
     }
   }
 
   void _navigateToNoAssociationScreen() {
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
-      );
-    }
-  }
-
-  void _navigateToLoginScreen() {
-    if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
+        );
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Since all initialization is done asynchronously, we return an empty container here.
     return const SizedBox.shrink();
   }
 }

@@ -14,25 +14,23 @@ struct Provider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
-        let prefs = UserDefaults(suiteName: "group.com.baktracker.shared")
-        let associationName = prefs?.string(forKey: "association_name") ?? "Association"
-        let chucked = prefs?.string(forKey: "chucked_drinks") ?? "0"
-        let debt = prefs?.string(forKey: "drink_debt") ?? "0"
-        let entry = SimpleEntry(date: Date(), associationName: associationName, chucked: chucked, debt: debt)
+        let entry = fetchEntry()
         completion(entry)
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<SimpleEntry>) -> ()) {
+        let entry = fetchEntry()
+        let timeline = Timeline(entries: [entry], policy: .atEnd)
+        completion(timeline)
+    }
+    
+    // Consolidate data fetching logic
+    private func fetchEntry() -> SimpleEntry {
         let prefs = UserDefaults(suiteName: "group.com.baktracker.shared")
         let associationName = prefs?.string(forKey: "association_name") ?? "Association"
         let chucked = prefs?.string(forKey: "chucked_drinks") ?? "0"
         let debt = prefs?.string(forKey: "drink_debt") ?? "0"
-
-        let currentDate = Date()
-        let entry = SimpleEntry(date: currentDate, associationName: associationName, chucked: chucked, debt: debt)
-
-        let timeline = Timeline(entries: [entry], policy: .atEnd)
-        completion(timeline)
+        return SimpleEntry(date: Date(), associationName: associationName, chucked: chucked, debt: debt)
     }
 }
 

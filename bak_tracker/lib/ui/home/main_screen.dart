@@ -1,29 +1,29 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
+import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
+import 'package:bak_tracker/core/const/permissions_constants.dart';
+import 'package:bak_tracker/ui/home/bak/bak_screen.dart';
 import 'package:bak_tracker/ui/home/bets/bets_screen.dart';
+import 'package:bak_tracker/ui/home/chucked/chucked_screen.dart';
+import 'package:bak_tracker/ui/home/home_screen.dart';
+import 'package:bak_tracker/ui/home/widgets/bottom_nav_bar.dart';
 import 'package:bak_tracker/ui/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:bak_tracker/ui/home/bak/bak_screen.dart';
-import 'package:bak_tracker/ui/home/home_screen.dart';
-import 'package:bak_tracker/ui/home/chucked/chucked_screen.dart';
-import 'package:bak_tracker/ui/home/widgets/bottom_nav_bar.dart';
-import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/models/association_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:bak_tracker/core/const/permissions_constants.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
   @override
-  _MainScreenState createState() => _MainScreenState();
+  MainScreenState createState() => MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   List<AssociationModel> _associations = [];
   AssociationModel? _selectedAssociation;
@@ -32,7 +32,6 @@ class _MainScreenState extends State<MainScreen> {
 
   int pendingBaksCount = 0;
   int pendingBetsCount = 0;
-  List<Widget>? _cachedPages;
 
   @override
   void initState() {
@@ -52,7 +51,7 @@ class _MainScreenState extends State<MainScreen> {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
 
-    final List<dynamic> memberResponse = await supabase
+    final memberResponse = await supabase
         .from('association_members')
         .select('association_id')
         .eq('user_id', userId);
@@ -60,7 +59,7 @@ class _MainScreenState extends State<MainScreen> {
     if (memberResponse.isNotEmpty) {
       final associationIds =
           memberResponse.map((m) => m['association_id']).toList();
-      final List<dynamic> response = await supabase
+      final response = await supabase
           .from('associations')
           .select()
           .inFilter('id', associationIds);
@@ -77,33 +76,30 @@ class _MainScreenState extends State<MainScreen> {
     final prefs = await SharedPreferences.getInstance();
     final savedAssociationJson = prefs.getString('selected_association');
 
-    _selectedAssociation = savedAssociationJson != null
-        ? _associations.firstWhere(
-            (a) =>
-                a.id ==
-                AssociationModel.fromMap(jsonDecode(savedAssociationJson)).id,
-            orElse: () => _associations.first)
-        : _associations.first;
+    if (savedAssociationJson != null) {
+      final savedAssociation =
+          AssociationModel.fromMap(jsonDecode(savedAssociationJson));
+      _selectedAssociation = _associations.firstWhere(
+          (a) => a.id == savedAssociation.id,
+          orElse: () => _associations.first);
+    } else {
+      _selectedAssociation = _associations.first;
+    }
 
     if (_selectedAssociation != null) {
       context
           .read<AssociationBloc>()
           .add(SelectAssociation(selectedAssociation: _selectedAssociation!));
     }
-  }
 
-  Future<void> _saveSelectedAssociation(AssociationModel association) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-        'selected_association', jsonEncode(association.toMap()));
+    _startPollingApproveBaks();
+    _startPollingPendingBaksAndBets();
   }
 
   void _onAssociationChanged(AssociationModel? newAssociation) {
     if (_selectedAssociation?.id != newAssociation?.id) {
       setState(() {
         _selectedAssociation = newAssociation;
-        _cachedPages = null;
-        _saveSelectedAssociation(newAssociation!);
       });
       context
           .read<AssociationBloc>()
@@ -112,10 +108,10 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _startPollingApproveBaks() {
-    _approveBaksTimer?.cancel(); // Cancel the previous timer
+    _approveBaksTimer?.cancel();
 
     if (_selectedAssociation != null) {
-      _approveBaksTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      _approveBaksTimer = Timer.periodic(const Duration(seconds: 30), (_) {
         context
             .read<AssociationBloc>()
             .add(RefreshPendingApproveBaks(_selectedAssociation!.id));
@@ -128,7 +124,7 @@ class _MainScreenState extends State<MainScreen> {
 
     if (_selectedAssociation != null) {
       _pendingBaksAndBetsTimer =
-          Timer.periodic(const Duration(seconds: 30), (timer) {
+          Timer.periodic(const Duration(seconds: 30), (_) {
         context
             .read<AssociationBloc>()
             .add(RefreshBaksAndBets(_selectedAssociation!.id));
@@ -136,8 +132,8 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  List<Widget> get _pages {
-    _cachedPages ??= [
+  List<Widget> _buildPages() {
+    return [
       HomeScreen(
         associations: _associations,
         selectedAssociation: _selectedAssociation,
@@ -148,7 +144,6 @@ class _MainScreenState extends State<MainScreen> {
       const BetsScreen(),
       const SettingsScreen(),
     ];
-    return _cachedPages!;
   }
 
   @override
@@ -156,9 +151,11 @@ class _MainScreenState extends State<MainScreen> {
     return BlocListener<AssociationBloc, AssociationState>(
       listener: (context, state) {
         if (state is AssociationLoaded) {
-          final hasApproveBaksPermission = state.memberData
+          final memberData = state.memberData;
+          final hasApproveBaksPermission = memberData.permissions
                   .hasPermission(PermissionEnum.canApproveBaks) ||
-              state.memberData.hasPermission(PermissionEnum.hasAllPermissions);
+              memberData.permissions
+                  .hasPermission(PermissionEnum.hasAllPermissions);
 
           if (hasApproveBaksPermission) {
             _startPollingApproveBaks();
@@ -172,19 +169,15 @@ class _MainScreenState extends State<MainScreen> {
           _startPollingPendingBaksAndBets();
         }
       },
-      child: _selectedAssociation == null || _associations.isEmpty
-          ? const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            )
-          : Scaffold(
-              body: _pages[_selectedIndex],
-              bottomNavigationBar: BottomNavBar(
-                selectedIndex: _selectedIndex,
-                onTap: (index) => setState(() => _selectedIndex = index),
-                pendingBaksCount: pendingBaksCount,
-                pendingBetsCount: pendingBetsCount,
-              ),
-            ),
+      child: Scaffold(
+        body: _buildPages()[_selectedIndex],
+        bottomNavigationBar: BottomNavBar(
+          selectedIndex: _selectedIndex,
+          onTap: (index) => setState(() => _selectedIndex = index),
+          pendingBaksCount: pendingBaksCount,
+          pendingBetsCount: pendingBetsCount,
+        ),
+      ),
     );
   }
 }

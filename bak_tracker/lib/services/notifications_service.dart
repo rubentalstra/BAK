@@ -1,5 +1,8 @@
+import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NotificationsService {
@@ -8,43 +11,45 @@ class NotificationsService {
 
   NotificationsService(this.flutterLocalNotificationsPlugin);
 
-  // Initialize local notifications
   Future<void> initializeNotifications() async {
-    try {
-      const AndroidInitializationSettings initializationSettingsAndroid =
-          AndroidInitializationSettings(
-              '@drawable/ic_notification'); // Ensure the icon exists in mipmap
+    // Request notification permissions for both local and FCM
+    await _requestNotificationPermissions();
 
-      const DarwinInitializationSettings initializationSettingsIOS =
-          DarwinInitializationSettings(
-        requestAlertPermission: true,
-        requestBadgePermission: true,
-        requestSoundPermission: true,
-      );
+    // Initialize local notification platform settings
+    await _initializePlatformSettings();
 
-      const InitializationSettings initializationSettings =
-          InitializationSettings(
-        android: initializationSettingsAndroid,
-        iOS: initializationSettingsIOS,
-      );
+    // Create the notification channel for Android
+    await _createNotificationChannel();
 
-      await flutterLocalNotificationsPlugin.initialize(
-        initializationSettings,
-        onDidReceiveNotificationResponse: (NotificationResponse response) {
-          print('Notification tapped with payload: ${response.payload}');
-        },
-      );
-
-      print('FlutterLocalNotificationsPlugin initialized successfully');
-
-      // Create notification channels for Android 8.0 and above
-      await _createNotificationChannel();
-    } catch (e) {
-      print('Error initializing FlutterLocalNotificationsPlugin: $e');
-    }
+    // Reset badge count at startup
+    await _resetBadgeCount();
   }
 
-  // Create notification channels for Android 8.0 and above
+  // Platform-specific notification settings initialization
+  Future<void> _initializePlatformSettings() async {
+    const initializationSettingsAndroid =
+        AndroidInitializationSettings('@drawable/ic_notification');
+    const initializationSettingsIOS = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+    const initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
+    );
+
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (response) {
+        print('Notification tapped with payload: ${response.payload}');
+        _resetBadgeCount(); // Reset badge when notification is tapped
+      },
+    );
+    print('Local Notifications initialized successfully');
+  }
+
+  // Creating a notification channel for Android 8.0+
   Future<void> _createNotificationChannel() async {
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'your_channel_id', // Unique ID
@@ -53,25 +58,37 @@ class NotificationsService {
       importance: Importance.high,
     );
 
-    // Register the channel with the system
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
   }
 
-  // Set up Firebase Messaging
+  // Request notification permissions using permission_handler
+  Future<void> _requestNotificationPermissions() async {
+    final status = await Permission.notification.status;
+    if (status.isDenied) {
+      final permissionGranted = await Permission.notification.request();
+      if (permissionGranted.isGranted) {
+        print("Notification permission granted.");
+      } else {
+        print("Notification permission denied.");
+      }
+    }
+  }
+
+  // Setup Firebase Messaging for handling FCM notifications
   Future<void> setupFirebaseMessaging() async {
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-    // Request notification permissions
-    final NotificationSettings settings = await messaging.requestPermission(
+    // Request notification permissions for Firebase
+    final settings = await messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
 
-    // Disable default notification handling by Firebase when the app is in the foreground
+    // Ensure Firebase notifications are not handled by default in the foreground
     await messaging.setForegroundNotificationPresentationOptions(
       alert: false,
       badge: false,
@@ -83,102 +100,93 @@ class NotificationsService {
     }
 
     // Handle foreground messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      print('Got a message while in the foreground!');
+    FirebaseMessaging.onMessage
+        .listen((message) => _handleForegroundMessage(message));
 
-      if (message.messageId != null &&
-          !_shownNotificationIds.contains(message.messageId)) {
-        _shownNotificationIds.add(message.messageId!);
+    // Handle notification taps (opened via notification)
+    FirebaseMessaging.onMessageOpenedApp
+        .listen((message) => _resetBadgeCount());
+  }
 
-        if (message.notification != null) {
-          RemoteNotification? notification = message.notification;
-          String title = notification?.title ?? 'No title';
-          String body = notification?.body ?? 'No body';
-          print('Notification: Title - $title, Body - $body');
-          await _showNotification(title, body);
-        }
+  // Handle Firebase Cloud Messaging (FCM) token for the current user
+  Future<void> handleFCMToken(FirebaseMessaging messaging) async {
+    try {
+      final token = await messaging.getToken();
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+
+      if (token != null && userId != null) {
+        await Supabase.instance.client
+            .from('users')
+            .update({'fcm_token': token}).eq('id', userId);
+        print('FCM token updated successfully.');
       } else {
-        print('Duplicate notification received, skipping...');
+        print('FCM token or user ID is null.');
       }
-    });
+    } catch (e) {
+      print('Error updating FCM token: $e');
+    }
+  }
 
-    // Handle notification tap
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('App opened from a notification');
-    });
+  // Handle foreground notifications
+  Future<void> _handleForegroundMessage(RemoteMessage message) async {
+    if (message.messageId != null &&
+        !_shownNotificationIds.contains(message.messageId!)) {
+      _shownNotificationIds.add(message.messageId!);
+
+      if (message.notification != null) {
+        final title = message.notification?.title ?? 'No title';
+        final body = message.notification?.body ?? 'No body';
+        await _showNotification(title, body);
+
+        // Increment badge count when a new notification is shown
+        await _incrementBadgeCount();
+      }
+    }
+  }
+
+  // Show a local notification using FlutterLocalNotificationsPlugin
+  Future<void> _showNotification(String title, String body) async {
+    const androidDetails = AndroidNotificationDetails(
+      'your_channel_id',
+      'your_channel_name',
+      channelDescription: 'your_channel_description',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@drawable/ic_notification',
+    );
+    const platformChannelSpecifics = NotificationDetails(
+      android: androidDetails,
+      iOS: DarwinNotificationDetails(),
+    );
+    await flutterLocalNotificationsPlugin.show(
+      body.hashCode, // Unique ID
+      title,
+      body,
+      platformChannelSpecifics,
+      payload: body,
+    );
   }
 
   // Background message handler
   static Future<void> firebaseMessagingBackgroundHandler(
       RemoteMessage message) async {
-    print('Handling a background/terminated message: ${message.messageId}');
-    if (message.data.isNotEmpty) {
-      String title = message.data['title'] ?? 'No title';
-      String body = message.data['body'] ?? 'No body';
+    print('Handling background message: ${message.messageId}');
+    final title = message.data['title'] ?? 'No title';
+    final body = message.data['body'] ?? 'No body';
 
-      // Initialize the notification plugin (if necessary) and show notification
-      final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-      const AndroidNotificationDetails androidPlatformChannelSpecifics =
-          AndroidNotificationDetails('your_channel_id', 'your_channel_name',
-              channelDescription: 'your_channel_description',
-              importance: Importance.max,
-              priority: Priority.high,
-              ticker: 'ticker',
-              icon: '@drawable/ic_notification');
-      const NotificationDetails platformChannelSpecifics = NotificationDetails(
-          android: androidPlatformChannelSpecifics,
-          iOS: DarwinNotificationDetails());
-
-      await flutterLocalNotificationsPlugin.show(
-        body.hashCode,
-        title,
-        body,
-        platformChannelSpecifics,
-        payload: body,
-      );
-    }
-  }
-
-  // Handle Firebase Cloud Messaging (FCM) token and save it in the Supabase database
-  Future<void> handleFCMToken(FirebaseMessaging messaging) async {
-    try {
-      String? token = await messaging.getToken();
-      if (token != null) {
-        print('FCM Token: $token');
-        final userId = Supabase.instance.client.auth.currentUser?.id;
-        if (userId != null) {
-          try {
-            // Update FCM token in the database
-            await Supabase.instance.client
-                .from('users')
-                .update({'fcm_token': token}).eq('id', userId);
-
-            print('FCM token updated successfully.');
-          } catch (e) {
-            print('Error updating FCM token: $e');
-          }
-        } else {
-          print('User not logged in. Cannot update FCM token.');
-        }
-      }
-    } catch (e) {
-      print('Error getting FCM token: $e');
-    }
-  }
-
-  Future<void> _showNotification(String title, String body) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails('your_channel_id', 'your_channel_name',
-            channelDescription: 'your_channel_description',
-            importance: Importance.max,
-            priority: Priority.high,
-            ticker: 'ticker',
-            icon:
-                '@drawable/ic_notification'); // Fallback to ic_launcher for notification icon
-
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
-        android: androidPlatformChannelSpecifics,
-        iOS: DarwinNotificationDetails());
+    final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    const androidDetails = AndroidNotificationDetails(
+      'your_channel_id',
+      'your_channel_name',
+      channelDescription: 'your_channel_description',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@drawable/ic_notification',
+    );
+    const platformChannelSpecifics = NotificationDetails(
+      android: androidDetails,
+      iOS: DarwinNotificationDetails(),
+    );
 
     await flutterLocalNotificationsPlugin.show(
       body.hashCode,
@@ -187,5 +195,32 @@ class NotificationsService {
       platformChannelSpecifics,
       payload: body,
     );
+
+    // Handle badge count increment in background
+    final prefs = await SharedPreferences.getInstance();
+    int currentBadgeCount = prefs.getInt('badge_count') ?? 0;
+    currentBadgeCount++;
+    await prefs.setInt('badge_count', currentBadgeCount);
+    AppBadgePlus.updateBadge(currentBadgeCount);
+  }
+
+  // Increment the badge count and store it persistently
+  Future<void> _incrementBadgeCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    int currentBadgeCount = prefs.getInt('badge_count') ?? 0;
+    currentBadgeCount++;
+    await prefs.setInt('badge_count', currentBadgeCount);
+
+    // Update the badge using AppBadgePlus
+    AppBadgePlus.updateBadge(currentBadgeCount);
+  }
+
+  // Reset the badge count and update storage
+  Future<void> _resetBadgeCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('badge_count', 0);
+
+    // Reset the badge using AppBadgePlus
+    AppBadgePlus.updateBadge(0);
   }
 }

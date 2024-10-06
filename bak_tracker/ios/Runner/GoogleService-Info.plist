@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>CLIENT_ID</key>
+		<string>946312363325-7stnuk9c7j4m0r58508u7ctda7bca6oc.apps.googleusercontent.com</string>
+		<key>REVERSED_CLIENT_ID</key>
+		<string>com.googleusercontent.apps.946312363325-7stnuk9c7j4m0r58508u7ctda7bca6oc</string>
+		<key>ANDROID_CLIENT_ID</key>
+		<string>946312363325-aj5uhhfgum47be31gdivi2jej4annorc.apps.googleusercontent.com</string>
+		<key>API_KEY</key>
+		<string>AIzaSyA7xO-rwVqT2ObxOPOaCvTgZTKzIi-8W8k</string>
+		<key>GCM_SENDER_ID</key>
+		<string>946312363325</string>
+		<key>PLIST_VERSION</key>
+		<string>1</string>
+		<key>BUNDLE_ID</key>
+		<string>com.baktracker</string>
+		<key>PROJECT_ID</key>
+		<string>bak-tracker-app</string>
+		<key>STORAGE_BUCKET</key>
+		<string>bak-tracker-app.appspot.com</string>
+		<key>IS_ADS_ENABLED</key>
+		<false></false>
+		<key>IS_ANALYTICS_ENABLED</key>
+		<false></false>
+		<key>IS_APPINVITE_ENABLED</key>
+		<true></true>
+		<key>IS_GCM_ENABLED</key>
+		<true></true>
+		<key>IS_SIGNIN_ENABLED</key>
+		<true></true>
+		<key>GOOGLE_APP_ID</key>
+		<string>1:946312363325:ios:b7551dbfcbe668f80a1954</string>
+	</dict>
+</plist>

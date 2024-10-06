@@ -1,35 +1,44 @@
+// association_state.dart
 import 'package:equatable/equatable.dart';
 import 'package:bak_tracker/models/association_model.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
 
 // Association States
 abstract class AssociationState extends Equatable {
+  const AssociationState();
+
   @override
   List<Object?> get props => [];
 }
 
-class AssociationInitial extends AssociationState {}
+class AssociationInitial extends AssociationState {
+  const AssociationInitial();
+}
 
-class AssociationLoading extends AssociationState {}
+class AssociationLoading extends AssociationState {
+  const AssociationLoading();
+}
 
-class NoAssociationsLeft extends AssociationState {}
+class NoAssociationsLeft extends AssociationState {
+  const NoAssociationsLeft();
+}
 
 class AssociationLoaded extends AssociationState {
   final AssociationModel selectedAssociation;
   final AssociationMemberModel memberData;
   final List<AssociationMemberModel> members;
-  final int pendingBaksCount; // Track the number of pending baks
-  final int pendingBetsCount; // Track the number of pending bets
-  final int pendingAproveBaksCount; // Track the number of pending approve baks
+  final int pendingBaksCount;
+  final int pendingBetsCount;
+  final int pendingApproveBaksCount;
   final String? errorMessage;
 
-  AssociationLoaded({
+  const AssociationLoaded({
     required this.selectedAssociation,
     required this.memberData,
     required this.members,
     required this.pendingBaksCount,
-    required this.pendingBetsCount, // Include the pending bets count
-    required this.pendingAproveBaksCount, // Include the pending approve baks count
+    required this.pendingBetsCount,
+    required this.pendingApproveBaksCount,
     this.errorMessage,
   });
 
@@ -40,18 +49,17 @@ class AssociationLoaded extends AssociationState {
         members,
         pendingBaksCount,
         pendingBetsCount,
-        pendingAproveBaksCount,
+        pendingApproveBaksCount,
         errorMessage,
       ];
 
-  // Implementing the copyWith method to allow partial updates to state
   AssociationLoaded copyWith({
     AssociationModel? selectedAssociation,
     AssociationMemberModel? memberData,
     List<AssociationMemberModel>? members,
     int? pendingBaksCount,
     int? pendingBetsCount,
-    int? pendingAproveBaksCount,
+    int? pendingApproveBaksCount,
     String? errorMessage,
   }) {
     return AssociationLoaded(
@@ -60,28 +68,30 @@ class AssociationLoaded extends AssociationState {
       members: members ?? this.members,
       pendingBaksCount: pendingBaksCount ?? this.pendingBaksCount,
       pendingBetsCount: pendingBetsCount ?? this.pendingBetsCount,
-      pendingAproveBaksCount:
-          pendingAproveBaksCount ?? this.pendingAproveBaksCount,
-      errorMessage: errorMessage, // Explicitly set to null or new value
+      pendingApproveBaksCount:
+          pendingApproveBaksCount ?? this.pendingApproveBaksCount,
+      errorMessage: errorMessage,
     );
+  }
+
+  AssociationLoaded clearError() {
+    return copyWith(errorMessage: null);
   }
 }
 
 class AssociationError extends AssociationState {
   final String message;
 
-  AssociationError(this.message);
+  const AssociationError(this.message);
 
   @override
   List<Object?> get props => [message];
 }
 
-class AssociationLeave extends AssociationState {
-  @override
-  List<Object?> get props => [];
+class AssociationLeft extends AssociationState {
+  const AssociationLeft();
 }
 
 class AssociationJoined extends AssociationState {
-  @override
-  List<Object?> get props => [];
+  const AssociationJoined();
 }

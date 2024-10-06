@@ -61,7 +61,7 @@ class AssociationService {
     return response.length;
   }
 
-  Future<int> fetchPendingAproveBaksCount(String associationId) async {
+  Future<int> fetchPendingApproveBaksCount(String associationId) async {
     final response = await _supabase
         .from('bak_consumed')
         .select()

@@ -61,11 +61,15 @@ class LoginScreen extends StatelessWidget {
               final FlutterLocalNotificationsPlugin
                   flutterLocalNotificationsPlugin =
                   FlutterLocalNotificationsPlugin();
-              NotificationsService(flutterLocalNotificationsPlugin)
-                  .handleFCMToken(messaging);
+              final notificationsService =
+                  NotificationsService(flutterLocalNotificationsPlugin);
+
+              // Await the FCM token handling to ensure it completes before navigating
+              await notificationsService.handleFCMToken(messaging);
 
               bool isPartOfAssociation = await _checkUserAssociation();
 
+              // Navigate to the appropriate screen based on association status
               if (isPartOfAssociation) {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(builder: (context) => const MainScreen()),

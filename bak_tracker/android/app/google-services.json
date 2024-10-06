@@ -1,0 +1,63 @@
+{
+  "project_info": {
+    "project_number": "946312363325",
+    "project_id": "bak-tracker-app",
+    "storage_bucket": "bak-tracker-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:946312363325:android:588d0df35d10a80b0a1954",
+        "android_client_info": {
+          "package_name": "com.baktracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "946312363325-3gca8l12ecqfssq9pn0kmeeesmcb9cf5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.baktracker",
+            "certificate_hash": "d8647302c8a63bb3389ded067abe0e461158fa34"
+          }
+        },
+        {
+          "client_id": "946312363325-aj5uhhfgum47be31gdivi2jej4annorc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.baktracker",
+            "certificate_hash": "036e8d9140df45a85fc3243c1c5b2074ba304f6b"
+          }
+        },
+        {
+          "client_id": "946312363325-b4lpq2tcgv2q5hm31qt7c5r7mb5pj6bv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5ZlCK2fYAUpiwZsZZz19mAnFYU2IlI5o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "946312363325-b4lpq2tcgv2q5hm31qt7c5r7mb5pj6bv.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "946312363325-2nahp9fkfamhnqcai28rqamp3a73hr02.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.baktracker",
+                "app_store_id": "6677035480"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

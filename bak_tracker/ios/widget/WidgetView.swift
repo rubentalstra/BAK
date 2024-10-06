@@ -8,7 +8,7 @@
 import SwiftUI
 import WidgetKit
 
-struct WidgetEntryView: View {
+struct WidgetView: View {
     var entry: Provider.Entry
     var widgetFamily: WidgetFamily
 
@@ -16,76 +16,38 @@ struct WidgetEntryView: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            if widgetFamily == .systemSmall {
-                smallWidgetView(entry: entry)
-            } else {
-                mediumWidgetView(entry: entry)
-            }
-        }
-        .padding()
-        .background(Color.clear) // Use system background, no custom background color
-    }
-
-    // Small widget view layout
-    @ViewBuilder
-    private func smallWidgetView(entry: Provider.Entry) -> some View {
-        VStack(alignment: .leading) {
             Text(entry.associationName)
-                .font(.headline)
-                .lineLimit(1)  // Restrict text to one line
-                .minimumScaleFactor(0.5)  // Allow text to scale down to fit
-                .truncationMode(.tail)  // Truncate with an ellipsis if it overflows
-                .foregroundColor(colorScheme == .dark ? AppColors.darkSecondary : AppColors.lightSecondary)
+                .font(widgetFamily == .systemSmall ? .headline : .title2)
+                .foregroundColor(Color("AccentColor"))
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .truncationMode(.tail)
+            
             Spacer()
+            
             HStack {
                 VStack {
                     Text("BAK")
                         .font(.caption)
-                        .foregroundColor(colorScheme == .dark ? AppColors.darkPrimary : AppColors.lightPrimary)
+                        .foregroundColor(Color("CaptionColor"))
                     Text(entry.debt)
-                        .font(.title)
-                        .foregroundColor(colorScheme == .dark ? AppColors.darkRed : AppColors.lightRed)
+                        .font(widgetFamily == .systemSmall ? .title : .largeTitle)
+                        .foregroundColor(Color.red)
                 }
                 Spacer()
                 VStack {
                     Text("Chucked")
                         .font(.caption)
-                        .foregroundColor(colorScheme == .dark ? AppColors.darkPrimary : AppColors.lightPrimary)
+                        .foregroundColor(Color("CaptionColor"))
                     Text(entry.chucked)
-                        .font(.title)
-                        .foregroundColor(colorScheme == .dark ? AppColors.darkGreen : AppColors.lightGreen)
+                        .font(widgetFamily == .systemSmall ? .title : .largeTitle)
+                        .foregroundColor(Color.green)
                 }
             }
         }
-    }
-
-    // Medium widget view layout
-    @ViewBuilder
-    private func mediumWidgetView(entry: Provider.Entry) -> some View {
-        VStack(alignment: .leading) {
-            Text(entry.associationName)
-                .font(.title2)
-                .foregroundColor(colorScheme == .dark ? AppColors.darkSecondary : AppColors.lightSecondary)
-            Spacer()
-            HStack {
-                VStack {
-                    Text("BAK")
-                        .font(.caption)
-                        .foregroundColor(colorScheme == .dark ? AppColors.darkPrimary : AppColors.lightPrimary)
-                    Text(entry.debt)
-                        .font(.largeTitle)
-                        .foregroundColor(colorScheme == .dark ? AppColors.darkRed : AppColors.lightRed)
-                }
-                Spacer()
-                VStack {
-                    Text("Chucked Drinks")
-                        .font(.caption)
-                        .foregroundColor(colorScheme == .dark ? AppColors.darkPrimary : AppColors.lightPrimary)
-                    Text(entry.chucked)
-                        .font(.largeTitle)
-                        .foregroundColor(colorScheme == .dark ? AppColors.darkGreen : AppColors.lightGreen)
-                }
-            }
-        }
+        .padding()
+        .background(Color("WidgetBackground"))
+        .containerRelativeFrame(.horizontal)
+        .containerRelativeFrame(.vertical)
     }
 }

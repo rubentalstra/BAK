@@ -1,3 +1,4 @@
+import 'package:bak_tracker/services/home_widget_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -55,6 +56,7 @@ class AuthenticationBloc extends Cubit<AuthenticationState> {
       // Clear the selected association from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('selected_association');
+      await WidgetService.resetWidget();
 
       emit(AuthenticationSignedOut());
     } catch (e) {

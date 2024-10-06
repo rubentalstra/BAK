@@ -20,10 +20,53 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/ui/login/login_screen.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _isNotificationEnabled = false; // Track notification switch state
+
+  @override
+  void initState() {
+    super.initState();
+    _checkNotificationPermission(); // Check notification status on load
+  }
+
+  // Method to check current notification permission status
+  Future<void> _checkNotificationPermission() async {
+    final status = await Permission.notification.status;
+    setState(() {
+      _isNotificationEnabled = status.isGranted;
+    });
+  }
+
+  // Method to handle notification switch toggle
+  Future<void> _onNotificationToggle(bool value) async {
+    if (value) {
+      // Request notification permission if enabling
+      final status = await Permission.notification.request();
+      if (status.isGranted) {
+        setState(() {
+          _isNotificationEnabled = true;
+        });
+      } else if (status.isPermanentlyDenied) {
+        // If permanently denied, open app settings
+        await openAppSettings();
+      }
+    } else {
+      // Disable notifications (no real way to disable from code, just UI control)
+      setState(() {
+        _isNotificationEnabled = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +97,14 @@ class SettingsScreen extends StatelessWidget {
               subtitle: 'Choose your preferred language',
               icon: FontAwesomeIcons.language,
               onTap: () => _showLanguageSelector(context),
+            ),
+            _buildDivider(),
+            SwitchListTile(
+              title: const Text('Enable Notifications'),
+              subtitle: const Text('Allow notifications from the app'),
+              value: _isNotificationEnabled,
+              onChanged: _onNotificationToggle,
+              secondary: const Icon(Icons.notifications),
             ),
             _buildDivider(),
             _buildListTile(
@@ -143,7 +194,7 @@ class SettingsScreen extends StatelessWidget {
         MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
         (Route<dynamic> route) => false,
       );
-    } else if (state is AssociationLeave || state is AssociationJoined) {
+    } else if (state is AssociationLeft || state is AssociationJoined) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const MainScreen()),
         (Route<dynamic> route) => false,
@@ -287,7 +338,10 @@ class SettingsScreen extends StatelessWidget {
       child: Text(
         title,
         style: const TextStyle(
-            fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey,
+        ),
       ),
     );
   }

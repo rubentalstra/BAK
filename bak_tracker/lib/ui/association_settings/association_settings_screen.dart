@@ -18,13 +18,13 @@ class AssociationSettingsScreen extends StatelessWidget {
   final AssociationMemberModel memberData;
   final AssociationModel association;
   final AssociationService associationService = AssociationService();
-  final int pendingAproveBaksCount; // Pass the pending baks count
+  final int pendingApproveBaksCount; // Pass the pending baks count
 
   AssociationSettingsScreen({
     super.key,
     required this.memberData,
     required this.association,
-    required this.pendingAproveBaksCount, // Required for badge
+    required this.pendingApproveBaksCount, // Required for badge
   });
 
   @override
@@ -150,9 +150,9 @@ class AssociationSettingsScreen extends StatelessWidget {
 
   Widget _buildBadge() {
     return badges.Badge(
-      showBadge: pendingAproveBaksCount > 0,
+      showBadge: pendingApproveBaksCount > 0,
       badgeContent: Text(
-        pendingAproveBaksCount.toString(),
+        pendingApproveBaksCount.toString(),
         style: const TextStyle(color: Colors.white, fontSize: 12),
       ),
       badgeStyle: const badges.BadgeStyle(
