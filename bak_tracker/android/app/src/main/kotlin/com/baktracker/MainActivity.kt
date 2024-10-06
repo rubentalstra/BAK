@@ -1,8 +1,8 @@
 package com.baktracker
 
 import android.os.Bundle
-import io.flutter.embedding.android.FlutterActivity
 import android.content.Intent
+import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -15,9 +15,9 @@ class MainActivity : FlutterActivity() {
         handleIntent(intent)
     }
 
-    private fun handleIntent(intent: Intent) {
-        // Handle widget click intents or other types of intents here
-        val data = intent.getStringExtra("some_data_key")
-        // Process the intent data as necessary
+    private fun handleIntent(intent: Intent?) {
+        intent?.getStringExtra("some_data_key")?.let { data ->
+            // Process the intent data as necessary
+        }
     }
 }
