@@ -4,12 +4,15 @@
 
     <!-- Allow app to request internet access -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"
         tools:ignore="ScopedStorage" />
-    <uses-permission android:name="android.permission.CAMERA"
+    <uses-permission
+        android:name="android.permission.CAMERA"
         tools:ignore="PermissionImpliesUnsupportedChromeOsHardware" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -40,13 +43,27 @@
     <uses-permission android:name="com.huawei.android.launcher.permission.WRITE_SETTINGS" />
 
 
-    <application android:label="BAK" android:name="${applicationName}" android:icon="@mipmap/launcher_icon" android:enableOnBackInvokedCallback="true"
+    <application
+        android:label="BAK"
+        android:name="${applicationName}"
+        android:icon="@mipmap/launcher_icon"
+        android:enableOnBackInvokedCallback="true"
         tools:ignore="UnusedAttribute">
 
-        <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop" android:taskAffinity="" android:theme="@style/LaunchTheme" android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode" android:hardwareAccelerated="true" android:windowSoftInputMode="adjustResize">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
 
             <!-- Normal Theme Configuration -->
-            <meta-data android:name="io.flutter.embedding.android.NormalTheme" android:resource="@style/NormalTheme" />
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
 
             <!-- Launcher activity -->
             <intent-filter>
@@ -55,7 +72,10 @@
             </intent-filter>
 
             <!-- Disable Flutter's default deep linking -->
-            <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
+            <meta-data
+                android:name="flutter_deeplinking_enabled"
+                android:value="false" />
+
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
 
@@ -63,32 +83,57 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <!-- Combine scheme, host, and pathPrefix in one data tag -->
-                <data android:scheme="https" android:host="baktracker.com" android:pathPrefix="/invite" />
+                <data
+                    android:scheme="https"
+                    android:host="baktracker.com"
+                    android:pathPrefix="/invite" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" />
+                <data android:host="baktracker.com" />
+                <data android:path="/" />
             </intent-filter>
 
         </activity>
 
         <!-- Use ic_launcher as notification icon -->
-        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
 
         <!-- Optional notification color -->
         <!-- <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/colorPrimary" /> -->
 
         <!-- Flutter tool to generate GeneratedPluginRegistrant.java -->
-        <meta-data android:name="flutterEmbedding" android:value="2" />
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
 
         <!-- Widget Provider -->
-        <receiver android:name=".BAKWidgetReceiver" android:exported="true">
+        <receiver
+            android:name=".BAKWidgetReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/bak_widget_info" />
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/bak_widget_info" />
         </receiver>
 
         <!-- Local Notification Receivers -->
-        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
 
-        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />

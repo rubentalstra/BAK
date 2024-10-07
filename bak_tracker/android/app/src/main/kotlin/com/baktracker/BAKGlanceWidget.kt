@@ -10,7 +10,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import android.content.Intent
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.currentState
@@ -58,11 +61,18 @@ class BAKGlanceWidget : GlanceAppWidget() {
             ColorProvider(lightBackgroundColor) // Light mode background
         }
 
+        // Create an intent to open the Flutter app when clicked
+        val intent = Intent(context, MainActivity::class.java).apply {
+            action = Intent.ACTION_MAIN
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+
         Column(
             modifier = GlanceModifier
                 .fillMaxSize() // Fill the entire widget size
                 .background(backgroundColor)
-                .padding(8.dp),
+                .padding(8.dp)
+                .clickable(actionStartActivity(intent)), // Make the widget clickable
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalAlignment = Alignment.CenterVertically
         ) {
