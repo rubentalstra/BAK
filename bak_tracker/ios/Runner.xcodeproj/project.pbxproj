@@ -7,23 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0F344BF62CB450F700233524 /* LockScreenWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F344BF52CB450F700233524 /* LockScreenWidget.swift */; };
+		0F344BF82CB4512400233524 /* LockScreenWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F344BF72CB4512400233524 /* LockScreenWidgetView.swift */; };
 		0F56B7E22CAFCE0500525E16 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0F56B7E12CAFCE0500525E16 /* WidgetKit.framework */; };
 		0F56B7E42CAFCE0500525E16 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0F56B7E32CAFCE0500525E16 /* SwiftUI.framework */; };
 		0F56B7F52CAFCE0700525E16 /* BAKWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0F56B7E02CAFCE0500525E16 /* BAKWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		0FAD69FA2CAFF28E00E58719 /* AppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FAD69F32CAFF28E00E58719 /* AppIntent.swift */; };
 		0FAD69FB2CAFF28E00E58719 /* TimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FAD69F62CAFF28E00E58719 /* TimelineProvider.swift */; };
-		0FAD69FC2CAFF28E00E58719 /* widget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FAD69F72CAFF28E00E58719 /* widget.swift */; };
-		0FAD69FD2CAFF28E00E58719 /* widgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FAD69F82CAFF28E00E58719 /* widgetBundle.swift */; };
-		0FAD69FE2CAFF28E00E58719 /* WidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FAD69F92CAFF28E00E58719 /* WidgetView.swift */; };
+		0FAD69FC2CAFF28E00E58719 /* HomeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FAD69F72CAFF28E00E58719 /* HomeWidget.swift */; };
+		0FAD69FD2CAFF28E00E58719 /* BAKWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FAD69F82CAFF28E00E58719 /* BAKWidgetBundle.swift */; };
+		0FAD69FE2CAFF28E00E58719 /* HomeWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FAD69F92CAFF28E00E58719 /* HomeWidgetView.swift */; };
 		0FAD69FF2CAFF28E00E58719 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0FAD69F42CAFF28E00E58719 /* Assets.xcassets */; };
-		0FB66E302CB3266400DE14FB /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0F56B7E12CAFCE0500525E16 /* WidgetKit.framework */; };
-		0FB66E312CB3266400DE14FB /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0F56B7E32CAFCE0500525E16 /* SwiftUI.framework */; };
-		0FB66E342CB3266400DE14FB /* BAKLockScreenWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FB66E332CB3266400DE14FB /* BAKLockScreenWidgetBundle.swift */; };
-		0FB66E362CB3266400DE14FB /* BAKLockScreenWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FB66E352CB3266400DE14FB /* BAKLockScreenWidget.swift */; };
-		0FB66E382CB3266600DE14FB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0FB66E372CB3266600DE14FB /* Assets.xcassets */; };
-		0FB66E3C2CB3266600DE14FB /* BAKLockScreenWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0FB66E2F2CB3266400DE14FB /* BAKLockScreenWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		0FB66E452CB3271300DE14FB /* Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FB66E442CB3271300DE14FB /* Provider.swift */; };
-		0FB66E472CB3274A00DE14FB /* BAKLockScreenWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FB66E462CB3274900DE14FB /* BAKLockScreenWidgetView.swift */; };
 		0FD7208A2C9310A500CF8F4A /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0FD720892C9310A500CF8F4A /* GoogleService-Info.plist */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
@@ -44,13 +37,6 @@
 			remoteGlobalIDString = 0F56B7DF2CAFCE0500525E16;
 			remoteInfo = widgetExtension;
 		};
-		0FB66E3A2CB3266600DE14FB /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 0FB66E2E2CB3266400DE14FB;
-			remoteInfo = BAKLockScreenWidgetExtension;
-		};
 		331C8085294A63A400263BE5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
@@ -67,7 +53,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				0FB66E3C2CB3266600DE14FB /* BAKLockScreenWidgetExtension.appex in Embed Foundation Extensions */,
 				0F56B7F52CAFCE0700525E16 /* BAKWidget.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
@@ -87,25 +72,18 @@
 
 /* Begin PBXFileReference section */
 		0BDF9397F87C2C1459F92E77 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
+		0F344BF52CB450F700233524 /* LockScreenWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenWidget.swift; sourceTree = "<group>"; };
+		0F344BF72CB4512400233524 /* LockScreenWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenWidgetView.swift; sourceTree = "<group>"; };
 		0F56B7E02CAFCE0500525E16 /* BAKWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BAKWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		0F56B7E12CAFCE0500525E16 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		0F56B7E32CAFCE0500525E16 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		0F56B7FC2CAFCE4400525E16 /* widgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = widgetExtension.entitlements; sourceTree = "<group>"; };
-		0FAD69F32CAFF28E00E58719 /* AppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntent.swift; sourceTree = "<group>"; };
 		0FAD69F42CAFF28E00E58719 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0FAD69F52CAFF28E00E58719 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0FAD69F62CAFF28E00E58719 /* TimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineProvider.swift; sourceTree = "<group>"; };
-		0FAD69F72CAFF28E00E58719 /* widget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = widget.swift; sourceTree = "<group>"; };
-		0FAD69F82CAFF28E00E58719 /* widgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = widgetBundle.swift; sourceTree = "<group>"; };
-		0FAD69F92CAFF28E00E58719 /* WidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetView.swift; sourceTree = "<group>"; };
-		0FB66E2F2CB3266400DE14FB /* BAKLockScreenWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BAKLockScreenWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		0FB66E332CB3266400DE14FB /* BAKLockScreenWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BAKLockScreenWidgetBundle.swift; sourceTree = "<group>"; };
-		0FB66E352CB3266400DE14FB /* BAKLockScreenWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BAKLockScreenWidget.swift; sourceTree = "<group>"; };
-		0FB66E372CB3266600DE14FB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		0FB66E392CB3266600DE14FB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		0FB66E432CB326CF00DE14FB /* BAKLockScreenWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BAKLockScreenWidgetExtension.entitlements; sourceTree = "<group>"; };
-		0FB66E442CB3271300DE14FB /* Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Provider.swift; sourceTree = "<group>"; };
-		0FB66E462CB3274900DE14FB /* BAKLockScreenWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BAKLockScreenWidgetView.swift; sourceTree = "<group>"; };
+		0FAD69F72CAFF28E00E58719 /* HomeWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidget.swift; sourceTree = "<group>"; };
+		0FAD69F82CAFF28E00E58719 /* BAKWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BAKWidgetBundle.swift; sourceTree = "<group>"; };
+		0FAD69F92CAFF28E00E58719 /* HomeWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetView.swift; sourceTree = "<group>"; };
 		0FD720862C93020800CF8F4A /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 		0FD720892C9310A500CF8F4A /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
@@ -142,15 +120,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		0FB66E2C2CB3266400DE14FB /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				0FB66E312CB3266400DE14FB /* SwiftUI.framework in Frameworks */,
-				0FB66E302CB3266400DE14FB /* WidgetKit.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		6F6A076282A880F35972DF2F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -173,28 +142,16 @@
 		0FAD6A012CAFF2DF00E58719 /* widget */ = {
 			isa = PBXGroup;
 			children = (
-				0FAD69F32CAFF28E00E58719 /* AppIntent.swift */,
 				0FAD69F42CAFF28E00E58719 /* Assets.xcassets */,
 				0FAD69F52CAFF28E00E58719 /* Info.plist */,
 				0FAD69F62CAFF28E00E58719 /* TimelineProvider.swift */,
-				0FAD69F72CAFF28E00E58719 /* widget.swift */,
-				0FAD69F82CAFF28E00E58719 /* widgetBundle.swift */,
-				0FAD69F92CAFF28E00E58719 /* WidgetView.swift */,
+				0FAD69F82CAFF28E00E58719 /* BAKWidgetBundle.swift */,
+				0FAD69F72CAFF28E00E58719 /* HomeWidget.swift */,
+				0FAD69F92CAFF28E00E58719 /* HomeWidgetView.swift */,
+				0F344BF52CB450F700233524 /* LockScreenWidget.swift */,
+				0F344BF72CB4512400233524 /* LockScreenWidgetView.swift */,
 			);
 			path = widget;
-			sourceTree = "<group>";
-		};
-		0FB66E422CB3267F00DE14FB /* BAKLockScreenWidget */ = {
-			isa = PBXGroup;
-			children = (
-				0FB66E372CB3266600DE14FB /* Assets.xcassets */,
-				0FB66E352CB3266400DE14FB /* BAKLockScreenWidget.swift */,
-				0FB66E332CB3266400DE14FB /* BAKLockScreenWidgetBundle.swift */,
-				0FB66E462CB3274900DE14FB /* BAKLockScreenWidgetView.swift */,
-				0FB66E442CB3271300DE14FB /* Provider.swift */,
-				0FB66E392CB3266600DE14FB /* Info.plist */,
-			);
-			path = BAKLockScreenWidget;
 			sourceTree = "<group>";
 		};
 		126C1FBB2E021F72E94180B2 /* Pods */ = {
@@ -243,8 +200,6 @@
 		97C146E51CF9000F007C117D = {
 			isa = PBXGroup;
 			children = (
-				0FB66E432CB326CF00DE14FB /* BAKLockScreenWidgetExtension.entitlements */,
-				0FB66E422CB3267F00DE14FB /* BAKLockScreenWidget */,
 				0FAD6A012CAFF2DF00E58719 /* widget */,
 				0F56B7FC2CAFCE4400525E16 /* widgetExtension.entitlements */,
 				9740EEB11CF90186004384FC /* Flutter */,
@@ -262,7 +217,6 @@
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
 				0F56B7E02CAFCE0500525E16 /* BAKWidget.appex */,
-				0FB66E2F2CB3266400DE14FB /* BAKLockScreenWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -306,25 +260,6 @@
 			productReference = 0F56B7E02CAFCE0500525E16 /* BAKWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		0FB66E2E2CB3266400DE14FB /* BAKLockScreenWidgetExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 0FB66E412CB3266600DE14FB /* Build configuration list for PBXNativeTarget "BAKLockScreenWidgetExtension" */;
-			buildPhases = (
-				0FB66E2B2CB3266400DE14FB /* Sources */,
-				0FB66E2C2CB3266400DE14FB /* Frameworks */,
-				0FB66E2D2CB3266400DE14FB /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = BAKLockScreenWidgetExtension;
-			packageProductDependencies = (
-			);
-			productName = BAKLockScreenWidgetExtension;
-			productReference = 0FB66E2F2CB3266400DE14FB /* BAKLockScreenWidgetExtension.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 		331C8080294A63A400263BE5 /* RunnerTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
@@ -363,7 +298,6 @@
 			);
 			dependencies = (
 				0F56B7F42CAFCE0700525E16 /* PBXTargetDependency */,
-				0FB66E3B2CB3266600DE14FB /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
@@ -382,9 +316,6 @@
 				ORGANIZATIONNAME = "";
 				TargetAttributes = {
 					0F56B7DF2CAFCE0500525E16 = {
-						CreatedOnToolsVersion = 16.0;
-					};
-					0FB66E2E2CB3266400DE14FB = {
 						CreatedOnToolsVersion = 16.0;
 					};
 					331C8080294A63A400263BE5 = {
@@ -413,7 +344,6 @@
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
 				0F56B7DF2CAFCE0500525E16 /* BAKWidget */,
-				0FB66E2E2CB3266400DE14FB /* BAKLockScreenWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -424,14 +354,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				0FAD69FF2CAFF28E00E58719 /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		0FB66E2D2CB3266400DE14FB /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				0FB66E382CB3266600DE14FB /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -573,22 +495,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0FAD69FA2CAFF28E00E58719 /* AppIntent.swift in Sources */,
+				0F344BF82CB4512400233524 /* LockScreenWidgetView.swift in Sources */,
 				0FAD69FB2CAFF28E00E58719 /* TimelineProvider.swift in Sources */,
-				0FAD69FC2CAFF28E00E58719 /* widget.swift in Sources */,
-				0FAD69FD2CAFF28E00E58719 /* widgetBundle.swift in Sources */,
-				0FAD69FE2CAFF28E00E58719 /* WidgetView.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		0FB66E2B2CB3266400DE14FB /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				0FB66E452CB3271300DE14FB /* Provider.swift in Sources */,
-				0FB66E342CB3266400DE14FB /* BAKLockScreenWidgetBundle.swift in Sources */,
-				0FB66E472CB3274A00DE14FB /* BAKLockScreenWidgetView.swift in Sources */,
-				0FB66E362CB3266400DE14FB /* BAKLockScreenWidget.swift in Sources */,
+				0F344BF62CB450F700233524 /* LockScreenWidget.swift in Sources */,
+				0FAD69FC2CAFF28E00E58719 /* HomeWidget.swift in Sources */,
+				0FAD69FD2CAFF28E00E58719 /* BAKWidgetBundle.swift in Sources */,
+				0FAD69FE2CAFF28E00E58719 /* HomeWidgetView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -616,11 +528,6 @@
 			isa = PBXTargetDependency;
 			target = 0F56B7DF2CAFCE0500525E16 /* BAKWidget */;
 			targetProxy = 0F56B7F32CAFCE0700525E16 /* PBXContainerItemProxy */;
-		};
-		0FB66E3B2CB3266600DE14FB /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 0FB66E2E2CB3266400DE14FB /* BAKLockScreenWidgetExtension */;
-			targetProxy = 0FB66E3A2CB3266600DE14FB /* PBXContainerItemProxy */;
 		};
 		331C8086294A63A400263BE5 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -670,7 +577,7 @@
 				INFOPLIST_FILE = widget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = widget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -716,7 +623,7 @@
 				INFOPLIST_FILE = widget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = widget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -759,7 +666,7 @@
 				INFOPLIST_FILE = widget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = widget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -775,126 +682,6 @@
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Profile;
-		};
-		0FB66E3D2CB3266600DE14FB /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_ENTITLEMENTS = BAKLockScreenWidgetExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = A8S2486A44;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = BAKLockScreenWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = BAKLockScreenWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.baktracker.BAKLockScreenWidget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		0FB66E3E2CB3266600DE14FB /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_ENTITLEMENTS = BAKLockScreenWidgetExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = A8S2486A44;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = BAKLockScreenWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = BAKLockScreenWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.baktracker.BAKLockScreenWidget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
-		0FB66E3F2CB3266600DE14FB /* Profile */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_ENTITLEMENTS = BAKLockScreenWidgetExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = A8S2486A44;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = BAKLockScreenWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = BAKLockScreenWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.baktracker.BAKLockScreenWidget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -968,7 +755,7 @@
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BAK;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -994,6 +781,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.bakTracker.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1012,6 +800,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.bakTracker.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1028,6 +817,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.bakTracker.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1164,7 +954,7 @@
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BAK;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1196,7 +986,7 @@
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BAK;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1223,16 +1013,6 @@
 				0F56B7F72CAFCE0700525E16 /* Debug */,
 				0F56B7F82CAFCE0700525E16 /* Release */,
 				0F56B7F92CAFCE0700525E16 /* Profile */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		0FB66E412CB3266600DE14FB /* Build configuration list for PBXNativeTarget "BAKLockScreenWidgetExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				0FB66E3D2CB3266600DE14FB /* Debug */,
-				0FB66E3E2CB3266600DE14FB /* Release */,
-				0FB66E3F2CB3266600DE14FB /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

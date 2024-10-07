@@ -2,6 +2,7 @@ package com.baktracker
 
 import HomeWidgetGlanceState
 import HomeWidgetGlanceStateDefinition
+
 import android.content.Context
 import android.content.res.Configuration
 import androidx.compose.runtime.Composable
@@ -11,6 +12,8 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import android.content.Intent
+import androidx.compose.ui.unit.DpSize
+import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.actionStartActivity
@@ -27,6 +30,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import androidx.glance.appwidget.SizeMode
 
 class BAKGlanceWidget : GlanceAppWidget() {
 
@@ -37,6 +41,16 @@ class BAKGlanceWidget : GlanceAppWidget() {
     private val lightBackgroundColor = Color(red = 61, green = 74, blue = 81, alpha = 255)
     private val darkBackgroundColor = Color(red = 29, green = 40, blue = 45, alpha = 255)
 
+    // Define widget sizes to respond to different screen sizes
+    companion object {
+        private val TWO_BY_ONE = DpSize(110.dp, 40.dp)  // Corresponding to 2x1 widget size
+        private val FOUR_BY_ONE = DpSize(250.dp, 40.dp) // Corresponding to 4x1 widget size
+    }
+
+    // Use SizeMode.Responsive to handle multiple sizes
+    override val sizeMode = SizeMode.Responsive(
+        setOf(TWO_BY_ONE, FOUR_BY_ONE)
+    )
 
     override val stateDefinition: GlanceStateDefinition<*>
         get() = HomeWidgetGlanceStateDefinition()
@@ -53,6 +67,8 @@ class BAKGlanceWidget : GlanceAppWidget() {
         val associationName = prefs.getString("association_name", "Association") ?: "Association"
         val chuckedDrinks = prefs.getString("chucked_drinks", "0") ?: "0"
         val drinkDebt = prefs.getString("drink_debt", "0") ?: "0"
+        val betsWon = prefs.getString("bets_won", "0") ?: "0"
+        val betsLost = prefs.getString("bets_lost", "0") ?: "0"
 
         // Determine background color based on system theme
         val backgroundColor = if (isDarkMode(context)) {
@@ -67,6 +83,8 @@ class BAKGlanceWidget : GlanceAppWidget() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
 
+        val size = LocalSize.current
+
         Column(
             modifier = GlanceModifier
                 .fillMaxSize() // Fill the entire widget size
@@ -76,7 +94,7 @@ class BAKGlanceWidget : GlanceAppWidget() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Association Name
+            // Association Name (always visible)
             Text(
                 text = associationName,
                 style = TextStyle(
@@ -87,54 +105,156 @@ class BAKGlanceWidget : GlanceAppWidget() {
                 modifier = GlanceModifier.padding(bottom = 8.dp)
             )
 
-            // Row for BAK and Chucked Drinks
-            Row(
-                modifier = GlanceModifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    modifier = GlanceModifier.padding(end = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            // Conditionally show content based on widget size
+            if (size.width <= TWO_BY_ONE.width && size.height <= TWO_BY_ONE.height) {
+                // For 2x1 widget size, only show BAK and Chucked Drinks
+                Row(
+                    modifier = GlanceModifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     // BAK
-                    Text(
-                        text = "BAK",
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ColorProvider(captionColor)
-                        ),
-                        modifier = GlanceModifier.padding(bottom = 4.dp)
-                    )
-                    Text(
-                        text = drinkDebt,
-                        style = TextStyle(
-                            fontSize = 28.sp,
-                            color = ColorProvider(Color.Red)
+                    Column(
+                        modifier = GlanceModifier.padding(end = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "BAK",
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = ColorProvider(captionColor)
+                            ),
+                            modifier = GlanceModifier.padding(bottom = 4.dp)
                         )
-                    )
-                }
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                        Text(
+                            text = drinkDebt,
+                            style = TextStyle(
+                                fontSize = 28.sp,
+                                color = ColorProvider(Color.Red)
+                            )
+                        )
+                    }
+
                     // Chucked Drinks
-                    Text(
-                        text = "Chucked",
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ColorProvider(captionColor)
-                        ),
-                        modifier = GlanceModifier.padding(bottom = 4.dp)
-                    )
-                    Text(
-                        text = chuckedDrinks,
-                        style = TextStyle(
-                            fontSize = 28.sp,
-                            color = ColorProvider(Color.Green)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Chucked",
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = ColorProvider(captionColor)
+                            ),
+                            modifier = GlanceModifier.padding(bottom = 4.dp)
                         )
-                    )
+                        Text(
+                            text = chuckedDrinks,
+                            style = TextStyle(
+                                fontSize = 28.sp,
+                                color = ColorProvider(Color.Green)
+                            )
+                        )
+                    }
+                }
+            } else if (size.width >= FOUR_BY_ONE.width) {
+                // For 4x1 widget size, show all four items
+                Row(
+                    modifier = GlanceModifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // BAK
+                    Column(
+                        modifier = GlanceModifier.padding(end = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "BAK",
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = ColorProvider(captionColor)
+                            ),
+                            modifier = GlanceModifier.padding(bottom = 4.dp)
+                        )
+                        Text(
+                            text = drinkDebt,
+                            style = TextStyle(
+                                fontSize = 28.sp,
+                                color = ColorProvider(Color.Red)
+                            )
+                        )
+                    }
+
+                    // Chucked Drinks
+                    Column(
+                        modifier = GlanceModifier.padding(end = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Chucked",
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = ColorProvider(captionColor)
+                            ),
+                            modifier = GlanceModifier.padding(bottom = 4.dp)
+                        )
+                        Text(
+                            text = chuckedDrinks,
+                            style = TextStyle(
+                                fontSize = 28.sp,
+                                color = ColorProvider(Color.Green)
+                            )
+                        )
+                    }
+
+                    // Bets Won
+                    Column(
+                        modifier = GlanceModifier.padding(end = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Bets Won",
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = ColorProvider(captionColor)
+                            ),
+                            modifier = GlanceModifier.padding(bottom = 4.dp)
+                        )
+                        Text(
+                            text = betsWon,
+                            style = TextStyle(
+                                fontSize = 28.sp,
+                                color = ColorProvider(Color.Blue)
+                            )
+                        )
+                    }
+
+                    // Bets Lost
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Bets Lost",
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = ColorProvider(captionColor)
+                            ),
+                            modifier = GlanceModifier.padding(bottom = 4.dp)
+                        )
+                        Text(
+                            text = betsLost,
+                            style = TextStyle(
+                                fontSize = 28.sp,
+                                color = ColorProvider(Color.Red)
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -146,5 +266,4 @@ class BAKGlanceWidget : GlanceAppWidget() {
                 Configuration.UI_MODE_NIGHT_MASK
         return nightModeFlags == Configuration.UI_MODE_NIGHT_YES
     }
-
 }

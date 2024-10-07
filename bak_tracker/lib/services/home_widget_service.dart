@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:home_widget/home_widget.dart';
 
 class WidgetService {
@@ -29,21 +27,16 @@ class WidgetService {
       androidName: 'BAKWidgetReceiver', // Only required for Android
       iOSName: 'BAKWidget',
     );
-
-    if (Platform.isIOS) {
-      await HomeWidget.updateWidget(
-        name: 'BAKLockScreenWidgetExtension',
-        iOSName: 'BAKLockScreenWidgetExtension',
-      );
-    }
   }
 
   // Update drink information and refresh both widgets
-  static Future<void> updateDrinkInfo(
-      String associationName, String chucked, String debt) async {
+  static Future<void> updateDrinkInfo(String associationName, String chucked,
+      String debt, String betsWon, String betsLost) async {
     await saveData('association_name', associationName);
     await saveData('chucked_drinks', chucked);
     await saveData('drink_debt', debt);
+    await saveData('bets_won', betsWon);
+    await saveData('bets_lost', betsLost);
     await reloadWidgets();
   }
 
@@ -51,6 +44,8 @@ class WidgetService {
     await deleteData('association_name');
     await deleteData('chucked_drinks');
     await deleteData('drink_debt');
+    await deleteData('bets_won');
+    await deleteData('bets_lost');
     await reloadWidgets();
   }
 }

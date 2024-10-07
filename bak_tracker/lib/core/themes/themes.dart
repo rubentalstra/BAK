@@ -120,6 +120,14 @@ class AppThemes {
 
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.all(AppColors.lightPrimary),
+      trackColor: WidgetStateProperty.resolveWith<Color?>(
+        (Set<WidgetState> states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppColors.lightSecondary;
+          }
+          return null;
+        },
+      ),
       overlayColor: WidgetStateProperty.all(AppColors.lightAccentVariant),
     ),
 

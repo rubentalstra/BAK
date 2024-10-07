@@ -79,6 +79,8 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         event.selectedAssociation.name,
         memberData.baksConsumed.toString(),
         memberData.baksReceived.toString(),
+        memberData.betsWon.toString(),
+        memberData.betsLost.toString(),
       );
 
       emit(AssociationLoaded(

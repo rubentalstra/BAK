@@ -104,7 +104,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: const Text('Allow notifications from the app'),
               value: _isNotificationEnabled,
               onChanged: _onNotificationToggle,
-              secondary: const Icon(Icons.notifications),
+              secondary: const Icon(FontAwesomeIcons.bell,
+                  color: AppColors.lightSecondary),
             ),
             _buildDivider(),
             _buildListTile(
