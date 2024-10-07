@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:home_widget/home_widget.dart';
 
 class WidgetService {
@@ -28,10 +30,12 @@ class WidgetService {
       iOSName: 'BAKWidget',
     );
 
-    await HomeWidget.updateWidget(
-      name: 'BAKLockScreenWidgetExtension',
-      iOSName: 'BAKLockScreenWidgetExtension',
-    );
+    if (Platform.isIOS) {
+      await HomeWidget.updateWidget(
+        name: 'BAKLockScreenWidgetExtension',
+        iOSName: 'BAKLockScreenWidgetExtension',
+      );
+    }
   }
 
   // Update drink information and refresh both widgets

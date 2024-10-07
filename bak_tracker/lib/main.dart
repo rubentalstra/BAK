@@ -196,31 +196,25 @@ class AppStartupState extends State<AppStartup> {
 
   void _navigateToLoginScreen() {
     if (mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
-      });
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
     }
   }
 
   void _navigateToMainScreen() {
     if (mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-        );
-      });
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+      );
     }
   }
 
   void _navigateToNoAssociationScreen() {
     if (mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
-        );
-      });
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
+      );
     }
   }
 
