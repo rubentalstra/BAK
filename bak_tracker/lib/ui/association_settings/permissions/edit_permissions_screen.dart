@@ -178,7 +178,7 @@ class _EditPermissionsScreenState extends State<EditPermissionsScreen> {
       margin: const EdgeInsets.symmetric(vertical: 6.0),
       child: SwitchListTile(
         title: Text(label),
-        activeColor: AppColors.lightSecondary,
+        // activeColor: AppColors.lightSecondary,
         value: _permissions.permissions[permissionKey] ?? false,
         onChanged: (bool value) {
           _updatePermission(permissionKey, value);
