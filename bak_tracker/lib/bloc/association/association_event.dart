@@ -58,3 +58,12 @@ class JoinNewAssociation extends AssociationEvent {
   @override
   List<Object?> get props => [newAssociation];
 }
+
+class RefreshMemberAchievements extends AssociationEvent {
+  final String memberId;
+
+  const RefreshMemberAchievements(this.memberId);
+
+  @override
+  List<Object?> get props => [memberId];
+}

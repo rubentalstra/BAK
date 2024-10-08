@@ -23,24 +23,127 @@ class _AchievementsTabState extends State<AchievementsTab> {
   @override
   void initState() {
     super.initState();
-    _achievementsFuture =
-        widget.associationService.fetchAchievements(widget.associationId);
+    _loadAchievements();
   }
 
-  Future<void> _createAchievement(String name, String? description) async {
-    await widget.associationService
-        .createAchievement(widget.associationId, name, description);
+  Future<void> _loadAchievements() {
     setState(() {
       _achievementsFuture =
           widget.associationService.fetchAchievements(widget.associationId);
     });
+    return _achievementsFuture!;
+  }
+
+  Future<void> _createOrUpdateAchievement(
+      {String? achievementId,
+      required String name,
+      String? description}) async {
+    try {
+      if (achievementId == null) {
+        await widget.associationService.createAchievement(
+          widget.associationId,
+          name,
+          description,
+        );
+      } else {
+        await widget.associationService.updateAchievement(
+          achievementId,
+          name,
+          description,
+        );
+      }
+      await _loadAchievements();
+    } catch (e) {
+      _showErrorDialog('Error occurred: ${e.toString()}');
+    }
+  }
+
+  Future<void> _deleteAchievement(String achievementId) async {
+    try {
+      await widget.associationService.deleteAchievement(achievementId);
+      await _loadAchievements();
+    } catch (e) {
+      _showErrorDialog('Error deleting achievement: ${e.toString()}');
+    }
+  }
+
+  Future<void> _showErrorDialog(String message) async {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showAchievementDialog(
+      {String? achievementId,
+      String? initialName,
+      String? initialDescription}) async {
+    final TextEditingController nameController =
+        TextEditingController(text: initialName);
+    final TextEditingController descriptionController =
+        TextEditingController(text: initialDescription);
+
+    return showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(achievementId == null
+              ? 'Create Achievement'
+              : 'Edit Achievement'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Name'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(labelText: 'Description'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = nameController.text.trim();
+                final description = descriptionController.text.trim();
+                if (name.isNotEmpty) {
+                  Navigator.of(context).pop();
+                  _createOrUpdateAchievement(
+                    achievementId: achievementId,
+                    name: name,
+                    description: description.isNotEmpty ? description : null,
+                  );
+                }
+              },
+              child: Text(achievementId == null ? 'Create' : 'Save'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreateAchievementDialog(),
+        onPressed: () => _showAchievementDialog(),
         tooltip: 'Create Achievement',
         child: const Icon(Icons.add),
       ),
@@ -49,6 +152,9 @@ class _AchievementsTabState extends State<AchievementsTab> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
@@ -60,7 +166,6 @@ class _AchievementsTabState extends State<AchievementsTab> {
           }
 
           final achievements = snapshot.data!;
-
           return ListView.builder(
             itemCount: achievements.length,
             itemBuilder: (context, index) {
@@ -91,7 +196,11 @@ class _AchievementsTabState extends State<AchievementsTab> {
                   trailing: PopupMenuButton<String>(
                     onSelected: (String result) {
                       if (result == 'Edit') {
-                        _showEditAchievementDialog(achievement);
+                        _showAchievementDialog(
+                          achievementId: achievement.id,
+                          initialName: achievement.name,
+                          initialDescription: achievement.description,
+                        );
                       } else if (result == 'Delete') {
                         _deleteAchievement(achievement.id);
                       }
@@ -121,106 +230,5 @@ class _AchievementsTabState extends State<AchievementsTab> {
         },
       ),
     );
-  }
-
-  Future<void> _showCreateAchievementDialog() async {
-    String name = '';
-    String? description;
-
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Create Achievement'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                decoration: const InputDecoration(labelText: 'Name'),
-                onChanged: (value) => name = value,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                decoration: const InputDecoration(labelText: 'Description'),
-                onChanged: (value) => description = value,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            ElevatedButton(
-              child: const Text('Create'),
-              onPressed: () {
-                if (name.isNotEmpty) {
-                  _createAchievement(name, description);
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _showEditAchievementDialog(AchievementModel achievement) async {
-    String name = achievement.name;
-    String? description = achievement.description;
-
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Edit Achievement'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                decoration: const InputDecoration(labelText: 'Name'),
-                onChanged: (value) => name = value,
-                controller: TextEditingController(text: name),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                decoration: const InputDecoration(labelText: 'Description'),
-                onChanged: (value) => description = value,
-                controller: TextEditingController(text: description),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            ElevatedButton(
-              child: const Text('Save'),
-              onPressed: () async {
-                if (name.isNotEmpty) {
-                  await widget.associationService
-                      .updateAchievement(achievement.id, name, description);
-                  Navigator.of(context).pop();
-                  setState(() {
-                    _achievementsFuture = widget.associationService
-                        .fetchAchievements(widget.associationId);
-                  });
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _deleteAchievement(String achievementId) async {
-    await widget.associationService.deleteAchievement(achievementId);
-    setState(() {
-      _achievementsFuture =
-          widget.associationService.fetchAchievements(widget.associationId);
-    });
   }
 }

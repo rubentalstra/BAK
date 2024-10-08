@@ -36,7 +36,7 @@ class MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchAssociations();
+    _initialize();
   }
 
   @override
@@ -44,6 +44,13 @@ class MainScreenState extends State<MainScreen> {
     _approveBaksTimer?.cancel();
     _pendingBaksAndBetsTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _initialize() async {
+    await _fetchAssociations();
+    await _loadSavedAssociation();
+    _startPollingApproveBaks();
+    _startPollingPendingBaksAndBets();
   }
 
   Future<void> _fetchAssociations() async {
@@ -64,11 +71,8 @@ class MainScreenState extends State<MainScreen> {
           .select()
           .inFilter('id', associationIds);
 
-      setState(() {
-        _associations =
-            response.map((data) => AssociationModel.fromMap(data)).toList();
-        _loadSavedAssociation();
-      });
+      _associations =
+          response.map((data) => AssociationModel.fromMap(data)).toList();
     }
   }
 
@@ -86,14 +90,15 @@ class MainScreenState extends State<MainScreen> {
       _selectedAssociation = _associations.first;
     }
 
-    if (_selectedAssociation != null) {
+    _updateSelectedAssociation(_selectedAssociation);
+  }
+
+  void _updateSelectedAssociation(AssociationModel? association) {
+    if (association != null) {
       context
           .read<AssociationBloc>()
-          .add(SelectAssociation(selectedAssociation: _selectedAssociation!));
+          .add(SelectAssociation(selectedAssociation: association));
     }
-
-    _startPollingApproveBaks();
-    _startPollingPendingBaksAndBets();
   }
 
   void _onAssociationChanged(AssociationModel? newAssociation) {
@@ -101,9 +106,7 @@ class MainScreenState extends State<MainScreen> {
       setState(() {
         _selectedAssociation = newAssociation;
       });
-      context
-          .read<AssociationBloc>()
-          .add(SelectAssociation(selectedAssociation: newAssociation!));
+      _updateSelectedAssociation(newAssociation);
     }
   }
 
@@ -112,10 +115,16 @@ class MainScreenState extends State<MainScreen> {
 
     if (_selectedAssociation != null) {
       _approveBaksTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-        context
-            .read<AssociationBloc>()
-            .add(RefreshPendingApproveBaks(_selectedAssociation!.id));
+        _triggerApproveBaksRefresh();
       });
+    }
+  }
+
+  void _triggerApproveBaksRefresh() {
+    if (_selectedAssociation != null) {
+      context
+          .read<AssociationBloc>()
+          .add(RefreshPendingApproveBaks(_selectedAssociation!.id));
     }
   }
 
@@ -125,10 +134,16 @@ class MainScreenState extends State<MainScreen> {
     if (_selectedAssociation != null) {
       _pendingBaksAndBetsTimer =
           Timer.periodic(const Duration(seconds: 30), (_) {
-        context
-            .read<AssociationBloc>()
-            .add(RefreshBaksAndBets(_selectedAssociation!.id));
+        _triggerBaksAndBetsRefresh();
       });
+    }
+  }
+
+  void _triggerBaksAndBetsRefresh() {
+    if (_selectedAssociation != null) {
+      context
+          .read<AssociationBloc>()
+          .add(RefreshBaksAndBets(_selectedAssociation!.id));
     }
   }
 

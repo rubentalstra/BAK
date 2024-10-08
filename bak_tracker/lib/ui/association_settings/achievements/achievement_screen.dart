@@ -33,7 +33,8 @@ class _AchievementManagementScreenState
 
     // Initialize services
     imageUploadService = ImageUploadService(_supabase);
-    associationService = AssociationService(); // Initialize the service
+    associationService =
+        AssociationService(_supabase); // Initialize the service
   }
 
   @override

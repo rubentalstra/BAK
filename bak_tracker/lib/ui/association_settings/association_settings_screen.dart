@@ -13,19 +13,21 @@ import 'package:bak_tracker/ui/association_settings/update_roles_screen.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AssociationSettingsScreen extends StatelessWidget {
   final AssociationMemberModel memberData;
   final AssociationModel association;
-  final AssociationService associationService = AssociationService();
-  final int pendingApproveBaksCount; // Pass the pending baks count
+  final AssociationService associationService;
+  final int pendingApproveBaksCount;
 
+  // Initialize the SupabaseClient and AssociationService in the constructor
   AssociationSettingsScreen({
     super.key,
     required this.memberData,
     required this.association,
-    required this.pendingApproveBaksCount, // Required for badge
-  });
+    required this.pendingApproveBaksCount,
+  }) : associationService = AssociationService(Supabase.instance.client);
 
   @override
   Widget build(BuildContext context) {

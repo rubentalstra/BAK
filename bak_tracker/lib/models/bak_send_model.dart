@@ -9,6 +9,7 @@ class BakSendModel extends Equatable {
   final String? reason;
   final int amount;
   final String status;
+  final String? declineReason;
   final DateTime createdAt;
 
   const BakSendModel({
@@ -16,9 +17,10 @@ class BakSendModel extends Equatable {
     required this.giver,
     required this.receiver,
     required this.associationId,
-    this.reason,
+    required this.reason,
     required this.amount,
     required this.status,
+    this.declineReason,
     required this.createdAt,
   });
 
@@ -31,6 +33,7 @@ class BakSendModel extends Equatable {
       reason: map['reason'],
       amount: map['amount'],
       status: map['status'],
+      declineReason: map['decline_reason'],
       createdAt: DateTime.parse(map['created_at']),
     );
   }
@@ -44,12 +47,22 @@ class BakSendModel extends Equatable {
       'reason': reason,
       'amount': amount,
       'status': status,
+      'decline_reason': declineReason,
       'created_at': createdAt.toIso8601String(),
     };
   }
 
   // Override props for Equatable
   @override
-  List<Object?> get props =>
-      [id, giver, receiver, associationId, reason, amount, status, createdAt];
+  List<Object?> get props => [
+        id,
+        giver,
+        receiver,
+        associationId,
+        reason,
+        amount,
+        status,
+        declineReason,
+        createdAt,
+      ];
 }

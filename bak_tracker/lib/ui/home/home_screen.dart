@@ -10,6 +10,7 @@ import 'package:bak_tracker/ui/association_settings/association_settings_screen.
 import 'package:bak_tracker/ui/home/widgets/leaderboard_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -122,16 +123,17 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           body: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: RefreshIndicator(
-                color: AppColors.lightSecondary,
-                onRefresh: _handlePullToRefresh,
-                child: LeaderboardWidget(
-                  entries: _leaderboardEntries,
-                  imageUploadService: _imageUploadService,
-                  isLoading: _isLoading,
-                ),
-              )),
+            padding: const EdgeInsets.all(16.0),
+            child: RefreshIndicator(
+              color: AppColors.lightSecondary,
+              onRefresh: _handlePullToRefresh,
+              child: LeaderboardWidget(
+                entries: _leaderboardEntries,
+                imageUploadService: _imageUploadService,
+                isLoading: _isLoading,
+              ),
+            ),
+          ),
         );
       },
     );
@@ -152,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       badgeStyle: const badges.BadgeStyle(badgeColor: Colors.red),
       child: IconButton(
-        icon: const Icon(Icons.settings),
+        icon: const Icon(FontAwesomeIcons.gear),
         onPressed: () {
           Navigator.of(context)
               .push(

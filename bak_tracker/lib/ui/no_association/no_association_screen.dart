@@ -1,6 +1,6 @@
 import 'package:bak_tracker/ui/no_association/no_association_home_screen.dart';
 import 'package:bak_tracker/ui/settings/settings_screen.dart';
-import 'package:bak_tracker/ui/widgets/bottem_nav_bar_no_association.dart';
+import 'package:bak_tracker/ui/no_association/widgets/bottem_nav_bar_no_association.dart';
 import 'package:flutter/material.dart';
 
 class NoAssociationScreen extends StatefulWidget {
@@ -13,10 +13,16 @@ class NoAssociationScreen extends StatefulWidget {
 class _NoAssociationScreenState extends State<NoAssociationScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    const NoAssociationHomeScreen(),
-    const SettingsScreen(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = const [
+      NoAssociationHomeScreen(),
+      SettingsScreen(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -27,7 +33,10 @@ class _NoAssociationScreenState extends State<NoAssociationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: BottomNavBarNoAssociation(
         selectedIndex: _selectedIndex,
         onTap: _onItemTapped,

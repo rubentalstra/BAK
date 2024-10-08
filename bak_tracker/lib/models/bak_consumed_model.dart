@@ -7,7 +7,8 @@ class BakConsumedModel extends Equatable {
   final String associationId;
   final int amount;
   final String status;
-  final String? approvedBy;
+  final String? reason;
+  final UserModel? approvedBy;
   final DateTime createdAt;
 
   const BakConsumedModel({
@@ -16,6 +17,7 @@ class BakConsumedModel extends Equatable {
     required this.associationId,
     required this.amount,
     required this.status,
+    this.reason,
     this.approvedBy,
     required this.createdAt,
   });
@@ -27,7 +29,8 @@ class BakConsumedModel extends Equatable {
       associationId: map['association_id'],
       amount: map['amount'],
       status: map['status'],
-      approvedBy: map['approved_by'],
+      reason: map['reason'] ?? '',
+      approvedBy: UserModel.fromMap(map['approved_by'] ?? {}),
       createdAt: DateTime.parse(map['created_at']),
     );
   }
@@ -39,13 +42,22 @@ class BakConsumedModel extends Equatable {
       'association_id': associationId,
       'amount': amount,
       'status': status,
-      'approved_by': approvedBy,
+      'reason': reason,
+      'approved_by': approvedBy?.toMap(),
       'created_at': createdAt.toIso8601String(),
     };
   }
 
   // Override props for Equatable
   @override
-  List<Object?> get props =>
-      [id, taker, associationId, amount, status, approvedBy, createdAt];
+  List<Object?> get props => [
+        id,
+        taker,
+        associationId,
+        amount,
+        status,
+        reason,
+        approvedBy,
+        createdAt,
+      ];
 }

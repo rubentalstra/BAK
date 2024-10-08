@@ -25,7 +25,7 @@ class BottomNavBar extends StatelessWidget {
     // List of items for the bottom navigation bar
     List<BottomNavigationBarItem> items = [
       const BottomNavigationBarItem(
-        icon: Icon(Icons.home),
+        icon: Icon(FontAwesomeIcons.house, size: 25),
         label: 'Home',
       ),
       BottomNavigationBarItem(
@@ -69,7 +69,7 @@ class BottomNavBar extends StatelessWidget {
         label: 'Bets',
       ),
       const BottomNavigationBarItem(
-        icon: Icon(Icons.settings),
+        icon: Icon(FontAwesomeIcons.gear, size: 25),
         label: 'Settings',
       ),
     ];

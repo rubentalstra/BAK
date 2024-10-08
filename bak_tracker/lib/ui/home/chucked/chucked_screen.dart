@@ -26,32 +26,17 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus(); // Dismiss the keyboard
-      },
+      onTap: () => FocusScope.of(context).unfocus(), // Dismiss keyboard on tap
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Chucked Bak'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.history),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ChuckedTransactionsScreen(),
-                  ),
-                );
-              },
-              tooltip: 'Chucked History',
-            ),
-          ],
+          actions: [_buildHistoryIconButton(context)],
         ),
         body: BlocBuilder<AssociationBloc, AssociationState>(
           builder: (context, state) {
             if (state is AssociationLoaded) {
               return _buildRequestConsumedBakScreen(
-                  context, state.selectedAssociation.id);
+                  state.selectedAssociation.id);
             } else {
               return const Center(child: CircularProgressIndicator());
             }
@@ -61,35 +46,50 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
     );
   }
 
-  Widget _buildRequestConsumedBakScreen(
-      BuildContext context, String associationId) {
+  Widget _buildHistoryIconButton(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.history),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ChuckedTransactionsScreen(),
+          ),
+        );
+      },
+      tooltip: 'Chucked History',
+    );
+  }
+
+  Widget _buildRequestConsumedBakScreen(String associationId) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Amount',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
+          _buildSectionTitle('Amount'),
           const SizedBox(height: 8.0),
           _buildAmountField(),
           const SizedBox(height: 24.0),
-          _buildRequestButton(context, associationId),
+          _buildRequestButton(associationId),
         ],
       ),
     );
   }
 
-  // Extracted amount field widget
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+    );
+  }
+
   Widget _buildAmountField() {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: TextField(
@@ -106,15 +106,16 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
     );
   }
 
-  // Extracted button widget to handle the request
-  Widget _buildRequestButton(BuildContext context, String associationId) {
+  Widget _buildRequestButton(String associationId) {
     return Align(
       alignment: Alignment.center,
       child: ElevatedButton.icon(
-        onPressed: () => _handleRequestBak(context, associationId),
-        icon: const Icon(Icons.send),
-        label:
-            const Text('Request Chucked Bak', style: TextStyle(fontSize: 18)),
+        onPressed: () => _handleRequestBak(associationId),
+        icon: const Icon(FontAwesomeIcons.paperPlane),
+        label: const Text(
+          'Request Chucked Bak',
+          style: TextStyle(fontSize: 18),
+        ),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
           shape: RoundedRectangleBorder(
@@ -125,12 +126,10 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
     );
   }
 
-  // Handle the request to submit the consumed bak
-  Future<void> _handleRequestBak(
-      BuildContext context, String associationId) async {
+  Future<void> _handleRequestBak(String associationId) async {
     final amount = int.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
-      _showSnackBar(context, 'Error: Please enter a valid amount');
+      _showSnackBar('Error: Please enter a valid amount');
       return;
     }
 
@@ -139,22 +138,20 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
         associationId: associationId,
         amount: amount,
       );
-      _showSnackBar(context, 'Consumed Bak request sent!');
+      _showSnackBar('Consumed Bak request sent!');
       _amountController.clear();
     } catch (e) {
-      _showSnackBar(context, 'Error requesting consumed bak: $e');
+      _showSnackBar('Error requesting consumed bak: $e');
     }
   }
 
-  void _showSnackBar(BuildContext context, String message) {
+  void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         action: SnackBarAction(
           label: 'OK',
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
+          onPressed: ScaffoldMessenger.of(context).hideCurrentSnackBar,
         ),
       ),
     );

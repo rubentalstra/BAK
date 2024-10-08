@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_auth_ui/supabase_auth_ui.dart';
-import 'package:bak_tracker/env/env.dart'; // Import generated Env class from envied
+import 'package:bak_tracker/env/env.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -16,8 +16,7 @@ class LoginScreen extends StatelessWidget {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) {
-        print('User is not logged in.');
-        return false;
+        return false; // User is not logged in
       }
 
       final response = await Supabase.instance.client
@@ -25,13 +24,11 @@ class LoginScreen extends StatelessWidget {
           .select()
           .eq('user_id', userId);
 
-      if (response.isNotEmpty) {
-        return true; // User is part of at least one association
-      }
+      return response.isNotEmpty; // True if user is part of an association
     } catch (e) {
       print('Error fetching user association: $e');
+      return false; // Error occurred, assume no association
     }
-    return false; // No association found or an error occurred
   }
 
   @override
@@ -46,8 +43,8 @@ class LoginScreen extends StatelessWidget {
           SupaSocialsAuth(
             colored: true,
             nativeGoogleAuthConfig: NativeGoogleAuthConfig(
-              webClientId: Env.webClientId, // Using Env class for client ID
-              iosClientId: Env.iosClientId, // Using Env class for iOS client ID
+              webClientId: Env.webClientId,
+              iosClientId: Env.iosClientId,
             ),
             enableNativeAppleAuth: false,
             socialProviders: const [OAuthProvider.google],
@@ -55,34 +52,41 @@ class LoginScreen extends StatelessWidget {
                 ? null
                 : 'https://iywlypvipqaibumbgsyf.supabase.co/auth/v1/callback',
             onSuccess: (Session session) async {
-              // Automatically handle FCM token after login
-              FirebaseMessaging messaging = FirebaseMessaging.instance;
-              // Initialize Local Notifications Plugin
-              final FlutterLocalNotificationsPlugin
-                  flutterLocalNotificationsPlugin =
-                  FlutterLocalNotificationsPlugin();
-              final notificationsService =
-                  NotificationsService(flutterLocalNotificationsPlugin);
+              try {
+                // Automatically handle FCM token after login
+                FirebaseMessaging messaging = FirebaseMessaging.instance;
+                final FlutterLocalNotificationsPlugin
+                    flutterLocalNotificationsPlugin =
+                    FlutterLocalNotificationsPlugin();
+                final notificationsService =
+                    NotificationsService(flutterLocalNotificationsPlugin);
 
-              // Await the FCM token handling to ensure it completes before navigating
-              await notificationsService.handleFCMToken(messaging);
+                // Handle FCM token and notifications registration
+                await notificationsService.handleFCMToken(messaging);
 
-              bool isPartOfAssociation = await _checkUserAssociation();
+                // Check if the user belongs to an association
+                bool isPartOfAssociation = await _checkUserAssociation();
 
-              // Navigate to the appropriate screen based on association status
-              if (isPartOfAssociation) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const MainScreen()),
-                );
-              } else {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                      builder: (context) => const NoAssociationScreen()),
+                // Navigate to the appropriate screen based on association status
+                if (isPartOfAssociation) {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => const MainScreen()),
+                  );
+                } else {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                        builder: (context) => const NoAssociationScreen()),
+                  );
+                }
+              } catch (error) {
+                print('Login error details: $error'); // Log error details
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Login Failed: $error')),
                 );
               }
             },
             onError: (error) {
-              print('Login error details: $error'); // Detailed error logs
+              print('Login error details: $error'); // Log error details
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Login Failed: $error')),
               );

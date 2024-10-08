@@ -20,10 +20,11 @@ class NoAssociationHomeScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            const AssociationRequestScreen()));
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AssociationRequestScreen(),
+                  ),
+                );
               },
               child: const Text('Request Association'),
             ),
@@ -37,11 +38,13 @@ class NoAssociationHomeScreen extends StatelessWidget {
     );
   }
 
-  // Helper to show the InviteCodeInputWidget as a modal bottom sheet
   void _showInviteCodeInput(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+      ),
       builder: (BuildContext context) => const InviteCodeInputWidget(),
     );
   }
