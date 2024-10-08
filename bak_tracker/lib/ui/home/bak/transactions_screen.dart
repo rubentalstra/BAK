@@ -28,7 +28,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   void initState() {
     super.initState();
-    // Initial fetching is deferred until the association is loaded
   }
 
   Future<void> _fetchTransactions(String associationId,
@@ -57,7 +56,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       final response = await supabase
           .from('bak_send')
           .select(
-              'id, association_id, amount, status, created_at, reason, receiver_id (id, name), giver_id (id, name)')
+              'id, association_id, amount, status, created_at, reason, receiver_id (id, name), giver_id (id, name), decline_reason')
           .or('giver_id.eq.$currentUserId,receiver_id.eq.$currentUserId')
           .eq('association_id', associationId)
           .order('created_at', ascending: false)
@@ -135,7 +134,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final currentUserId = Supabase.instance.client.auth.currentUser?.id;
 
     if (_transactions.isEmpty) {
-      return const Center(child: Text('No transactions found.'));
+      return const Center(
+        child: Text(
+          'No transactions found.',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+      );
     }
 
     return NotificationListener<ScrollNotification>(
@@ -148,6 +152,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         return false;
       },
       child: ListView.builder(
+        padding: const EdgeInsets.all(16.0),
         itemCount: _transactions.length + (_isFetchingMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == _transactions.length) {
@@ -158,50 +163,88 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           }
 
           final bak = _transactions[index];
-          return _buildTransactionTile(bak, currentUserId!);
+          return _buildTransactionCard(bak, currentUserId!);
         },
       ),
     );
   }
 
-  // Build individual transaction tile using BakSendModel
-  Widget _buildTransactionTile(BakSendModel bak, String currentUserId) {
+// Build individual transaction card using BakSendModel
+  Widget _buildTransactionCard(BakSendModel bak, String currentUserId) {
     final isSent = bak.giver.id == currentUserId;
     final recipientName = bak.receiver.name;
     final senderName = bak.giver.name;
 
-    return ListTile(
-      title: Text(
-        isSent ? 'Sent to: $recipientName' : 'Received from: $senderName',
-        style: const TextStyle(fontWeight: FontWeight.bold),
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.only(bottom: 16.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
       ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Amount: ${bak.amount}'),
-          Text('Reason: ${bak.reason ?? 'No reason provided'}'),
-          Text(
-            'Date: ${DateFormat.yMd('nl_NL').format(bak.createdAt)} at ${DateFormat.Hm('nl_NL').format(bak.createdAt)}',
-          ),
-          if (bak.status == 'rejected')
-            Text(
-              'Rejection Reason: ${bak.reason}',
-              style: const TextStyle(color: Colors.redAccent),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.lightPrimary,
+                  radius: 24,
+                  child: Icon(
+                    isSent ? Icons.send : Icons.inbox,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    isSent
+                        ? 'Sent to: $recipientName'
+                        : 'Received from: $senderName',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Text(
+                  bak.status.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: _getStatusColor(bak.status),
+                  ),
+                ),
+              ],
             ),
-        ],
-      ),
-      trailing: _buildTransactionStatus(bak.status),
-    );
-  }
-
-  // Build status widget for each transaction
-  Widget _buildTransactionStatus(String status) {
-    return Text(
-      status.toUpperCase(),
-      style: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.bold,
-        color: _getStatusColor(status),
+            const SizedBox(height: 8),
+            Text(
+              'Amount: ${bak.amount}',
+              style: const TextStyle(fontSize: 14),
+            ),
+            Text(
+              'Reason: ${bak.reason ?? 'No reason provided'}',
+              style: const TextStyle(fontSize: 14),
+            ),
+            Text(
+              'Date: ${DateFormat.yMMMd('nl_NL').format(bak.createdAt)} at ${DateFormat.Hm('nl_NL').format(bak.createdAt)}',
+              style: const TextStyle(color: Colors.grey),
+            ),
+            // Highlight rejection reason if the status is declined
+            if (bak.status == 'declined')
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  'Declined Reason: ${bak.declineReason ?? 'No reason provided'}',
+                  style: const TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

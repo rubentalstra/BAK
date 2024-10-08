@@ -51,11 +51,11 @@ class LeaderboardWidget extends StatelessWidget {
     );
   }
 
-  Future<File?> _loadProfileImage(AssociationMemberModel member) {
+  Future<File?> _loadProfileImage(AssociationMemberModel member) async {
     if (member.user.profileImage == null || member.user.profileImage!.isEmpty) {
-      return Future.value(null);
+      return null;
     }
-    return imageUploadService
+    return await imageUploadService
         .fetchOrDownloadProfileImage(member.user.profileImage!);
   }
 
@@ -159,7 +159,7 @@ class LeaderboardWidget extends StatelessWidget {
 
   Widget _buildLoadingSkeleton() {
     return ListView.builder(
-      itemCount: 9, // Loading skeleton for 6 items
+      itemCount: 9, // Loading skeleton for 9 items
       itemBuilder: (context, index) {
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 8.0),

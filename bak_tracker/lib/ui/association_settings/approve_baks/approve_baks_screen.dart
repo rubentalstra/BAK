@@ -35,8 +35,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
           .select(
               'id, amount, created_at, taker_id (id, name), association_id, status, created_at')
           .eq('status', 'pending')
-          .eq('association_id',
-              widget.associationId); // Use widget.associationId
+          .eq('association_id', widget.associationId);
 
       setState(() {
         _requestedBaks = (requestedResponse as List)
@@ -74,7 +73,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
             bak.taker.id, bak.amount, bak.associationId);
       }
 
-      _fetchBaks(); // No need to pass associationId since we are using widget.associationId
+      _fetchBaks();
       _sendNotification(bak.taker.id, status);
     } catch (e) {
       _showSnackBar('Error updating bak status: $e');
@@ -211,63 +210,106 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
       ),
       body: RefreshIndicator(
         color: AppColors.lightSecondary,
-        onRefresh: () async {
-          await _fetchBaks(); // Use the existing associationId
-        },
+        onRefresh: _fetchBaks,
         child: _isLoading
             ? const Center(
                 child: CircularProgressIndicator(
-                color: AppColors.lightSecondary,
-              ))
+                  color: AppColors.lightSecondary,
+                ),
+              )
             : _requestedBaks.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center, // Vertically center
-                      crossAxisAlignment:
-                          CrossAxisAlignment.center, // Horizontally center
-                      children: const [
-                        Text(
-                          'No pending bak requests',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _requestedBaks.length,
-                    itemBuilder: (context, index) {
-                      final bak = _requestedBaks[index];
-                      return Card(
-                        margin: const EdgeInsets.all(8),
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          title: Text('Bak Amount: ${bak.amount}'),
-                          subtitle: Text(
-                              'Requested by: ${bak.taker.name}\nRequested on: ${_formatDate(bak.createdAt)}'),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.check,
-                                    color: Colors.green),
-                                onPressed: () =>
-                                    _updateBakStatus(bak, 'approved'),
-                              ),
-                              IconButton(
-                                icon:
-                                    const Icon(Icons.close, color: Colors.red),
-                                onPressed: () => _showRejectDialog(bak),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                ? _buildEmptyState()
+                : _buildBakList(),
+      ),
+    );
+  }
+
+  // Build the empty state widget
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.inbox_rounded, size: 64, color: Colors.grey),
+          SizedBox(height: 12),
+          Text(
+            'No pending bak requests',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build the list of pending bak requests
+  Widget _buildBakList() {
+    return ListView.builder(
+      itemCount: _requestedBaks.length,
+      padding: const EdgeInsets.all(12),
+      itemBuilder: (context, index) {
+        final bak = _requestedBaks[index];
+        return _buildBakCard(bak);
+      },
+    );
+  }
+
+  // Build a single bak card
+  Widget _buildBakCard(BakConsumedModel bak) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        title: Text(
+          'Bak Amount: ${bak.amount}',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.person, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(
+                  'Requested by: ${bak.taker.name}',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(
+                  'Requested on: ${_formatDate(bak.createdAt)}',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.check, color: Colors.green),
+              onPressed: () => _updateBakStatus(bak, 'approved'),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.red),
+              onPressed: () => _showRejectDialog(bak),
+            ),
+          ],
+        ),
       ),
     );
   }

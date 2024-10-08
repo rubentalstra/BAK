@@ -68,6 +68,35 @@ class AssociationMemberModel extends Equatable {
     };
   }
 
+  // Add the copyWith method
+  AssociationMemberModel copyWith({
+    String? id,
+    UserModel? user,
+    String? associationId,
+    String? role,
+    PermissionsModel? permissions,
+    DateTime? joinedAt,
+    int? baksReceived,
+    int? baksConsumed,
+    int? betsWon,
+    int? betsLost,
+    List<MemberAchievementModel>? achievements,
+  }) {
+    return AssociationMemberModel(
+      id: id ?? this.id,
+      user: user ?? this.user,
+      associationId: associationId ?? this.associationId,
+      role: role ?? this.role,
+      permissions: permissions ?? this.permissions,
+      joinedAt: joinedAt ?? this.joinedAt,
+      baksReceived: baksReceived ?? this.baksReceived,
+      baksConsumed: baksConsumed ?? this.baksConsumed,
+      betsWon: betsWon ?? this.betsWon,
+      betsLost: betsLost ?? this.betsLost,
+      achievements: achievements ?? this.achievements,
+    );
+  }
+
   // Method to check if the member has a specific permission
   bool hasPermission(PermissionEnum permission) {
     return permissions.hasPermission(permission);

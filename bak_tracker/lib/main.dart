@@ -4,6 +4,7 @@ import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
 import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
 import 'package:bak_tracker/core/themes/themes.dart';
+import 'package:bak_tracker/services/join_association_service.dart';
 import 'package:bak_tracker/services/notifications_service.dart';
 import 'package:bak_tracker/services/app_info_service.dart';
 import 'package:bak_tracker/core/utils/my_secure_storage.dart';
@@ -64,9 +65,12 @@ class BakTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final supabaseClient = Supabase.instance.client;
+
     return MultiBlocProvider(
       providers: [
-        BlocProvider<AssociationBloc>(create: (_) => AssociationBloc()),
+        BlocProvider<AssociationBloc>(
+            create: (_) => AssociationBloc(supabaseClient)),
         BlocProvider<AuthenticationBloc>(create: (_) => AuthenticationBloc()),
         BlocProvider<LocaleBloc>(create: (_) => LocaleBloc()),
       ],
@@ -113,31 +117,31 @@ class AppStartupState extends State<AppStartup> {
   void _initializeApp() async {
     try {
       await _navigateToInitialScreen();
-      // Start loading non-critical services in the background
-      _initializeBackgroundServices();
+      _initializeBackgroundServices(); // Load background services
     } catch (e) {
       print('Error during initialization: $e');
     } finally {
       if (mounted) {
-        FlutterNativeSplash.remove(); // Remove splash screen early
+        FlutterNativeSplash.remove(); // Remove splash screen
       }
     }
   }
 
-  // Initialize services that are not essential for startup
+  // Load background services without blocking the main flow
   Future<void> _initializeBackgroundServices() async {
     try {
-      await _initializeNotifications();
-      await _initializeDeepLinks();
+      await Future.wait([
+        _initializeNotifications(),
+        _initializeDeepLinks(),
+      ]);
     } catch (e) {
       print('Error during background service initialization: $e');
     }
   }
 
-  // Navigate directly to the initial screen (MainScreen or LoginScreen)
+  // Navigate to the appropriate initial screen based on authentication state
   Future<void> _navigateToInitialScreen() async {
     final session = Supabase.instance.client.auth.currentSession;
-
     if (session != null) {
       try {
         final associationData = await Supabase.instance.client
@@ -159,29 +163,31 @@ class AppStartupState extends State<AppStartup> {
     }
   }
 
-  // Initialize notifications (non-blocking)
+  // Initialize notifications and Firebase messaging
   Future<void> _initializeNotifications() async {
     flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
     notificationsService =
         NotificationsService(flutterLocalNotificationsPlugin);
 
-    // Set up local notifications and Firebase Messaging
+    // Set up notifications and Firebase Messaging
     await notificationsService.initializeNotifications();
     await notificationsService.setupFirebaseMessaging();
 
     FirebaseMessaging.onBackgroundMessage(
         NotificationsService.firebaseMessagingBackgroundHandler);
 
-    // Reset badge at startup
+    // Reset badge count on startup
     AppBadgePlus.updateBadge(0);
   }
 
+  // Initialize deep linking functionality
   Future<void> _initializeDeepLinks() async {
     final associationBloc = context.read<AssociationBloc>();
 
     deepLinkService = DeepLinkService(
       associationBloc: associationBloc,
       navigateToMainScreen: _navigateToMainScreen,
+      joinAssociationService: JoinAssociationService(),
       onError: (String error) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -194,26 +200,30 @@ class AppStartupState extends State<AppStartup> {
     await deepLinkService.initialize();
   }
 
+  // Navigation methods
   void _navigateToLoginScreen() {
     if (mounted) {
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false, // Remove all routes from stack
       );
     }
   }
 
   void _navigateToMainScreen() {
     if (mounted) {
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const MainScreen()),
+        (route) => false, // Remove all routes from stack
       );
     }
   }
 
   void _navigateToNoAssociationScreen() {
     if (mounted) {
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
+        (route) => false, // Remove all routes from stack
       );
     }
   }

@@ -1,4 +1,3 @@
-// association_bloc.dart
 import 'dart:convert';
 import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
@@ -12,20 +11,25 @@ import 'association_event.dart';
 import 'association_state.dart';
 
 class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
-  final AssociationService _associationService = AssociationService();
+  final AssociationService _associationService;
   SharedPreferences? _prefs;
 
-  AssociationBloc() : super(AssociationInitial()) {
+  // Constructor where you inject the SupabaseClient and AssociationService
+  AssociationBloc(SupabaseClient supabaseClient)
+      : _associationService = AssociationService(supabaseClient),
+        super(AssociationInitial()) {
     on<SelectAssociation>(_onSelectAssociation);
     on<LeaveAssociation>(_onLeaveAssociation);
     on<ClearAssociationError>(_onClearAssociationError);
     on<RefreshPendingApproveBaks>(_onRefreshPendingBaks);
     on<RefreshBaksAndBets>(_onRefreshBaksAndBets);
     on<JoinNewAssociation>(_onJoinNewAssociation);
+    on<RefreshMemberAchievements>(_onRefreshMemberAchievements);
 
     _initialize();
   }
 
+  // Initialize shared preferences and load selected association
   void _initialize() async {
     _prefs = await SharedPreferences.getInstance();
     await _loadSelectedAssociation();
@@ -225,6 +229,31 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
         ));
       } catch (e) {
         emit(AssociationError('Failed to refresh baks and bets: $e'));
+      }
+    }
+  }
+
+  Future<void> _onRefreshMemberAchievements(
+      RefreshMemberAchievements event, Emitter<AssociationState> emit) async {
+    if (state is AssociationLoaded) {
+      final currentState = state as AssociationLoaded;
+
+      try {
+        final member =
+            currentState.members.firstWhere((m) => m.id == event.memberId);
+        final updatedAchievements =
+            await _associationService.fetchMemberAchievements(event.memberId);
+
+        final updatedMember =
+            member.copyWith(achievements: updatedAchievements);
+        final updatedMembers = currentState.members
+            .map((m) => m.id == updatedMember.id ? updatedMember : m)
+            .toList();
+
+        emit(currentState.copyWith(members: updatedMembers));
+      } catch (e) {
+        emit(AssociationError(
+            'Failed to refresh achievements: ${e.toString()}'));
       }
     }
   }

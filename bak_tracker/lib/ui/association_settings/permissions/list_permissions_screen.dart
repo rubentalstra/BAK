@@ -1,3 +1,4 @@
+import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/ui/association_settings/permissions/edit_permissions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:bak_tracker/core/const/permissions_constants.dart';
@@ -62,6 +63,7 @@ class _UpdatePermissionsScreenState extends State<UpdatePermissionsScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
+              color: AppColors.lightSecondary,
               onRefresh: _refreshMembers, // Pull to refresh
               child: ListView.builder(
                 padding: const EdgeInsets.all(8.0),

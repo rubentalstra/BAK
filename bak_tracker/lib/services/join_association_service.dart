@@ -6,23 +6,19 @@ class JoinAssociationService {
 
   Future<AssociationModel> joinAssociation(String inviteCode) async {
     final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) {
-      throw UserNotAuthenticatedException();
-    }
+    if (userId == null) throw UserNotAuthenticatedException();
 
     final inviteDetails = await _fetchInviteDetails(inviteCode);
-    if (inviteDetails == null) {
-      throw InvalidInviteCodeException();
-    }
+    if (inviteDetails == null) throw InvalidInviteCodeException();
 
-    final associationId = inviteDetails['association_id'];
-    final invitePermissions = inviteDetails['permissions'];
+    final associationId = inviteDetails['association_id'] as String;
+    final invitePermissions =
+        inviteDetails['permissions'] as Map<String, dynamic>;
 
-    await _checkMembership(associationId, userId);
-
+    await _ensureNotAlreadyMember(associationId, userId);
     await _addMemberToAssociation(userId, associationId, invitePermissions);
 
-    return await _fetchAssociationDetails(associationId);
+    return _fetchAssociationDetails(associationId);
   }
 
   Future<Map<String, dynamic>?> _fetchInviteDetails(String inviteCode) async {
@@ -34,7 +30,8 @@ class JoinAssociationService {
         .maybeSingle();
   }
 
-  Future<void> _checkMembership(String associationId, String userId) async {
+  Future<void> _ensureNotAlreadyMember(
+      String associationId, String userId) async {
     final isMember = await _supabase
         .from('association_members')
         .select('id')
@@ -42,18 +39,19 @@ class JoinAssociationService {
         .eq('user_id', userId)
         .maybeSingle();
 
-    if (isMember != null) {
-      throw AlreadyAMemberException();
-    }
+    if (isMember != null) throw AlreadyAMemberException();
   }
 
-  Future<void> _addMemberToAssociation(String userId, String associationId,
-      Map<String, dynamic> invitePermissions) async {
+  Future<void> _addMemberToAssociation(
+    String userId,
+    String associationId,
+    Map<String, dynamic> permissions,
+  ) async {
     await _supabase.from('association_members').insert({
       'user_id': userId,
       'association_id': associationId,
       'role': 'member',
-      'permissions': invitePermissions,
+      'permissions': permissions,
       'joined_at': DateTime.now().toIso8601String(),
     });
   }

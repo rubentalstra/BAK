@@ -2,6 +2,7 @@ import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 
@@ -24,7 +25,6 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    // You can initialize anything else here if needed.
   }
 
   Future<void> _fetchBetHistory(String associationId,
@@ -117,6 +117,7 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
       },
       child: ListView.builder(
         itemCount: _betHistory.length + (_isFetchingMore ? 1 : 0),
+        padding: const EdgeInsets.all(16.0),
         itemBuilder: (context, index) {
           if (index == _betHistory.length) {
             return _isFetchingMore
@@ -142,21 +143,28 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
     final createdAt = DateTime.parse(bet['created_at']).toLocal();
     final formattedDate =
         '${createdAt.day}/${createdAt.month}/${createdAt.year}';
+    final amount = bet['amount'];
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildTitleRow(creatorName, receiverName),
-          const SizedBox(height: 8),
-          _buildAmountAndWinnerRow(bet['amount'], winnerName),
-          const SizedBox(height: 4),
-          Text('Description: ${bet['bet_description']}'),
-          const SizedBox(height: 4),
-          _buildDateRow(formattedDate),
-          const Divider(height: 20, thickness: 1),
-        ],
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildTitleRow(creatorName, receiverName),
+            const SizedBox(height: 8),
+            _buildAmountAndWinnerRow(amount, winnerName),
+            const SizedBox(height: 8),
+            _buildDescription(bet['bet_description']),
+            const SizedBox(height: 8),
+            _buildDateRow(formattedDate),
+          ],
+        ),
       ),
     );
   }
@@ -164,8 +172,10 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
   Widget _buildTitleRow(String creatorName, String receiverName) {
     return Row(
       children: [
+        Icon(Icons.people, color: AppColors.lightSecondary, size: 24),
+        const SizedBox(width: 8),
         Text(
-          'Bet between $creatorName and $receiverName',
+          '$creatorName vs $receiverName',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -175,15 +185,41 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
   }
 
   Widget _buildAmountAndWinnerRow(int amount, String winnerName) {
+    final amountText = amount == 1 ? '1 bak' : '$amount bakken';
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text('Amount: $amount bakken',
-            style: Theme.of(context).textTheme.bodyLarge),
+        Row(
+          children: [
+            Icon(FontAwesomeIcons.beerMugEmpty,
+                color: AppColors.lightSecondary, size: 20),
+            const SizedBox(width: 8),
+            Text('Amount: $amountText',
+                style: Theme.of(context).textTheme.bodyLarge),
+          ],
+        ),
         Text(
           'Winner: $winnerName',
-          style:
-              const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.green,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDescription(String description) {
+    return Row(
+      children: [
+        Icon(Icons.description, size: 20, color: Colors.grey),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            description,
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
+          ),
         ),
       ],
     );

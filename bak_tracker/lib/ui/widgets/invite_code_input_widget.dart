@@ -15,13 +15,26 @@ class InviteCodeInputWidget extends StatefulWidget {
 }
 
 class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
-  final List<TextEditingController> _controllers =
-      List.generate(6, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  final int _codeLength = 6;
+  final List<TextEditingController> _controllers = [];
+  final List<FocusNode> _focusNodes = [];
   String? _errorMessage;
   bool _isSubmitting = false;
   final JoinAssociationService _joinAssociationService =
       JoinAssociationService();
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeControllersAndNodes();
+  }
+
+  void _initializeControllersAndNodes() {
+    for (int i = 0; i < _codeLength; i++) {
+      _controllers.add(TextEditingController());
+      _focusNodes.add(FocusNode());
+    }
+  }
 
   @override
   void dispose() {
@@ -37,7 +50,7 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
   Future<void> _submitCode() async {
     final inviteCode = _controllers.map((e) => e.text.toUpperCase()).join();
 
-    if (inviteCode.length == 6) {
+    if (inviteCode.length == _codeLength) {
       setState(() {
         _isSubmitting = true;
         _errorMessage = null;
@@ -63,43 +76,38 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
       }
     } else {
       setState(() {
-        _errorMessage = 'Please enter all 6 characters.';
+        _errorMessage = 'Please enter all $_codeLength characters.';
       });
     }
   }
 
   Future<void> _pasteCode() async {
     final clipboardContent = await Clipboard.getData('text/plain');
+    final pastedText = clipboardContent?.text?.trim();
 
-    if (clipboardContent?.text != null && clipboardContent!.text!.length == 6) {
-      _handlePaste(clipboardContent.text!);
+    if (pastedText != null && pastedText.length == _codeLength) {
+      _handlePaste(pastedText);
     } else {
       setState(() {
-        _errorMessage = 'Clipboard must contain a 6-character code.';
+        _errorMessage = 'Clipboard must contain a $_codeLength-character code.';
       });
     }
   }
 
   void _handlePaste(String pastedText) {
-    if (pastedText.length == 6) {
-      for (int i = 0; i < 6; i++) {
-        _controllers[i].text = pastedText[i].toUpperCase();
-      }
-      FocusScope.of(context).unfocus();
-      _submitCode();
-    } else {
-      setState(() {
-        _errorMessage = 'The code must be exactly 6 characters long.';
-      });
+    for (int i = 0; i < _codeLength; i++) {
+      _controllers[i].text = pastedText[i].toUpperCase();
     }
+    FocusScope.of(context).unfocus();
+    _submitCode();
   }
 
   void _onCodeInputChanged(String value, int index) {
-    if (value.isNotEmpty && index < 5) {
+    if (value.isNotEmpty && index < _codeLength - 1) {
       FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
     } else if (value.isEmpty && index > 0) {
       FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
-    } else if (index == 5 && value.isNotEmpty) {
+    } else if (index == _codeLength - 1 && value.isNotEmpty) {
       _submitCode();
     }
   }
@@ -152,8 +160,9 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
               ),
             ),
             keyboardType: TextInputType.text,
-            textInputAction:
-                index < 5 ? TextInputAction.next : TextInputAction.done,
+            textInputAction: index < _codeLength - 1
+                ? TextInputAction.next
+                : TextInputAction.done,
             onChanged: (value) => _onCodeInputChanged(value, index),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
@@ -195,9 +204,7 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
               children: [
                 Expanded(
                   child: Row(
-                    children: List.generate(6, (index) {
-                      return _buildCodeField(index);
-                    }),
+                    children: List.generate(_codeLength, _buildCodeField),
                   ),
                 ),
                 IconButton(

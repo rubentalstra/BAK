@@ -1,9 +1,12 @@
 import 'package:bak_tracker/bloc/association/association_state.dart';
+import 'package:bak_tracker/models/bak_consumed_model.dart'; // Import your model
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
+import 'package:bak_tracker/core/themes/colors.dart'; // Import your theme colors
 
 class ChuckedTransactionsScreen extends StatefulWidget {
   const ChuckedTransactionsScreen({super.key});
@@ -14,7 +17,7 @@ class ChuckedTransactionsScreen extends StatefulWidget {
 }
 
 class _ChuckedTransactionsScreenState extends State<ChuckedTransactionsScreen> {
-  List<Map<String, dynamic>> _chuckedBakken = [];
+  List<BakConsumedModel> _chuckedBakken = []; // Use BakConsumedModel here
   bool _isLoading = true;
   String? _selectedAssociationId;
 
@@ -35,13 +38,18 @@ class _ChuckedTransactionsScreenState extends State<ChuckedTransactionsScreen> {
       final chuckedResponse = await supabase
           .from('bak_consumed')
           .select(
-              'id, amount, status, created_at, association_id, reason, taker_id (id, name)')
+              'id, amount, status, created_at, association_id, reason, approved_by (id, name), taker_id (id, name)')
           .eq('taker_id', currentUserId)
           .eq('association_id', associationId)
           .order('created_at', ascending: false);
 
+      // Parse the response using BakConsumedModel
+      final List<BakConsumedModel> chuckedBakkenList = chuckedResponse
+          .map<BakConsumedModel>((data) => BakConsumedModel.fromMap(data))
+          .toList();
+
       setState(() {
-        _chuckedBakken = List<Map<String, dynamic>>.from(chuckedResponse);
+        _chuckedBakken = chuckedBakkenList;
         _isLoading = false;
       });
     } catch (e) {
@@ -82,47 +90,99 @@ class _ChuckedTransactionsScreenState extends State<ChuckedTransactionsScreen> {
     );
   }
 
-  // Build the list of chucked transactions
+  // Build the list of chucked transactions using BakConsumedModel
   Widget _buildTransactionsList() {
     if (_chuckedBakken.isEmpty) {
-      return const Center(child: Text('No transactions found.'));
+      return const Center(
+        child: Text(
+          'No transactions found.',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+      );
     }
 
     return ListView.builder(
+      padding: const EdgeInsets.all(16.0),
       itemCount: _chuckedBakken.length,
       itemBuilder: (context, index) {
         final bak = _chuckedBakken[index];
-        final date = DateTime.parse(bak['created_at']);
-        final isRejected = bak['status'] == 'rejected';
-        final rejectionReason = bak['reason'] ?? 'No reason provided';
+        final date = bak.createdAt;
+        final isRejected = bak.status == 'rejected';
+        final rejectionReason = bak.reason ?? 'No reason provided';
+        final approvedBy = bak.approvedBy?.name; // Admin who approved the bak
 
-        return ListTile(
-          title: Text(
-            'Amount: ${bak['amount']}',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+        return Card(
+          elevation: 4,
+          margin: const EdgeInsets.only(bottom: 16.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Date: ${DateFormat.yMd('nl_NL').format(date)} at ${DateFormat.Hm('nl_NL').format(date)}',
-              ),
-              if (isRejected)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
-                  child: Text(
-                    'Rejection Reason: $rejectionReason',
-                    style: const TextStyle(color: Colors.redAccent),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: AppColors.lightPrimary,
+                      radius: 24,
+                      child: Icon(
+                        FontAwesomeIcons.beerMugEmpty,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Amount: ${bak.amount}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      bak.status.toUpperCase(),
+                      style: TextStyle(
+                        color: _getStatusColor(bak.status),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Date: ${DateFormat.yMMMd('nl_NL').format(date)} at ${DateFormat.Hm('nl_NL').format(date)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
                   ),
                 ),
-            ],
-          ),
-          trailing: Text(
-            bak['status'].toString().toUpperCase(),
-            style: TextStyle(
-              color: _getStatusColor(bak['status']),
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
+                if (isRejected)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      'Rejection Reason: $rejectionReason',
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                if (bak.status == 'approved')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      'Approved by: ${approvedBy ?? 'Unknown'}',
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         );

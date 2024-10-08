@@ -239,6 +239,45 @@ class LeaderboardProfileScreen extends StatelessWidget {
     );
   }
 
+  // Method to show achievement details in a modal bottom sheet
+  void _showAchievementDetails(
+      BuildContext context, MemberAchievementModel achievement) {
+    final localDate = achievement.assignedAt.toLocal();
+    final formattedDate = DateFormat('HH:mm dd-MM-yyyy').format(localDate);
+
+    showModalBottomSheet(
+      backgroundColor: AppColors.cardBackground,
+      context: context,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildAchievementHeader(achievement),
+              const SizedBox(height: 10),
+              _buildAchievementDetail(
+                  'Description',
+                  achievement.achievement.description ??
+                      'No description available'),
+              const SizedBox(height: 16),
+              Text(
+                'Earned on: $formattedDate',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // Reusable method for achievement header
   Widget _buildAchievementHeader(MemberAchievementModel achievement) {
     return Row(
@@ -279,68 +318,6 @@ class LeaderboardProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  // Method to show achievement details in a modal bottom sheet
-  void _showAchievementDetails(
-      BuildContext context, MemberAchievementModel achievement) {
-    final localDate = achievement.assignedAt.toLocal();
-    final formattedDate = DateFormat('HH:mm dd-MM-yyyy').format(localDate);
-
-    showModalBottomSheet(
-      backgroundColor: AppColors.cardBackground,
-      context: context,
-      builder: (BuildContext context) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.star, color: Colors.orangeAccent, size: 28),
-                  const SizedBox(width: 12),
-                  Text(
-                    achievement.achievement.name,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orangeAccent,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Description:',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                achievement.achievement.description ??
-                    'No description available',
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Earned on: $formattedDate',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
     );
   }
 }
