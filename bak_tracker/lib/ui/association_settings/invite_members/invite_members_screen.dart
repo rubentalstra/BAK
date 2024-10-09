@@ -357,6 +357,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen>
       appBar: AppBar(
         title: const Text('Invite Members'),
         bottom: TabBar(
+          dividerColor: Colors.transparent,
           controller: _tabController,
           tabs: const [
             Tab(text: 'Active Invites'),

@@ -23,7 +23,7 @@ class FullScreenImage extends StatelessWidget {
       ),
       body: Center(
         child: Hero(
-          tag: localImageFile.path, // Use the file path as the Hero tag
+          tag: localImageFile.path,
           child: Image.file(
             localImageFile,
             fit: BoxFit.contain,

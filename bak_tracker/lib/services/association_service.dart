@@ -144,6 +144,25 @@ class AssociationService {
     }
   }
 
+  // Updates stats (baks consumed, baks received, bets won, bets lost) for a specific member
+  Future<void> updateMemberStats(String associationId, String memberId,
+      int baksConsumed, int baksReceived, int betsWon, int betsLost) async {
+    try {
+      await _supabase
+          .from('association_members')
+          .update({
+            'baks_consumed': baksConsumed,
+            'baks_received': baksReceived,
+            'bets_won': betsWon,
+            'bets_lost': betsLost,
+          })
+          .eq('association_id', associationId)
+          .eq('user_id', memberId);
+    } catch (e) {
+      _handleError('updateMemberStats', e);
+    }
+  }
+
   // Fetches achievements for a given association
   Future<List<AchievementModel>> fetchAchievements(String associationId) async {
     try {
@@ -298,6 +317,20 @@ class AssociationService {
           .update({'bak_regulations': newFileName}).eq('id', associationId);
     } catch (e) {
       _handleError('updateBakRegulations', e);
+    }
+  }
+
+  // Updates the role for a specific user in a given association
+  Future<void> updateMemberRole(
+      String associationId, String userId, String newRole) async {
+    try {
+      await _supabase
+          .from('association_members')
+          .update({'role': newRole})
+          .eq('user_id', userId)
+          .eq('association_id', associationId);
+    } catch (e) {
+      _handleError('updateMemberRole', e);
     }
   }
 

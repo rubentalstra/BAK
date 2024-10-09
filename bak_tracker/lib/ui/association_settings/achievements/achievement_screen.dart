@@ -7,10 +7,12 @@ import 'members_tab.dart';
 
 class AchievementManagementScreen extends StatefulWidget {
   final String associationId;
+  final ImageUploadService imageUploadService;
 
   const AchievementManagementScreen({
     super.key,
     required this.associationId,
+    required this.imageUploadService,
   });
 
   @override
@@ -22,7 +24,6 @@ class _AchievementManagementScreenState
     extends State<AchievementManagementScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late ImageUploadService imageUploadService;
   late AssociationService associationService;
   final SupabaseClient _supabase = Supabase.instance.client;
 
@@ -31,8 +32,6 @@ class _AchievementManagementScreenState
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
-    // Initialize services
-    imageUploadService = ImageUploadService(_supabase);
     associationService =
         AssociationService(_supabase); // Initialize the service
   }
@@ -49,6 +48,7 @@ class _AchievementManagementScreenState
       appBar: AppBar(
         title: const Text('Manage Achievements'),
         bottom: TabBar(
+          dividerColor: Colors.transparent,
           controller: _tabController,
           tabs: const [
             Tab(text: 'Members'),
@@ -61,7 +61,7 @@ class _AchievementManagementScreenState
         children: [
           MembersTab(
             associationId: widget.associationId,
-            imageUploadService: imageUploadService,
+            imageUploadService: widget.imageUploadService,
             associationService:
                 associationService, // Pass the association service
           ),

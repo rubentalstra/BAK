@@ -1,15 +1,19 @@
-import 'dart:io';
 import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/models/association_member_model.dart';
+import 'package:bak_tracker/services/image_upload_service.dart';
+import 'package:bak_tracker/ui/widgets/profile_image_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:bak_tracker/core/const/permissions_constants.dart';
-import 'package:bak_tracker/models/association_member_model.dart';
 
 class RemoveMembersScreen extends StatefulWidget {
   final String associationId;
+  final ImageUploadService imageUploadService;
 
-  const RemoveMembersScreen({super.key, required this.associationId});
+  const RemoveMembersScreen(
+      {super.key,
+      required this.associationId,
+      required this.imageUploadService});
 
   @override
   _RemoveMembersScreenState createState() => _RemoveMembersScreenState();
@@ -19,12 +23,11 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
   List<AssociationMemberModel> _members = [];
   bool _isLoading = true;
   String? _currentUserId;
-  late final ImageUploadService _imageUploadService;
 
   @override
   void initState() {
     super.initState();
-    _imageUploadService = ImageUploadService(Supabase.instance.client);
+
     _fetchMembers();
     _getCurrentUserId();
   }
@@ -135,78 +138,71 @@ class _RemoveMembersScreenState extends State<RemoveMembersScreen> {
     );
   }
 
-  // Build list tile for each member
+  // Build list tile for each member using ProfileImageWidget
   Widget _buildMemberTile(AssociationMemberModel member) {
     final memberId = member.user.id;
     final memberName = member.user.name;
     final hasAllPermissions =
         member.permissions.hasPermission(PermissionEnum.hasAllPermissions);
     final isCurrentUser = memberId == _currentUserId;
-    final profileImage = member.user.profileImage;
 
-    return FutureBuilder<File?>(
-      future: profileImage == null || profileImage.isEmpty
-          ? Future.value(null)
-          : _imageUploadService.fetchOrDownloadProfileImage(profileImage),
-      builder: (context, snapshot) {
-        final imageFile = snapshot.data;
-
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: hasAllPermissions ? Colors.blue : Colors.grey,
-            backgroundImage: imageFile != null ? FileImage(imageFile) : null,
-            child: imageFile == null
-                ? const Icon(Icons.person, color: Colors.white)
-                : null,
+    return ListTile(
+      leading: ProfileImageWidget(
+        profileImageUrl: member.user.profileImage,
+        userName: member.user.name,
+        fetchProfileImage:
+            widget.imageUploadService.fetchOrDownloadProfileImage,
+        radius: 24.0, // Set the profile image size
+        backgroundColor: hasAllPermissions
+            ? Colors.blue
+            : Colors.grey, // Color based on permissions
+      ),
+      title: Text(
+        memberName,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            member.role ?? '',
+            style: TextStyle(
+              color: Colors.grey.shade300,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          title: Text(
-            memberName,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          const SizedBox(height: 4),
+          Text(
+            'Permissions: ${hasAllPermissions ? "Full Access" : _formatPermissions(member.permissions)}',
+            style: TextStyle(
+              color: hasAllPermissions ? Colors.blue : Colors.grey,
+            ),
           ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                member.role ?? '',
-                style: TextStyle(
-                  color: Colors.grey.shade300,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Permissions: ${hasAllPermissions ? "Full Access" : _formatPermissions(member.permissions)}',
-                style: TextStyle(
-                  color: hasAllPermissions ? Colors.blue : Colors.grey,
-                ),
-              ),
-            ],
-          ),
-          trailing: isCurrentUser
+        ],
+      ),
+      trailing: isCurrentUser
+          ? const IconButton(
+              icon: Icon(Icons.block, color: Colors.grey),
+              tooltip: 'You cannot remove yourself',
+              onPressed: null,
+            )
+          : hasAllPermissions
               ? const IconButton(
-                  icon: Icon(Icons.block, color: Colors.grey),
-                  tooltip: 'You cannot remove yourself',
+                  icon: Icon(Icons.lock, color: Colors.red),
+                  tooltip:
+                      'This member has full permissions and cannot be removed',
                   onPressed: null,
                 )
-              : hasAllPermissions
-                  ? const IconButton(
-                      icon: Icon(Icons.lock, color: Colors.red),
-                      tooltip:
-                          'This member has full permissions and cannot be removed',
-                      onPressed: null,
-                    )
-                  : IconButton(
-                      icon: const Icon(Icons.remove_circle_outline,
-                          color: Colors.red),
-                      onPressed: () => _confirmRemoveMember(
-                        context,
-                        memberId,
-                        memberName,
-                        member.permissions,
-                      ),
-                    ),
-        );
-      },
+              : IconButton(
+                  icon: const Icon(Icons.remove_circle_outline,
+                      color: Colors.red),
+                  onPressed: () => _confirmRemoveMember(
+                    context,
+                    memberId,
+                    memberName,
+                    member.permissions,
+                  ),
+                ),
     );
   }
 

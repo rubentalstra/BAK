@@ -60,6 +60,7 @@ class _BakScreenState extends State<BakScreen>
 
               return TabBar(
                 controller: _tabController,
+                dividerColor: Colors.transparent,
                 tabs: [
                   const Tab(text: 'Send Bak'),
                   badges.Badge(

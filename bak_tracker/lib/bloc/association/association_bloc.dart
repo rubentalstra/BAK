@@ -1,22 +1,20 @@
-import 'dart:convert';
 import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/models/association_model.dart';
 import 'package:bak_tracker/services/association_service.dart';
 import 'package:bak_tracker/services/home_widget_service.dart';
+import 'package:bak_tracker/services/local_storage_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'association_event.dart';
 import 'association_state.dart';
 
 class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
   final AssociationService _associationService;
-  SharedPreferences? _prefs;
+  final LocalStorageService _localStorageService;
 
-  // Constructor where you inject the SupabaseClient and AssociationService
-  AssociationBloc(SupabaseClient supabaseClient)
-      : _associationService = AssociationService(supabaseClient),
+  AssociationBloc(this._associationService)
+      : _localStorageService = LocalStorageService(),
         super(AssociationInitial()) {
     on<SelectAssociation>(_onSelectAssociation);
     on<LeaveAssociation>(_onLeaveAssociation);
@@ -25,28 +23,27 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     on<RefreshBaksAndBets>(_onRefreshBaksAndBets);
     on<JoinNewAssociation>(_onJoinNewAssociation);
     on<RefreshMemberAchievements>(_onRefreshMemberAchievements);
+    on<UpdateMemberRole>(_onUpdateMemberRole);
+    on<UpdateMemberStats>(_onUpdateMemberStats);
 
     _initialize();
   }
 
   // Initialize shared preferences and load selected association
   void _initialize() async {
-    _prefs = await SharedPreferences.getInstance();
     await _loadSelectedAssociation();
   }
 
   Future<void> _loadSelectedAssociation() async {
-    final savedData = _prefs!.getString('selected_association');
-    if (savedData != null) {
-      final selectedAssociation =
-          AssociationModel.fromMap(jsonDecode(savedData));
-      add(SelectAssociation(selectedAssociation: selectedAssociation));
+    final savedAssociation =
+        await _localStorageService.loadSelectedAssociation();
+    if (savedAssociation != null) {
+      add(SelectAssociation(selectedAssociation: savedAssociation));
     }
   }
 
   Future<void> _saveSelectedAssociation(AssociationModel association) async {
-    await _prefs!
-        .setString('selected_association', jsonEncode(association.toMap()));
+    await _localStorageService.saveSelectedAssociation(association);
   }
 
   Future<void> _onSelectAssociation(
@@ -154,7 +151,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
           .eq('association_id', event.associationId);
 
       final remainingAssociations = await _fetchRemainingAssociations(userId);
-      await _prefs!.remove('selected_association');
+      await _localStorageService.removeSelectedAssociation();
       await WidgetService.resetWidget();
 
       if (remainingAssociations.isEmpty) {
@@ -254,6 +251,70 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       } catch (e) {
         emit(AssociationError(
             'Failed to refresh achievements: ${e.toString()}'));
+      }
+    }
+  }
+
+  Future<void> _onUpdateMemberRole(
+      UpdateMemberRole event, Emitter<AssociationState> emit) async {
+    if (state is AssociationLoaded) {
+      final currentState = state as AssociationLoaded;
+
+      try {
+        // Update the role in the database
+        await _associationService.updateMemberRole(
+            event.associationId, event.memberId, event.newRole);
+
+        // Find and update the specific member's role in the state
+        final updatedMembers = currentState.members.map((member) {
+          if (member.user.id == event.memberId) {
+            return member.copyWith(role: event.newRole);
+          }
+          return member;
+        }).toList();
+
+        // Emit the updated state
+        emit(currentState.copyWith(members: updatedMembers));
+      } catch (e) {
+        emit(AssociationError('Failed to update role: ${e.toString()}'));
+      }
+    }
+  }
+
+  // Handler for updating member stats
+  Future<void> _onUpdateMemberStats(
+      UpdateMemberStats event, Emitter<AssociationState> emit) async {
+    if (state is AssociationLoaded) {
+      final currentState = state as AssociationLoaded;
+
+      try {
+        // Update the stats in the database
+        await _associationService.updateMemberStats(
+          event.associationId,
+          event.memberId,
+          event.baksConsumed,
+          event.baksReceived,
+          event.betsWon,
+          event.betsLost,
+        );
+
+        // Find and update the specific member's stats in the state
+        final updatedMembers = currentState.members.map((member) {
+          if (member.user.id == event.memberId) {
+            return member.copyWith(
+              baksConsumed: event.baksConsumed,
+              baksReceived: event.baksReceived,
+              betsWon: event.betsWon,
+              betsLost: event.betsLost,
+            );
+          }
+          return member;
+        }).toList();
+
+        // Emit the updated state
+        emit(currentState.copyWith(members: updatedMembers));
+      } catch (e) {
+        emit(AssociationError('Failed to update stats: ${e.toString()}'));
       }
     }
   }

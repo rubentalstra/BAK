@@ -1,13 +1,20 @@
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/ui/association_settings/permissions/edit_permissions_screen.dart';
+import 'package:bak_tracker/ui/widgets/profile_image_widget.dart'; // Import ProfileImageWidget
 import 'package:flutter/material.dart';
 import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bak_tracker/services/image_upload_service.dart';
 
 class UpdatePermissionsScreen extends StatefulWidget {
   final String associationId;
+  final ImageUploadService imageUploadService; // Add this parameter
 
-  const UpdatePermissionsScreen({super.key, required this.associationId});
+  const UpdatePermissionsScreen({
+    super.key,
+    required this.associationId,
+    required this.imageUploadService, // Add this parameter
+  });
 
   @override
   _UpdatePermissionsScreenState createState() =>
@@ -33,7 +40,8 @@ class _UpdatePermissionsScreenState extends State<UpdatePermissionsScreen> {
     try {
       final response = await supabase
           .from('association_members')
-          .select('user_id (id, name), permissions')
+          .select(
+              'user_id (id, name, profile_image), permissions') // Fetch profile image
           .eq('association_id', widget.associationId)
           .order('user_id(name)', ascending: true);
 
@@ -77,6 +85,14 @@ class _UpdatePermissionsScreenState extends State<UpdatePermissionsScreen> {
                     elevation: 4,
                     margin: const EdgeInsets.symmetric(vertical: 8.0),
                     child: ListTile(
+                      leading: ProfileImageWidget(
+                        profileImageUrl: member['user_id']
+                            ['profile_image'], // Fetch the profile image
+                        userName: member['user_id']['name'], // Use member name
+                        fetchProfileImage: widget
+                            .imageUploadService.fetchOrDownloadProfileImage,
+                        radius: 24.0, // Adjust the size as needed
+                      ),
                       title: Text(
                         member['user_id']['name'],
                         style: const TextStyle(

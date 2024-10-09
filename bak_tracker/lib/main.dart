@@ -1,4 +1,5 @@
 import 'package:app_badge_plus/app_badge_plus.dart';
+import 'package:bak_tracker/services/association_service.dart';
 import 'package:bak_tracker/services/deep_link_service.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
@@ -66,11 +67,12 @@ class BakTrackerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final supabaseClient = Supabase.instance.client;
+    final associationService = AssociationService(supabaseClient);
 
     return MultiBlocProvider(
       providers: [
         BlocProvider<AssociationBloc>(
-            create: (_) => AssociationBloc(supabaseClient)),
+            create: (_) => AssociationBloc(associationService)),
         BlocProvider<AuthenticationBloc>(create: (_) => AuthenticationBloc()),
         BlocProvider<LocaleBloc>(create: (_) => LocaleBloc()),
       ],

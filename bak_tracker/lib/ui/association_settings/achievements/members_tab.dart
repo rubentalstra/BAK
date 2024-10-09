@@ -1,14 +1,14 @@
-import 'dart:io';
-import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/models/association_member_model.dart';
+import 'package:bak_tracker/services/association_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:bak_tracker/models/association_member_model.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
+import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
+import 'package:bak_tracker/ui/widgets/profile_image_widget.dart';
 import 'package:bak_tracker/models/achievement_model.dart';
-import 'package:bak_tracker/services/association_service.dart';
 
 class MembersTab extends StatefulWidget {
   final String associationId;
@@ -73,7 +73,6 @@ class _MembersTabState extends State<MembersTab> {
 
   // Handle pull-to-refresh logic
   Future<void> _onRefresh(BuildContext context) async {
-    // Re-fetch the members and achievements by triggering the appropriate Bloc event
     context.read<AssociationBloc>().add(SelectAssociation(
           selectedAssociation:
               (context.read<AssociationBloc>().state as AssociationLoaded)
@@ -83,64 +82,34 @@ class _MembersTabState extends State<MembersTab> {
 
   // Build the list tile for each member
   Widget _buildMemberTile(BuildContext context, AssociationMemberModel member) {
-    return FutureBuilder<File?>(
-      future: _fetchProfileImage(member),
-      builder: (context, snapshot) {
-        final imageFile = snapshot.data;
-
-        return Card(
-          elevation: 2,
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(12),
-            leading: _buildProfileImage(imageFile, member.user.name),
-            title: Text(
-              member.user.name,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            subtitle: Text(member.role ?? '',
-                style: const TextStyle(color: Colors.grey)),
-            trailing: IconButton(
-              icon: const Icon(Icons.emoji_events),
-              onPressed: () => _showAssignAchievementDialog(context, member),
-            ),
-            onTap: () => _showAssignAchievementDialog(context, member),
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: ListTile(
+        leading: ProfileImageWidget(
+          profileImageUrl: member.user.profileImage,
+          userName: member.user.name,
+          fetchProfileImage:
+              widget.imageUploadService.fetchOrDownloadProfileImage,
+          radius: 24.0,
+        ),
+        title: Text(
+          member.user.name,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
           ),
-        );
-      },
-    );
-  }
-
-  // Fetch the profile image lazily
-  Future<File?> _fetchProfileImage(AssociationMemberModel member) {
-    if (member.user.profileImage != null &&
-        member.user.profileImage!.isNotEmpty) {
-      return widget.imageUploadService
-          .fetchOrDownloadProfileImage(member.user.profileImage!);
-    }
-    return Future.value(null);
-  }
-
-  Widget _buildProfileImage(File? imageFile, String userName) {
-    return CircleAvatar(
-      radius: 24,
-      backgroundColor: imageFile == null ? Colors.grey : null,
-      backgroundImage: imageFile != null ? FileImage(imageFile) : null,
-      child: imageFile == null
-          ? Text(
-              userName[0].toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-              ),
-            )
-          : null,
+        ),
+        subtitle: Text(
+          member.role ?? '',
+          style: const TextStyle(color: Colors.grey),
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.emoji_events, color: AppColors.lightSecondary),
+          onPressed: () => _showAssignAchievementDialog(context, member),
+        ),
+        onTap: () => _showAssignAchievementDialog(context, member),
+      ),
     );
   }
 
@@ -149,10 +118,9 @@ class _MembersTabState extends State<MembersTab> {
     BuildContext context,
     AssociationMemberModel member,
   ) async {
-    // Fetch the currently available achievements (already fetched in initState)
     List<String> assignedAchievementIds = member.achievements
         .map((achievement) => achievement.achievement.id)
-        .toList(); // Assuming member has a list of assigned achievements
+        .toList();
 
     showDialog<void>(
       context: context,
@@ -211,8 +179,7 @@ class _MembersTabState extends State<MembersTab> {
       children: achievements.map((achievement) {
         return CheckboxListTile(
           title: Text(achievement.name),
-          value: assignedAchievementIds.contains(achievement
-              .id), // Pre-select if the achievement is already assigned
+          value: assignedAchievementIds.contains(achievement.id),
           onChanged: (bool? value) {
             setDialogState(() {
               if (value == true) {
@@ -227,7 +194,6 @@ class _MembersTabState extends State<MembersTab> {
     );
   }
 
-// Update achievements for a member and refresh state
   Future<void> _saveAchievementChanges(
     BuildContext context,
     AssociationMemberModel member,
@@ -239,14 +205,12 @@ class _MembersTabState extends State<MembersTab> {
         selectedAchievementIds,
       );
 
-      // Trigger a state update in the Bloc to refresh achievements
       context.read<AssociationBloc>().add(RefreshMemberAchievements(member.id));
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Achievements updated successfully!')),
       );
     } catch (e) {
-      print('Error updating achievements: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error updating achievements')),
       );

@@ -163,6 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     memberData: memberData,
                     association: state.selectedAssociation,
                     pendingApproveBaksCount: state.pendingApproveBaksCount,
+                    imageUploadService: _imageUploadService,
                   ),
                 ),
               )

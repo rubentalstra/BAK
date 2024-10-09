@@ -1,5 +1,6 @@
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/models/bak_consumed_model.dart';
+import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:bak_tracker/ui/association_settings/approve_baks/approve_bak_transactions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -7,8 +8,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ApproveBaksScreen extends StatefulWidget {
   final String associationId;
+  final ImageUploadService imageUploadService;
 
-  const ApproveBaksScreen({super.key, required this.associationId});
+  const ApproveBaksScreen({
+    super.key,
+    required this.associationId,
+    required this.imageUploadService,
+  });
 
   @override
   _ApproveBaksScreenState createState() => _ApproveBaksScreenState();

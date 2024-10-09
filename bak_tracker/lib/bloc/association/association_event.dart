@@ -67,3 +67,39 @@ class RefreshMemberAchievements extends AssociationEvent {
   @override
   List<Object?> get props => [memberId];
 }
+
+class UpdateMemberRole extends AssociationEvent {
+  final String associationId;
+  final String memberId;
+  final String newRole;
+
+  const UpdateMemberRole(
+      {required this.associationId,
+      required this.memberId,
+      required this.newRole});
+
+  @override
+  List<Object?> get props => [memberId, newRole];
+}
+
+class UpdateMemberStats extends AssociationEvent {
+  final String associationId;
+  final String memberId;
+  final int baksConsumed;
+  final int baksReceived;
+  final int betsWon;
+  final int betsLost;
+
+  const UpdateMemberStats({
+    required this.associationId,
+    required this.memberId,
+    required this.baksConsumed,
+    required this.baksReceived,
+    required this.betsWon,
+    required this.betsLost,
+  });
+
+  @override
+  List<Object?> get props =>
+      [associationId, memberId, baksConsumed, baksReceived, betsWon, betsLost];
+}

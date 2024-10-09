@@ -50,6 +50,7 @@ class _BetsScreenState extends State<BetsScreen>
 
               return TabBar(
                 controller: _tabController,
+                dividerColor: Colors.transparent,
                 tabs: [
                   const Tab(text: 'Create Bet'),
                   badges.Badge(

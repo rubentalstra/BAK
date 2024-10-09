@@ -4,6 +4,7 @@ class AssociationModel extends Equatable {
   final String id;
   final String name;
   final DateTime createdAt;
+  final DateTime updatedAt;
   final String? websiteUrl;
   final String? bakRegulations;
 
@@ -11,6 +12,7 @@ class AssociationModel extends Equatable {
     required this.id,
     required this.name,
     required this.createdAt,
+    required this.updatedAt,
     this.websiteUrl,
     this.bakRegulations,
   });
@@ -21,6 +23,9 @@ class AssociationModel extends Equatable {
       id: map['id'],
       name: map['name'],
       createdAt: DateTime.parse(map['created_at']),
+      updatedAt: map['updated_at'] != null
+          ? DateTime.parse(map['updated_at'])
+          : DateTime.now(),
       websiteUrl: map['website_url'],
       bakRegulations: map['bak_regulations'],
     );
@@ -32,11 +37,13 @@ class AssociationModel extends Equatable {
       'id': id,
       'name': name,
       'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
       'website_url': websiteUrl,
       'bak_regulations': bakRegulations,
     };
   }
 
   @override
-  List<Object?> get props => [id, name, createdAt, websiteUrl, bakRegulations];
+  List<Object?> get props =>
+      [id, name, createdAt, updatedAt, websiteUrl, bakRegulations];
 }

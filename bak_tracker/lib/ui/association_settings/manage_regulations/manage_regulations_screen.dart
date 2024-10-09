@@ -7,7 +7,9 @@ import 'package:bak_tracker/ui/widgets/pdf_viewer_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart'; // For date formatting
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bak_tracker/core/themes/colors.dart'; // Import AppColors
 
 class ManageRegulationsScreen extends StatefulWidget {
   const ManageRegulationsScreen({super.key});
@@ -18,7 +20,7 @@ class ManageRegulationsScreen extends StatefulWidget {
 }
 
 class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
-  bool _isUploading = false; // Track the uploading state
+  bool _isUploading = false;
   final PDFUploadService pdfService =
       PDFUploadService(Supabase.instance.client);
 
@@ -27,14 +29,19 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Regulations'),
+        backgroundColor: AppColors.lightPrimary,
+        centerTitle: true,
       ),
       body: BlocBuilder<AssociationBloc, AssociationState>(
         builder: (context, state) {
           if (state is AssociationLoading || _isUploading) {
             return const Center(child: CircularProgressIndicator());
           } else if (state is AssociationLoaded) {
-            return _buildContent(state.selectedAssociation.bakRegulations,
-                state.selectedAssociation.id);
+            return _buildContent(
+                state.selectedAssociation.bakRegulations,
+                state.selectedAssociation.id,
+                state.selectedAssociation.updatedAt
+                    .toLocal()); // Convert to local time
           } else {
             return const Center(child: Text('Error loading association data.'));
           }
@@ -43,29 +50,37 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
     );
   }
 
-  Widget _buildContent(String? bakRegulations, String associationId) {
+  Widget _buildContent(
+      String? bakRegulations, String associationId, DateTime? updatedAt) {
     final hasRegulations = bakRegulations?.isNotEmpty ?? false;
+
+    // Format the last updated time in local time zone
+    final lastUpdated = updatedAt != null
+        ? DateFormat('yyyy-MM-dd HH:mm').format(updatedAt)
+        : 'Not available';
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildHeaderCard(hasRegulations, lastUpdated),
+          const SizedBox(height: 16),
           if (hasRegulations) ...[
-            _buildButton(
+            _buildActionButton(
               icon: Icons.visibility,
               label: 'View Current Regulations',
               onPressed: () => _viewRegulations(bakRegulations!, associationId),
             ),
-            _buildButton(
-              icon: Icons.delete,
+            _buildActionButton(
+              icon: Icons.delete_forever_rounded,
               label: 'Delete Regulations',
               onPressed: () =>
                   _confirmDeleteRegulations(bakRegulations!, associationId),
-              color: Colors.red,
+              color: Colors.redAccent,
             ),
           ],
-          _buildButton(
+          _buildActionButton(
             icon: Icons.upload_file,
             label: hasRegulations ? 'Update Regulations' : 'Upload Regulations',
             onPressed: () => _uploadRegulations(associationId, bakRegulations),
@@ -75,7 +90,53 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
     );
   }
 
-  Widget _buildButton({
+  Widget _buildHeaderCard(bool hasRegulations, String lastUpdated) {
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: AppColors.cardBackground, // Updated to dark card background
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Icon(
+              Icons.file_copy_rounded,
+              size: 50,
+              color: AppColors.lightSecondary,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    hasRegulations
+                        ? "Regulations Uploaded"
+                        : "No Regulations Uploaded",
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.lightOnPrimary, // Light text color
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Last updated: $lastUpdated',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.lightDivider, // Lighter text for details
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
     required IconData icon,
     required String label,
     required VoidCallback onPressed,
@@ -85,11 +146,22 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       width: double.infinity,
       child: ElevatedButton.icon(
-        icon: Icon(icon),
-        label: Text(label),
+        icon: Icon(icon, color: AppColors.lightOnPrimary), // Updated icon color
+        label: Text(
+          label,
+          style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.lightOnPrimary), // Text color updated
+        ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          backgroundColor:
+              color ?? AppColors.lightSecondary, // Use app color scheme
+          padding: const EdgeInsets.symmetric(vertical: 14.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 6,
         ),
         onPressed: onPressed,
       ),
@@ -127,7 +199,7 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
 
     final file = File(result.files.single.path!);
 
-    setState(() => _isUploading = true); // Set uploading state
+    setState(() => _isUploading = true);
 
     try {
       await pdfService.uploadPdf(file, bakRegulations, associationId);
@@ -136,7 +208,7 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
     } catch (e) {
       _showSnackBar('Failed to upload the PDF.', isError: true);
     } finally {
-      setState(() => _isUploading = false); // Reset uploading state
+      setState(() => _isUploading = false);
     }
   }
 
@@ -185,7 +257,6 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
     ));
   }
 
-  // Consolidated snack bar method
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

@@ -60,6 +60,8 @@ class _InviteCodeInputWidgetState extends State<InviteCodeInputWidget> {
         final newAssociation =
             await _joinAssociationService.joinAssociation(inviteCode);
 
+        if (!mounted) return; // Guard against async gaps
+
         context
             .read<AssociationBloc>()
             .add(JoinNewAssociation(newAssociation: newAssociation));
