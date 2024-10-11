@@ -2,7 +2,7 @@ import 'package:home_widget/home_widget.dart';
 
 class WidgetService {
   static const String appGroup =
-      "group.com.baktracker.shared"; // Your App Group identifier.
+      'group.com.baktracker.shared'; // Your App Group identifier.
 
   // Generic function to save data
   static Future<void> saveData(String key, String value) async {

@@ -111,8 +111,8 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
                 children: [
                   Text(
                     hasRegulations
-                        ? "Regulations Uploaded"
-                        : "No Regulations Uploaded",
+                        ? 'Regulations Uploaded'
+                        : 'No Regulations Uploaded',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

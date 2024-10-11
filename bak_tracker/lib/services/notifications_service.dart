@@ -70,9 +70,9 @@ class NotificationsService {
     if (status.isDenied) {
       final permissionGranted = await Permission.notification.request();
       if (permissionGranted.isGranted) {
-        print("Notification permission granted.");
+        print('Notification permission granted.');
       } else {
-        print("Notification permission denied.");
+        print('Notification permission denied.');
       }
     }
   }

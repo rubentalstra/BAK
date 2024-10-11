@@ -301,7 +301,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "App version: $versionDisplay",
+              'App version: $versionDisplay',
               style: const TextStyle(
                 color: Colors.grey,
                 fontWeight: FontWeight.w500,
