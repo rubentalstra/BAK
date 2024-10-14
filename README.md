@@ -165,9 +165,9 @@ You should have received a copy of the GNU General Public License along with
 this program. If not, see <https://www.gnu.org/licenses/>.
 ```
 
-##Contact
+## Contact
 
 If you have any questions, issues, or suggestions, please open an issue on the
-GitHub repository or reach out via [contact method].
+GitHub repository or reach out via (@rubentalstra)[@rubentalstra].
 
 Happy Drinking!
