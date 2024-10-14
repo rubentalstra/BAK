@@ -18,49 +18,63 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   List<BakSendModel> _transactions = [];
   bool _isLoading = true;
   bool _isFetchingMore = false;
-  String? _selectedAssociationId;
-
-  // Pagination variables
-  final int _limit = 10; // Number of items to fetch at a time
-  int _offset = 0; // Offset to keep track of how much data has been fetched
-  bool _hasMoreData = true; // To check if more data is available
+  bool _hasMoreData = true;
+  final int _limit = 10;
+  int _offset = 0;
+  final ScrollController _scrollController = ScrollController();
+  String _selectedAssociationId = ''; // Initialize with an empty string
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
   }
 
-  Future<void> _fetchTransactions(String associationId,
-      {bool isLoadMore = false}) async {
-    if (_isFetchingMore || !_hasMoreData) {
-      return; // Prevent multiple fetches or fetching when no more data is available
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent * 0.8 &&
+        !_isFetchingMore &&
+        _hasMoreData) {
+      _fetchTransactions(isLoadMore: true);
+    }
+  }
+
+  Future<void> _fetchTransactions({bool isLoadMore = false}) async {
+    // Make sure the association ID is not empty before fetching
+    if (_isFetchingMore || !_hasMoreData || _selectedAssociationId.isEmpty) {
+      return;
     }
 
     setState(() {
-      if (!isLoadMore) {
-        _isLoading = true;
-      } else {
+      if (isLoadMore) {
         _isFetchingMore = true;
+      } else {
+        _isLoading = true;
+        _offset = 0;
+        _hasMoreData = true;
+        _transactions.clear();
       }
     });
 
     final supabase = Supabase.instance.client;
     final currentUserId = supabase.auth.currentUser?.id;
-
-    if (currentUserId == null) {
-      return; // Handle null user ID case
-    }
+    if (currentUserId == null) return;
 
     try {
-      // Fetch the transactions with pagination
       final response = await supabase
           .from('bak_send')
           .select(
               'id, association_id, amount, status, created_at, reason, receiver_id (id, name), giver_id (id, name), decline_reason')
           .or('giver_id.eq.$currentUserId,receiver_id.eq.$currentUserId')
-          .eq('association_id', associationId)
+          .eq('association_id', _selectedAssociationId)
           .order('created_at', ascending: false)
-          .range(_offset, _offset + _limit - 1); // Pagination
+          .range(_offset, _offset + _limit - 1);
 
       final List<BakSendModel> fetchedTransactions =
           (response as List).map((map) => BakSendModel.fromMap(map)).toList();
@@ -72,15 +86,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           _transactions = fetchedTransactions;
         }
 
-        // Check if more data is available
         if (fetchedTransactions.length < _limit) {
-          _hasMoreData =
-              false; // No more data if less than the limit is returned
+          _hasMoreData = false;
         }
 
         _isLoading = false;
         _isFetchingMore = false;
-        _offset += _limit; // Increase the offset for the next batch
+        _offset += _limit;
       });
     } catch (e) {
       print('Error fetching transactions: $e');
@@ -90,6 +102,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       });
       _showErrorSnackBar('Failed to load transactions. Please try again.');
     }
+  }
+
+  Future<void> _refreshTransactions() async {
+    _resetPagination();
+    await _fetchTransactions();
+  }
+
+  void _resetPagination() {
+    _offset = 0;
+    _hasMoreData = true;
+    _transactions.clear();
   }
 
   @override
@@ -106,8 +129,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               _selectedAssociationId = associationId;
 
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                _resetPagination(); // Reset pagination when association changes
-                _fetchTransactions(associationId);
+                _resetPagination();
+                _fetchTransactions();
               });
             }
 
@@ -115,10 +138,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : RefreshIndicator(
                     color: AppColors.lightSecondary,
-                    onRefresh: () {
-                      _resetPagination(); // Reset pagination on refresh
-                      return _fetchTransactions(_selectedAssociationId!);
-                    },
+                    onRefresh: _refreshTransactions,
                     child: _buildTransactionsList(),
                   );
           } else {
@@ -129,10 +149,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  // Build the list of transactions with pagination
   Widget _buildTransactionsList() {
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
-
     if (_transactions.isEmpty) {
       return const Center(
         child: Text(
@@ -142,36 +159,27 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       );
     }
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (scrollInfo) {
-        if (!_isFetchingMore &&
-            scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent &&
-            _hasMoreData) {
-          _fetchTransactions(_selectedAssociationId!, isLoadMore: true);
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16.0),
+      itemCount: _transactions.length + (_isFetchingMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == _transactions.length) {
+          return const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(child: CircularProgressIndicator()),
+          );
         }
-        return false;
-      },
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: _transactions.length + (_isFetchingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == _transactions.length) {
-            return const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
 
-          final bak = _transactions[index];
-          return _buildTransactionCard(bak, currentUserId!);
-        },
-      ),
+        final bak = _transactions[index];
+        return _buildTransactionCard(bak);
+      },
     );
   }
 
-// Build individual transaction card using BakSendModel
-  Widget _buildTransactionCard(BakSendModel bak, String currentUserId) {
-    final isSent = bak.giver.id == currentUserId;
+  Widget _buildTransactionCard(BakSendModel bak) {
+    final isSent =
+        bak.giver.id == Supabase.instance.client.auth.currentUser?.id;
     final recipientName = bak.receiver.name;
     final senderName = bak.giver.name;
 
@@ -231,7 +239,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               'Date: ${DateFormat.yMMMd('nl_NL').format(bak.createdAt)} at ${DateFormat.Hm('nl_NL').format(bak.createdAt)}',
               style: const TextStyle(color: Colors.grey),
             ),
-            // Highlight rejection reason if the status is declined
             if (bak.status == 'declined')
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
@@ -249,7 +256,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  // Get the status color based on the transaction status
   Color _getStatusColor(String status) {
     switch (status) {
       case 'approved':
@@ -261,14 +267,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
-  // Reset the pagination variables when switching associations or refreshing
-  void _resetPagination() {
-    _offset = 0;
-    _hasMoreData = true;
-    _transactions.clear();
-  }
-
-  // Show error snackbar in case of failure
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),

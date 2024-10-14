@@ -23,6 +23,8 @@ class _CreateBetTabState extends State<CreateBetTab> {
   final _amountController = TextEditingController();
   String? _selectedReceiverId;
 
+  final int _maxDescriptionLength = 255;
+
   @override
   void initState() {
     super.initState();
@@ -102,12 +104,16 @@ class _CreateBetTabState extends State<CreateBetTab> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: TextField(
                   controller: _descriptionController,
+                  maxLength: _maxDescriptionLength, // Set max length
+                  maxLines: 3,
                   decoration: const InputDecoration(
                     hintText: 'Enter bet description',
                     icon: Icon(Icons.message, color: Colors.blue),
                     border: InputBorder.none,
+                    counterStyle: TextStyle(
+                      color: Colors.grey,
+                    ),
                   ),
-                  maxLines: 3,
                 ),
               ),
             ),

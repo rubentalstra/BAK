@@ -22,11 +22,19 @@ class _ProcessedBaksTransactionsScreenState
   bool _hasMoreData = true;
   final int _limit = 10;
   int _offset = 0;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _fetchChuckedTransactions();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchChuckedTransactions({bool isMore = false}) async {
@@ -79,6 +87,15 @@ class _ProcessedBaksTransactionsScreenState
     }
   }
 
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent * 0.8 &&
+        !_isFetchingMore &&
+        _hasMoreData) {
+      _loadMore();
+    }
+  }
+
   Future<void> _loadMore() async {
     if (_hasMoreData) {
       await _fetchChuckedTransactions(isMore: true);
@@ -103,6 +120,7 @@ class _ProcessedBaksTransactionsScreenState
             : _processedBaks.isEmpty
                 ? const Center(child: Text('No approved or rejected baks'))
                 : ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16.0),
                     itemCount: _processedBaks.length + 1,
                     itemBuilder: (context, index) {

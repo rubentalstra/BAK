@@ -18,6 +18,8 @@ class _SendBakTabState extends State<SendBakTab> {
   final _amountController = TextEditingController();
   final _reasonController = TextEditingController();
 
+  final int _maxReasonLength = 255;
+
   @override
   void dispose() {
     _amountController.dispose();
@@ -118,12 +120,16 @@ class _SendBakTabState extends State<SendBakTab> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: TextField(
               controller: _reasonController,
-              decoration: const InputDecoration(
+              maxLength: _maxReasonLength,
+              maxLines: 3,
+              decoration: InputDecoration(
                 hintText: 'Enter reason for sending the Bak',
                 icon: Icon(Icons.message, color: Colors.blue),
                 border: InputBorder.none,
+                counterStyle: TextStyle(
+                  color: Colors.grey,
+                ),
               ),
-              maxLines: 3,
             ),
           ),
         ),

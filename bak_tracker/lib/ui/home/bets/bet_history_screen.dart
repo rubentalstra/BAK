@@ -17,22 +17,49 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
   List<Map<String, dynamic>> _betHistory = [];
   bool _isLoading = true;
   bool _isFetchingMore = false;
+  bool _hasMoreData = true;
   String? _selectedAssociationId;
-
   final int _limit = 10;
   int _offset = 0;
+
+  final ScrollController _scrollController =
+      ScrollController(); // Scroll controller
 
   @override
   void initState() {
     super.initState();
+    _scrollController
+        .addListener(_onScroll); // Add listener to ScrollController
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose(); // Dispose the ScrollController
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent * 0.8 &&
+        !_isFetchingMore &&
+        _hasMoreData) {
+      _fetchBetHistory(_selectedAssociationId!,
+          isLoadMore: true); // Load more when scrolling
+    }
   }
 
   Future<void> _fetchBetHistory(String associationId,
       {bool isLoadMore = false}) async {
-    if (!isLoadMore) {
-      _isLoading = true;
+    if (_isFetchingMore || !_hasMoreData) return;
+
+    if (isLoadMore) {
+      setState(() {
+        _isFetchingMore = true;
+      });
     } else {
-      _isFetchingMore = true;
+      setState(() {
+        _isLoading = true;
+      });
     }
 
     final supabase = Supabase.instance.client;
@@ -50,12 +77,18 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
       if (!mounted) return;
 
       setState(() {
+        final fetchedBets = List<Map<String, dynamic>>.from(betHistoryResponse);
+
         if (isLoadMore) {
-          _betHistory
-              .addAll(List<Map<String, dynamic>>.from(betHistoryResponse));
+          _betHistory.addAll(fetchedBets);
         } else {
-          _betHistory = List<Map<String, dynamic>>.from(betHistoryResponse);
+          _betHistory = fetchedBets;
         }
+
+        if (fetchedBets.length < _limit) {
+          _hasMoreData = false;
+        }
+
         _isLoading = false;
         _isFetchingMore = false;
         _offset += _limit;
@@ -67,6 +100,15 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
       });
       print('Error fetching bet history: $e');
     }
+  }
+
+  Future<void> _refreshBetHistory(String associationId) async {
+    setState(() {
+      _offset = 0;
+      _hasMoreData = true;
+      _betHistory.clear();
+    });
+    await _fetchBetHistory(associationId);
   }
 
   @override
@@ -81,16 +123,18 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
             final associationId = state.selectedAssociation.id;
             if (_selectedAssociationId != associationId) {
               _selectedAssociationId = associationId;
-              _offset = 0;
-              _fetchBetHistory(associationId);
+
+              // Call fetchBetHistory after the widget is fully built
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _offset = 0;
+                _hasMoreData = true;
+                _fetchBetHistory(associationId);
+              });
             }
 
             return RefreshIndicator(
               color: AppColors.lightSecondary,
-              onRefresh: () {
-                _offset = 0;
-                return _fetchBetHistory(associationId);
-              },
+              onRefresh: () => _refreshBetHistory(associationId),
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _buildBetHistoryList(),
@@ -107,30 +151,22 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
       return const Center(child: Text('No settled bets found'));
     }
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (scrollInfo) {
-        if (!_isFetchingMore &&
-            scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
-          _fetchBetHistory(_selectedAssociationId!, isLoadMore: true);
+    return ListView.builder(
+      controller: _scrollController, // Attach the ScrollController
+      itemCount: _betHistory.length + (_isFetchingMore ? 1 : 0),
+      padding: const EdgeInsets.all(16.0),
+      itemBuilder: (context, index) {
+        if (index == _betHistory.length) {
+          return _isFetchingMore
+              ? const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : const SizedBox.shrink();
         }
-        return false;
-      },
-      child: ListView.builder(
-        itemCount: _betHistory.length + (_isFetchingMore ? 1 : 0),
-        padding: const EdgeInsets.all(16.0),
-        itemBuilder: (context, index) {
-          if (index == _betHistory.length) {
-            return _isFetchingMore
-                ? const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : const SizedBox.shrink();
-          }
 
-          return _buildBetHistoryItem(_betHistory[index]);
-        },
-      ),
+        return _buildBetHistoryItem(_betHistory[index]);
+      },
     );
   }
 
