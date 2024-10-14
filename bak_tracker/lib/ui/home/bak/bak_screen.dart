@@ -36,17 +36,28 @@ class _BakScreenState extends State<BakScreen>
       appBar: AppBar(
         title: const Text('Bak'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const TransactionsScreen(),
-                ),
-              );
+          BlocBuilder<AssociationBloc, AssociationState>(
+            builder: (context, state) {
+              if (state is AssociationLoaded) {
+                final associationId = state.selectedAssociation.id;
+                return IconButton(
+                  icon: const Icon(Icons.history),
+                  onPressed: () {
+                    // Pass the associationId to the TransactionsScreen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            TransactionsScreen(associationId: associationId),
+                      ),
+                    );
+                  },
+                  tooltip: 'Bak History',
+                );
+              }
+              return const SizedBox
+                  .shrink(); // In case the association isn't loaded
             },
-            tooltip: 'Bak History',
           ),
         ],
         bottom: PreferredSize(

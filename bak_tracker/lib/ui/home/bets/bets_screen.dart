@@ -75,13 +75,18 @@ class _BetsScreenState extends State<BetsScreen>
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () {
-              // Navigate to the Bet History screen
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const BetHistoryScreen(),
-                ),
-              );
+              final state = context.read<AssociationBloc>().state;
+              if (state is AssociationLoaded) {
+                // Navigate to the Bet History screen with the associationId
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BetHistoryScreen(
+                      associationId: state.selectedAssociation.id,
+                    ),
+                  ),
+                );
+              }
             },
             tooltip: 'Bet History',
           ),

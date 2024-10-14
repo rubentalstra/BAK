@@ -43,11 +43,11 @@ class LeaderboardProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildProfileImage(context),
-              const SizedBox(height: 10),
+              const SizedBox(height: 20),
               _buildAchievementsSection(context),
-              const SizedBox(height: 10),
+              const SizedBox(height: 20),
               _buildProfileCard(),
-              const SizedBox(height: 10),
+              const SizedBox(height: 20),
               _buildStatsCard(),
             ],
           ),
@@ -63,7 +63,7 @@ class LeaderboardProfileScreen extends StatelessWidget {
         onTap: () => _showFullScreenImage(context),
         child: CircleAvatar(
           radius: 80,
-          backgroundColor: Colors.grey,
+          backgroundColor: Colors.grey[300],
           backgroundImage:
               localImageFile != null ? FileImage(localImageFile!) : null,
           child: localImageFile == null
@@ -83,14 +83,14 @@ class LeaderboardProfileScreen extends StatelessWidget {
 
   Widget _buildAchievementsSection(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Achievements',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Colors.orangeAccent,
             ),
@@ -130,17 +130,23 @@ class LeaderboardProfileScreen extends StatelessWidget {
   Widget _buildProfileCard() {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 6,
+      elevation: 4,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoRow('Role', member.role ?? 'No Role available',
-                Icons.supervisor_account),
-            const SizedBox(height: 12),
             _buildInfoRow(
-                'Bio', member.user.bio ?? 'No bio available', Icons.info),
+              'Role',
+              member.role ?? 'No role available',
+              Icons.person,
+            ),
+            const SizedBox(height: 16),
+            _buildInfoRow(
+              'Bio',
+              member.user.bio ?? 'No bio available',
+              Icons.info_outline,
+            ),
           ],
         ),
       ),
@@ -150,22 +156,35 @@ class LeaderboardProfileScreen extends StatelessWidget {
   Widget _buildStatsCard() {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 6,
+      elevation: 4,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
         child: Column(
           children: [
             _buildStatsRow([
               _buildStatColumn(
-                  'Chucked', member.baksConsumed, FontAwesomeIcons.wineBottle),
-              _buildStatColumn('BAK Debt', member.baksReceived,
-                  FontAwesomeIcons.beerMugEmpty),
+                'Chucked',
+                member.baksConsumed,
+                FontAwesomeIcons.wineBottle,
+              ),
+              _buildStatColumn(
+                'BAK Debt',
+                member.baksReceived,
+                FontAwesomeIcons.beerMugEmpty,
+              ),
             ]),
             const SizedBox(height: 24),
             _buildStatsRow([
-              _buildStatColumn('Bets Won', member.betsWon, Icons.emoji_events),
               _buildStatColumn(
-                  'Bets Lost', member.betsLost, FontAwesomeIcons.dice),
+                'Bets Won',
+                member.betsWon,
+                Icons.emoji_events,
+              ),
+              _buildStatColumn(
+                'Bets Lost',
+                member.betsLost,
+                FontAwesomeIcons.dice,
+              ),
             ]),
           ],
         ),
@@ -241,7 +260,9 @@ class LeaderboardProfileScreen extends StatelessWidget {
 
   // Method to show achievement details in a modal bottom sheet
   void _showAchievementDetails(
-      BuildContext context, MemberAchievementModel achievement) {
+    BuildContext context,
+    MemberAchievementModel achievement,
+  ) {
     final localDate = achievement.assignedAt.toLocal();
     final formattedDate = DateFormat('HH:mm dd-MM-yyyy').format(localDate);
 
@@ -258,9 +279,10 @@ class LeaderboardProfileScreen extends StatelessWidget {
               _buildAchievementHeader(achievement),
               const SizedBox(height: 10),
               _buildAchievementDetail(
-                  'Description',
-                  achievement.achievement.description ??
-                      'No description available'),
+                'Description',
+                achievement.achievement.description ??
+                    'No description available',
+              ),
               const SizedBox(height: 16),
               Text(
                 'Earned on: $formattedDate',

@@ -1,14 +1,14 @@
-import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/core/utils/scroll_pagination_controller.dart';
 import 'package:bak_tracker/models/bak_send_model.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:bak_tracker/bloc/association/association_bloc.dart';
 
 class TransactionsScreen extends StatefulWidget {
-  const TransactionsScreen({super.key});
+  final String associationId;
+
+  const TransactionsScreen({super.key, required this.associationId});
 
   @override
   _TransactionsScreenState createState() => _TransactionsScreenState();
@@ -16,48 +16,37 @@ class TransactionsScreen extends StatefulWidget {
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
   List<BakSendModel> _transactions = [];
-  bool _isLoading = true;
-  bool _isFetchingMore = false;
-  bool _hasMoreData = true;
-  final int _limit = 10;
-  int _offset = 0;
-  final ScrollController _scrollController = ScrollController();
-  String _selectedAssociationId = ''; // Initialize with an empty string
+  final ScrollPaginationController _scrollPaginationController =
+      ScrollPaginationController();
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
+    _scrollPaginationController.initScrollListener(_loadMore);
+    // Initial load of transactions
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchTransactions();
+    });
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _scrollPaginationController.dispose();
     super.dispose();
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent * 0.8 &&
-        !_isFetchingMore &&
-        _hasMoreData) {
-      _fetchTransactions(isLoadMore: true);
-    }
-  }
-
   Future<void> _fetchTransactions({bool isLoadMore = false}) async {
-    // Make sure the association ID is not empty before fetching
-    if (_isFetchingMore || !_hasMoreData || _selectedAssociationId.isEmpty) {
+    if (_scrollPaginationController.isFetchingMore ||
+        !_scrollPaginationController.hasMoreData) {
       return;
     }
 
     setState(() {
       if (isLoadMore) {
-        _isFetchingMore = true;
+        _scrollPaginationController.setFetchingMore(true);
       } else {
-        _isLoading = true;
-        _offset = 0;
-        _hasMoreData = true;
+        _scrollPaginationController.setLoading(true);
+        _scrollPaginationController.resetPagination();
         _transactions.clear();
       }
     });
@@ -72,9 +61,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           .select(
               'id, association_id, amount, status, created_at, reason, receiver_id (id, name), giver_id (id, name), decline_reason')
           .or('giver_id.eq.$currentUserId,receiver_id.eq.$currentUserId')
-          .eq('association_id', _selectedAssociationId)
+          .eq('association_id', widget.associationId)
           .order('created_at', ascending: false)
-          .range(_offset, _offset + _limit - 1);
+          .range(
+              _scrollPaginationController.offset,
+              _scrollPaginationController.offset +
+                  _scrollPaginationController.limit -
+                  1);
 
       final List<BakSendModel> fetchedTransactions =
           (response as List).map((map) => BakSendModel.fromMap(map)).toList();
@@ -86,33 +79,31 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           _transactions = fetchedTransactions;
         }
 
-        if (fetchedTransactions.length < _limit) {
-          _hasMoreData = false;
+        if (fetchedTransactions.length < _scrollPaginationController.limit) {
+          _scrollPaginationController.setHasMoreData(false);
         }
 
-        _isLoading = false;
-        _isFetchingMore = false;
-        _offset += _limit;
+        _scrollPaginationController.setLoading(false);
+        _scrollPaginationController.setFetchingMore(false);
+        _scrollPaginationController.incrementOffset();
       });
     } catch (e) {
       print('Error fetching transactions: $e');
       setState(() {
-        _isLoading = false;
-        _isFetchingMore = false;
+        _scrollPaginationController.setLoading(false);
+        _scrollPaginationController.setFetchingMore(false);
       });
       _showErrorSnackBar('Failed to load transactions. Please try again.');
     }
   }
 
-  Future<void> _refreshTransactions() async {
-    _resetPagination();
-    await _fetchTransactions();
+  void _loadMore() async {
+    await _fetchTransactions(isLoadMore: true);
   }
 
-  void _resetPagination() {
-    _offset = 0;
-    _hasMoreData = true;
-    _transactions.clear();
+  Future<void> _refreshTransactions() async {
+    _scrollPaginationController.resetPagination();
+    await _fetchTransactions();
   }
 
   @override
@@ -121,31 +112,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       appBar: AppBar(
         title: const Text('Transactions'),
       ),
-      body: BlocBuilder<AssociationBloc, AssociationState>(
-        builder: (context, state) {
-          if (state is AssociationLoaded) {
-            final associationId = state.selectedAssociation.id;
-            if (_selectedAssociationId != associationId) {
-              _selectedAssociationId = associationId;
-
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _resetPagination();
-                _fetchTransactions();
-              });
-            }
-
-            return _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : RefreshIndicator(
-                    color: AppColors.lightSecondary,
-                    onRefresh: _refreshTransactions,
-                    child: _buildTransactionsList(),
-                  );
-          } else {
-            return const Center(child: CircularProgressIndicator());
-          }
-        },
-      ),
+      body: _scrollPaginationController.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              color: AppColors.lightSecondary,
+              onRefresh: _refreshTransactions,
+              child: _buildTransactionsList(),
+            ),
     );
   }
 
@@ -160,15 +133,32 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
 
     return ListView.builder(
-      controller: _scrollController,
+      controller: _scrollPaginationController.scrollController,
       padding: const EdgeInsets.all(16.0),
-      itemCount: _transactions.length + (_isFetchingMore ? 1 : 0),
+      itemCount: _transactions.length +
+          (_scrollPaginationController.isFetchingMore ||
+                  !_scrollPaginationController.hasMoreData
+              ? 1
+              : 0),
       itemBuilder: (context, index) {
         if (index == _transactions.length) {
-          return const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Center(child: CircularProgressIndicator()),
-          );
+          if (_scrollPaginationController.isFetchingMore) {
+            return const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          if (!_scrollPaginationController.hasMoreData) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16.0),
+              child: Center(
+                child: Text('No more data to load'),
+              ),
+            );
+          }
+
+          return const SizedBox.shrink();
         }
 
         final bak = _transactions[index];

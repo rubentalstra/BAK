@@ -9,9 +9,7 @@ class AccountDeletionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Account Deletion'),
-      ),
+      appBar: AppBar(title: const Text('Account Deletion')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -29,9 +27,7 @@ class AccountDeletionScreen extends StatelessWidget {
             const SizedBox(height: 20),
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  _showConfirmDeletionDialog(context);
-                },
+                onPressed: () => _showConfirmDeletionDialog(context),
                 child: const Text('Request Deletion'),
               ),
             ),
@@ -41,34 +37,25 @@ class AccountDeletionScreen extends StatelessWidget {
     );
   }
 
+  // Show confirmation dialog before deletion
   void _showConfirmDeletionDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
           title: const Text('Confirm Account Deletion'),
           content: const Text(
-              'Are you sure you want to permanently delete your account? This action cannot be undone.'),
+            'Are you sure you want to permanently delete your account? This action cannot be undone.',
+          ),
           actions: [
             TextButton(
-              onPressed: () {
-                _deleteAccount(context);
-              },
-              child: const Text(
-                'Delete Account',
-                style: TextStyle(color: Colors.red),
-              ),
+              onPressed: () => _deleteAccount(context),
+              child: const Text('Delete Account',
+                  style: TextStyle(color: Colors.red)),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-              },
-              child: const Text(
-                'Cancel',
-                style: TextStyle(
-                  color: Colors.blue,
-                ),
-              ),
+              onPressed: () => Navigator.of(context).pop(), // Close dialog
+              child: const Text('Cancel', style: TextStyle(color: Colors.blue)),
             ),
           ],
         );
@@ -76,43 +63,45 @@ class AccountDeletionScreen extends StatelessWidget {
     );
   }
 
+  // Delete the account using Supabase Edge function
   Future<void> _deleteAccount(BuildContext context) async {
     final supabase = Supabase.instance.client;
+    final sessionToken = supabase.auth.currentSession?.accessToken;
 
     try {
-      // Call the Supabase Edge function to delete the account
-      final FunctionResponse res = await supabase.functions.invoke(
+      final res = await supabase.functions.invoke(
         'delete-account',
         headers: {
-          'Authorization': 'Bearer ${supabase.auth.currentSession?.accessToken}'
+          'Authorization': 'Bearer $sessionToken',
         },
       );
 
       if (res.status == 200) {
-        // Account deletion successful
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account successfully deleted.')),
-        );
+        _showSnackBar(context, 'Account successfully deleted.');
 
-        // Sign out the user
-        AuthenticationBloc().signOut(); // Clear the authentication state
-
-        // Navigate to the LoginScreen and remove all previous routes
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-          (Route<dynamic> route) => false,
-        );
+        // Sign out and navigate to LoginScreen
+        AuthenticationBloc().signOut();
+        _navigateToLoginScreen(context);
       } else {
-        // Handle error (show SnackBar)
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting account: ${res.data}')),
-        );
+        _showSnackBar(context, 'Error deleting account: ${res.data}');
       }
     } catch (error) {
-      // Show SnackBar in case of an unexpected error
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred: $error')),
-      );
+      _showSnackBar(context, 'An error occurred: $error');
     }
+  }
+
+  // Helper method to show a SnackBar
+  void _showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  // Navigate to LoginScreen and remove all previous routes
+  void _navigateToLoginScreen(BuildContext context) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (route) => false,
+    );
   }
 }

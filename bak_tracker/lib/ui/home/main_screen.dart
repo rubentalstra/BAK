@@ -113,6 +113,7 @@ class MainScreenState extends State<MainScreen> {
   void _startPollingApproveBaks() {
     _approveBaksTimer?.cancel();
 
+    // Ensure polling starts if there is an association
     if (_selectedAssociation != null) {
       _approveBaksTimer = Timer.periodic(const Duration(seconds: 30), (_) {
         _triggerApproveBaksRefresh();
@@ -147,6 +148,17 @@ class MainScreenState extends State<MainScreen> {
     }
   }
 
+  bool _hasApproveBaksPermission(AssociationState state) {
+    if (state is AssociationLoaded) {
+      final memberData = state.memberData;
+      return memberData.permissions
+              .hasPermission(PermissionEnum.canApproveBaks) ||
+          memberData.permissions
+              .hasPermission(PermissionEnum.hasAllPermissions);
+    }
+    return false;
+  }
+
   List<Widget> _buildPages() {
     return [
       HomeScreen(
@@ -166,21 +178,18 @@ class MainScreenState extends State<MainScreen> {
     return BlocListener<AssociationBloc, AssociationState>(
       listener: (context, state) {
         if (state is AssociationLoaded) {
-          final memberData = state.memberData;
-          final hasApproveBaksPermission = memberData.permissions
-                  .hasPermission(PermissionEnum.canApproveBaks) ||
-              memberData.permissions
-                  .hasPermission(PermissionEnum.hasAllPermissions);
-
-          if (hasApproveBaksPermission) {
-            _startPollingApproveBaks();
-          }
-
+          // Update pending counts
           setState(() {
             pendingBaksCount = state.pendingBaksCount;
             pendingBetsCount = state.pendingBetsCount;
           });
 
+          // Check if user has permission to approve BAKs and start polling if true
+          if (_hasApproveBaksPermission(state)) {
+            _startPollingApproveBaks();
+          }
+
+          // Start polling for pending Baks and Bets
           _startPollingPendingBaksAndBets();
         }
       },

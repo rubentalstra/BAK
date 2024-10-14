@@ -1,66 +1,50 @@
-import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/core/utils/scroll_pagination_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:bak_tracker/bloc/association/association_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class BetHistoryScreen extends StatefulWidget {
-  const BetHistoryScreen({super.key});
+  final String associationId;
+
+  const BetHistoryScreen({super.key, required this.associationId});
 
   @override
   _BetHistoryScreenState createState() => _BetHistoryScreenState();
 }
 
 class _BetHistoryScreenState extends State<BetHistoryScreen> {
-  List<Map<String, dynamic>> _betHistory = [];
-  bool _isLoading = true;
-  bool _isFetchingMore = false;
-  bool _hasMoreData = true;
-  String? _selectedAssociationId;
-  final int _limit = 10;
-  int _offset = 0;
-
-  final ScrollController _scrollController =
-      ScrollController(); // Scroll controller
+  final List<Map<String, dynamic>> _betHistory = [];
+  final ScrollPaginationController _scrollPaginationController =
+      ScrollPaginationController();
 
   @override
   void initState() {
     super.initState();
-    _scrollController
-        .addListener(_onScroll); // Add listener to ScrollController
+    _scrollPaginationController.initScrollListener(_loadMore);
+    _fetchBetHistory();
   }
 
   @override
   void dispose() {
-    _scrollController.dispose(); // Dispose the ScrollController
+    _scrollPaginationController.dispose();
     super.dispose();
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent * 0.8 &&
-        !_isFetchingMore &&
-        _hasMoreData) {
-      _fetchBetHistory(_selectedAssociationId!,
-          isLoadMore: true); // Load more when scrolling
-    }
-  }
+  Future<void> _fetchBetHistory({bool isLoadMore = false}) async {
+    if (_scrollPaginationController.isFetchingMore ||
+        !_scrollPaginationController.hasMoreData) return;
 
-  Future<void> _fetchBetHistory(String associationId,
-      {bool isLoadMore = false}) async {
-    if (_isFetchingMore || !_hasMoreData) return;
-
-    if (isLoadMore) {
-      setState(() {
-        _isFetchingMore = true;
-      });
-    } else {
-      setState(() {
-        _isLoading = true;
-      });
-    }
+    setState(() {
+      if (isLoadMore) {
+        _scrollPaginationController.setFetchingMore(true);
+      } else {
+        _scrollPaginationController.setLoading(true);
+        _betHistory.clear();
+        _scrollPaginationController.resetPagination();
+      }
+    });
 
     final supabase = Supabase.instance.client;
 
@@ -69,46 +53,44 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
           .from('bets')
           .select(
               'id, amount, status, bet_creator_id (id, name), bet_receiver_id (id, name), bet_description, winner_id, created_at')
+          .eq('association_id', widget.associationId)
           .eq('status', 'settled')
-          .eq('association_id', associationId)
           .order('created_at', ascending: false)
-          .range(_offset, _offset + _limit - 1);
+          .range(
+              _scrollPaginationController.offset,
+              _scrollPaginationController.offset +
+                  _scrollPaginationController.limit -
+                  1);
 
       if (!mounted) return;
 
       setState(() {
-        final fetchedBets = List<Map<String, dynamic>>.from(betHistoryResponse);
-
-        if (isLoadMore) {
-          _betHistory.addAll(fetchedBets);
-        } else {
-          _betHistory = fetchedBets;
+        if (betHistoryResponse.isEmpty ||
+            betHistoryResponse.length < _scrollPaginationController.limit) {
+          _scrollPaginationController.setHasMoreData(false);
         }
 
-        if (fetchedBets.length < _limit) {
-          _hasMoreData = false;
-        }
-
-        _isLoading = false;
-        _isFetchingMore = false;
-        _offset += _limit;
+        _betHistory.addAll(List<Map<String, dynamic>>.from(betHistoryResponse));
+        _scrollPaginationController.setLoading(false);
+        _scrollPaginationController.setFetchingMore(false);
+        _scrollPaginationController.incrementOffset();
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _isFetchingMore = false;
-      });
       print('Error fetching bet history: $e');
+      setState(() {
+        _scrollPaginationController.setLoading(false);
+        _scrollPaginationController.setFetchingMore(false);
+      });
     }
   }
 
-  Future<void> _refreshBetHistory(String associationId) async {
-    setState(() {
-      _offset = 0;
-      _hasMoreData = true;
-      _betHistory.clear();
-    });
-    await _fetchBetHistory(associationId);
+  void _loadMore() async {
+    await _fetchBetHistory(isLoadMore: true);
+  }
+
+  Future<void> _refreshBetHistory() async {
+    _scrollPaginationController.resetPagination();
+    await _fetchBetHistory();
   }
 
   @override
@@ -117,68 +99,59 @@ class _BetHistoryScreenState extends State<BetHistoryScreen> {
       appBar: AppBar(
         title: const Text('Bet History'),
       ),
-      body: BlocBuilder<AssociationBloc, AssociationState>(
-        builder: (context, state) {
-          if (state is AssociationLoaded) {
-            final associationId = state.selectedAssociation.id;
-            if (_selectedAssociationId != associationId) {
-              _selectedAssociationId = associationId;
-
-              // Call fetchBetHistory after the widget is fully built
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _offset = 0;
-                _hasMoreData = true;
-                _fetchBetHistory(associationId);
-              });
-            }
-
-            return RefreshIndicator(
-              color: AppColors.lightSecondary,
-              onRefresh: () => _refreshBetHistory(associationId),
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _buildBetHistoryList(),
-            );
-          }
-          return const Center(child: CircularProgressIndicator());
-        },
+      body: RefreshIndicator(
+        color: AppColors.lightSecondary,
+        onRefresh: _refreshBetHistory,
+        child: _scrollPaginationController.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _betHistory.isEmpty
+                ? const Center(child: Text('No settled bets found'))
+                : _buildBetHistoryList(),
       ),
     );
   }
 
   Widget _buildBetHistoryList() {
-    if (_betHistory.isEmpty) {
-      return const Center(child: Text('No settled bets found'));
-    }
-
     return ListView.builder(
-      controller: _scrollController, // Attach the ScrollController
-      itemCount: _betHistory.length + (_isFetchingMore ? 1 : 0),
+      controller: _scrollPaginationController.scrollController,
       padding: const EdgeInsets.all(16.0),
+      itemCount: _betHistory.length +
+          (_scrollPaginationController.isFetchingMore ||
+                  !_scrollPaginationController.hasMoreData
+              ? 1
+              : 0),
       itemBuilder: (context, index) {
         if (index == _betHistory.length) {
-          return _isFetchingMore
-              ? const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              : const SizedBox.shrink();
+          if (_scrollPaginationController.isFetchingMore) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16.0),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          if (!_scrollPaginationController.hasMoreData) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16.0),
+              child: Center(child: Text('No more data to load')),
+            );
+          }
+
+          return const SizedBox.shrink();
         }
 
-        return _buildBetHistoryItem(_betHistory[index]);
+        return _buildBetHistoryTile(_betHistory[index]);
       },
     );
   }
 
-  Widget _buildBetHistoryItem(Map<String, dynamic> bet) {
+  Widget _buildBetHistoryTile(Map<String, dynamic> bet) {
     final creatorName = bet['bet_creator_id']['name'];
     final receiverName = bet['bet_receiver_id']['name'];
     final winnerName = bet['winner_id'] == bet['bet_creator_id']['id']
         ? creatorName
         : receiverName;
     final createdAt = DateTime.parse(bet['created_at']).toLocal();
-    final formattedDate =
-        '${createdAt.day}/${createdAt.month}/${createdAt.year}';
+    final formattedDate = DateFormat('dd/MM/yyyy').format(createdAt);
     final amount = bet['amount'];
 
     return Card(

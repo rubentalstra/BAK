@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:bak_tracker/ui/home/widgets/leaderboard_profile_screen.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/ui/widgets/profile_image_widget.dart';
 
 class LeaderboardWidget extends StatelessWidget {
   final List<LeaderboardEntry> entries;
@@ -36,43 +37,37 @@ class LeaderboardWidget extends StatelessWidget {
         final entry = entries[index];
         final member = entry.member;
 
-        return FutureBuilder<File?>(
-          future: _loadProfileImage(member),
-          builder: (context, snapshot) {
-            final imageFile = snapshot.data;
-
-            return GestureDetector(
-              onTap: () => _navigateToProfileScreen(context, member, imageFile),
-              child: _buildEntry(entry, imageFile),
-            );
-          },
+        return GestureDetector(
+          onTap: () => _navigateToProfileScreen(context, member),
+          child: _buildEntry(context, entry),
         );
       },
     );
   }
 
-  Future<File?> _loadProfileImage(AssociationMemberModel member) async {
-    if (member.user.profileImage == null || member.user.profileImage!.isEmpty) {
-      return null;
-    }
-    return await imageUploadService
-        .fetchOrDownloadProfileImage(member.user.profileImage!);
-  }
-
   void _navigateToProfileScreen(
-      BuildContext context, AssociationMemberModel member, File? imageFile) {
+      BuildContext context, AssociationMemberModel member) async {
+    File? imageFile;
+
+    // Fetch the profile image if the URL is provided, otherwise pass null
+    if (member.user.profileImage != null &&
+        member.user.profileImage!.isNotEmpty) {
+      imageFile = await imageUploadService
+          .fetchOrDownloadProfileImage(member.user.profileImage!);
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => LeaderboardProfileScreen(
           member: member,
-          localImageFile: imageFile,
+          localImageFile: imageFile, // Pass the image file or null
         ),
       ),
     );
   }
 
-  Widget _buildEntry(LeaderboardEntry entry, File? imageFile) {
+  Widget _buildEntry(BuildContext context, LeaderboardEntry entry) {
     final member = entry.member;
 
     return Container(
@@ -85,7 +80,13 @@ class LeaderboardWidget extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _buildProfileImage(imageFile, member.user.name),
+          ProfileImageWidget(
+            profileImageUrl: member.user.profileImage,
+            userName: member.user.name,
+            fetchProfileImage: imageUploadService.fetchOrDownloadProfileImage,
+            radius: 24.0,
+            backgroundColor: Colors.grey, // You can customize the background
+          ),
           const SizedBox(width: 16.0),
           Expanded(
             child: Column(
@@ -101,59 +102,35 @@ class LeaderboardWidget extends StatelessWidget {
                 const SizedBox(height: 4.0),
                 Row(
                   children: [
-                    Text(
-                      'Chucked: ${member.baksConsumed}',
-                      style: TextStyle(
-                        fontSize: 14.0,
-                        color: Colors.green[700],
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
+                    _buildInfoText(
+                        'Chucked', member.baksConsumed, Colors.green[700]),
                     const SizedBox(width: 16.0),
-                    Text(
-                      'BAK: ${member.baksReceived}',
-                      style: TextStyle(
-                        fontSize: 14.0,
-                        color: Colors.red[700],
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
+                    _buildInfoText('BAK', member.baksReceived, Colors.red[700]),
                   ],
                 ),
               ],
             ),
           ),
-          Column(
-            children: [
-              Text(
-                entry.rank.toString(),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16.0,
-                ),
-              ),
-            ],
+          Text(
+            entry.rank.toString(),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16.0,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProfileImage(File? imageFile, String userName) {
-    return CircleAvatar(
-      radius: 24.0,
-      backgroundColor: imageFile == null ? Colors.grey : Colors.transparent,
-      backgroundImage: imageFile != null ? FileImage(imageFile) : null,
-      child: imageFile == null
-          ? Text(
-              userName[0].toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 24.0,
-              ),
-            )
-          : null,
+  Widget _buildInfoText(String label, int count, Color? color) {
+    return Text(
+      '$label: $count',
+      style: TextStyle(
+        fontSize: 14.0,
+        color: color,
+        fontWeight: FontWeight.w400,
+      ),
     );
   }
 
@@ -180,23 +157,9 @@ class LeaderboardWidget extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      height: 16.0,
-                      width: 100.0,
-                      decoration: BoxDecoration(
-                        color: AppColors.lightPrimaryVariant,
-                        borderRadius: BorderRadius.circular(4.0),
-                      ),
-                    ),
+                    _buildSkeletonBox(100.0, 16.0),
                     const SizedBox(height: 8.0),
-                    Container(
-                      height: 14.0,
-                      width: 150.0,
-                      decoration: BoxDecoration(
-                        color: AppColors.lightPrimaryVariant,
-                        borderRadius: BorderRadius.circular(4.0),
-                      ),
-                    ),
+                    _buildSkeletonBox(150.0, 14.0),
                   ],
                 ),
               ),
@@ -204,6 +167,17 @@ class LeaderboardWidget extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSkeletonBox(double width, double height) {
+    return Container(
+      height: height,
+      width: width,
+      decoration: BoxDecoration(
+        color: AppColors.lightPrimaryVariant,
+        borderRadius: BorderRadius.circular(4.0),
+      ),
     );
   }
 }

@@ -13,21 +13,17 @@ class NoAssociationScreen extends StatefulWidget {
 class _NoAssociationScreenState extends State<NoAssociationScreen> {
   int _selectedIndex = 0;
 
-  late final List<Widget> _pages;
-
-  @override
-  void initState() {
-    super.initState();
-    _pages = const [
-      NoAssociationHomeScreen(),
-      SettingsScreen(),
-    ];
-  }
+  final List<Widget> _pages = const [
+    NoAssociationHomeScreen(),
+    SettingsScreen(),
+  ];
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (index != _selectedIndex) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override

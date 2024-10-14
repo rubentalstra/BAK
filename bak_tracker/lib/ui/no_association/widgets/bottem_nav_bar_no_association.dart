@@ -14,9 +14,11 @@ class BottomNavBarNoAssociation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
     final theme = Theme.of(context);
-    final items = const [
+    final isIOS = theme.platform == TargetPlatform.iOS;
+
+    // List of items for the bottom navigation bar
+    const items = [
       BottomNavigationBarItem(
         icon: Icon(FontAwesomeIcons.house, size: 25), // Home Tab
         label: 'Home',
@@ -27,17 +29,20 @@ class BottomNavBarNoAssociation extends StatelessWidget {
       ),
     ];
 
+    // Platform-specific bottom navigation bar (CupertinoTabBar for iOS)
     return isIOS
         ? CupertinoTabBar(
             currentIndex: selectedIndex,
             onTap: onTap,
-            activeColor: theme.colorScheme.secondary,
+            activeColor: theme.colorScheme.secondary, // Active tab color
             items: items,
           )
         : BottomNavigationBar(
             currentIndex: selectedIndex,
             onTap: onTap,
-            selectedItemColor: theme.colorScheme.secondary,
+            selectedItemColor: theme.colorScheme.secondary, // Active tab color
+            unselectedItemColor: theme.colorScheme.onPrimary
+                .withOpacity(0.6), // Inactive tab color
             items: items,
           );
   }

@@ -50,83 +50,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _fetchLeaderboard() {
-    if (widget.selectedAssociation == null) return;
+    final selectedAssociation = widget.selectedAssociation;
+    if (selectedAssociation == null) return;
 
     setState(() => _isLoading = true);
-
     context.read<AssociationBloc>().add(
-          SelectAssociation(selectedAssociation: widget.selectedAssociation!),
+          SelectAssociation(selectedAssociation: selectedAssociation),
         );
-  }
-
-  Future<void> _handlePullToRefresh() async {
-    _fetchLeaderboard();
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AssociationBloc, AssociationState>(
-      listener: (context, state) {
-        if (state is AssociationLoaded &&
-            state.selectedAssociation.id == widget.selectedAssociation?.id) {
-          final newEntries = state.members
-              .map((member) => LeaderboardEntry(
-                    rank: 0,
-                    member: member,
-                  ))
-              .toList();
-
-          newEntries.sort(
-              (a, b) => b.member.baksConsumed.compareTo(a.member.baksConsumed));
-
-          for (int i = 0; i < newEntries.length; i++) {
-            newEntries[i] = newEntries[i].copyWith(rank: i + 1);
-          }
-
-          setState(() {
-            _leaderboardEntries = newEntries;
-            _isLoading = false;
-          });
-        }
-      },
+      listener: _blocListener,
       builder: (context, state) {
         return Scaffold(
-          appBar: AppBar(
-            title: widget.associations.length > 1
-                ? DropdownButtonHideUnderline(
-                    child: DropdownButton<AssociationModel>(
-                      value: widget.selectedAssociation,
-                      onChanged: widget.onAssociationChanged,
-                      dropdownColor: AppColors.lightPrimaryVariant,
-                      icon: Icon(
-                        Icons.keyboard_arrow_down,
-                        color: Theme.of(context).iconTheme.color,
-                      ),
-                      items: widget.associations.map((association) {
-                        return DropdownMenuItem(
-                          value: association,
-                          child: Text(
-                            association.name,
-                            style:
-                                Theme.of(context).dropdownMenuTheme.textStyle,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  )
-                : Text(
-                    widget.selectedAssociation?.name ?? 'Loading...',
-                    style: Theme.of(context).dropdownMenuTheme.textStyle,
-                  ),
-            actions: [
-              if (state is AssociationLoaded) _buildSettingsIcon(state),
-            ],
-          ),
+          appBar: _buildAppBar(context, state),
           body: Padding(
             padding: const EdgeInsets.all(16.0),
             child: RefreshIndicator(
               color: AppColors.lightSecondary,
-              onRefresh: _handlePullToRefresh,
+              onRefresh: () async => _fetchLeaderboard(),
               child: LeaderboardWidget(
                 entries: _leaderboardEntries,
                 imageUploadService: _imageUploadService,
@@ -136,6 +80,61 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _blocListener(BuildContext context, AssociationState state) {
+    if (state is AssociationLoaded &&
+        state.selectedAssociation.id == widget.selectedAssociation?.id) {
+      final newEntries = state.members
+          .map((member) => LeaderboardEntry(rank: 0, member: member))
+          .toList();
+
+      newEntries.sort(
+          (a, b) => b.member.baksConsumed.compareTo(a.member.baksConsumed));
+
+      for (int i = 0; i < newEntries.length; i++) {
+        newEntries[i] = newEntries[i].copyWith(rank: i + 1);
+      }
+
+      setState(() {
+        _leaderboardEntries = newEntries;
+        _isLoading = false;
+      });
+    }
+  }
+
+  AppBar _buildAppBar(BuildContext context, AssociationState state) {
+    return AppBar(
+      title: widget.associations.length > 1
+          ? _buildAssociationDropdown(context)
+          : Text(widget.selectedAssociation?.name ?? 'Loading...'),
+      actions: [
+        if (state is AssociationLoaded) _buildSettingsIcon(state),
+      ],
+    );
+  }
+
+  Widget _buildAssociationDropdown(BuildContext context) {
+    return DropdownButtonHideUnderline(
+      child: DropdownButton<AssociationModel>(
+        value: widget.selectedAssociation,
+        onChanged: widget.onAssociationChanged,
+        dropdownColor: AppColors.lightPrimaryVariant,
+        icon: Icon(
+          Icons.keyboard_arrow_down,
+          color: Theme.of(context).iconTheme.color,
+        ),
+        items: widget.associations.map((association) {
+          return DropdownMenuItem(
+            value: association,
+            child: Text(
+              association.name,
+              style: Theme.of(context).dropdownMenuTheme.textStyle,
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 

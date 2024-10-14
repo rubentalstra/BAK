@@ -30,7 +30,20 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Chucked Bak'),
-          actions: [_buildHistoryIconButton(context)],
+          actions: [
+            BlocBuilder<AssociationBloc, AssociationState>(
+              builder: (context, state) {
+                if (state is AssociationLoaded) {
+                  return _buildHistoryIconButton(
+                    context,
+                    state.selectedAssociation.id,
+                  );
+                } else {
+                  return const SizedBox.shrink();
+                }
+              },
+            ),
+          ],
         ),
         body: BlocBuilder<AssociationBloc, AssociationState>(
           builder: (context, state) {
@@ -46,14 +59,16 @@ class _ChuckedScreenState extends State<ChuckedScreen> {
     );
   }
 
-  Widget _buildHistoryIconButton(BuildContext context) {
+  Widget _buildHistoryIconButton(BuildContext context, String associationId) {
     return IconButton(
       icon: const Icon(Icons.history),
       onPressed: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const ChuckedTransactionsScreen(),
+            builder: (context) => ChuckedTransactionsScreen(
+              associationId: associationId,
+            ),
           ),
         );
       },

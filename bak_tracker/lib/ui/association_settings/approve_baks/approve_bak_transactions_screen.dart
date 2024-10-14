@@ -1,6 +1,8 @@
 import 'package:bak_tracker/core/themes/colors.dart';
+import 'package:bak_tracker/core/utils/scroll_pagination_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProcessedBaksTransactionsScreen extends StatefulWidget {
@@ -17,41 +19,35 @@ class ProcessedBaksTransactionsScreen extends StatefulWidget {
 class _ProcessedBaksTransactionsScreenState
     extends State<ProcessedBaksTransactionsScreen> {
   final List<Map<String, dynamic>> _processedBaks = [];
-  bool _isLoading = true;
-  bool _isFetchingMore = false;
-  bool _hasMoreData = true;
-  final int _limit = 10;
-  int _offset = 0;
-  final ScrollController _scrollController = ScrollController();
+  final ScrollPaginationController _scrollPaginationController =
+      ScrollPaginationController();
 
   @override
   void initState() {
     super.initState();
-    _fetchChuckedTransactions();
-    _scrollController.addListener(_onScroll);
+    _scrollPaginationController.initScrollListener(_loadMore);
+    _fetchProcessedTransactions();
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _scrollPaginationController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchChuckedTransactions({bool isMore = false}) async {
-    if (_isFetchingMore || !_hasMoreData) return;
+  Future<void> _fetchProcessedTransactions({bool isLoadMore = false}) async {
+    if (_scrollPaginationController.isFetchingMore ||
+        !_scrollPaginationController.hasMoreData) return;
 
-    if (isMore) {
-      setState(() {
-        _isFetchingMore = true;
-      });
-    } else {
-      setState(() {
-        _isLoading = true;
+    setState(() {
+      if (isLoadMore) {
+        _scrollPaginationController.setFetchingMore(true);
+      } else {
+        _scrollPaginationController.setLoading(true);
         _processedBaks.clear();
-        _offset = 0;
-        _hasMoreData = true;
-      });
-    }
+        _scrollPaginationController.resetPagination();
+      }
+    });
 
     final supabase = Supabase.instance.client;
 
@@ -63,47 +59,41 @@ class _ProcessedBaksTransactionsScreenState
           .neq('status', 'pending')
           .eq('association_id', widget.associationId)
           .order('created_at', ascending: false)
-          .range(_offset, _offset + _limit - 1);
+          .range(
+              _scrollPaginationController.offset,
+              _scrollPaginationController.offset +
+                  _scrollPaginationController.limit -
+                  1);
 
       if (!mounted) return;
 
       setState(() {
-        if (processedResponse.isEmpty || processedResponse.length < _limit) {
-          _hasMoreData = false;
+        if (processedResponse.isEmpty ||
+            processedResponse.length < _scrollPaginationController.limit) {
+          _scrollPaginationController.setHasMoreData(false);
         }
 
         _processedBaks
             .addAll(List<Map<String, dynamic>>.from(processedResponse));
-        _isLoading = false;
-        _isFetchingMore = false;
-        _offset += _limit;
+        _scrollPaginationController.setLoading(false);
+        _scrollPaginationController.setFetchingMore(false);
+        _scrollPaginationController.incrementOffset();
       });
     } catch (e) {
       print('Error fetching processed baks: $e');
       setState(() {
-        _isLoading = false;
-        _isFetchingMore = false;
+        _scrollPaginationController.setLoading(false);
+        _scrollPaginationController.setFetchingMore(false);
       });
     }
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent * 0.8 &&
-        !_isFetchingMore &&
-        _hasMoreData) {
-      _loadMore();
-    }
-  }
-
-  Future<void> _loadMore() async {
-    if (_hasMoreData) {
-      await _fetchChuckedTransactions(isMore: true);
-    }
+  void _loadMore() async {
+    await _fetchProcessedTransactions(isLoadMore: true);
   }
 
   Future<void> _refreshTransactions() async {
-    await _fetchChuckedTransactions();
+    await _fetchProcessedTransactions();
   }
 
   @override
@@ -115,37 +105,42 @@ class _ProcessedBaksTransactionsScreenState
       body: RefreshIndicator(
         color: AppColors.lightSecondary,
         onRefresh: _refreshTransactions,
-        child: _isLoading
+        child: _scrollPaginationController.isLoading
             ? const Center(child: CircularProgressIndicator())
             : _processedBaks.isEmpty
                 ? const Center(child: Text('No approved or rejected baks'))
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16.0),
-                    itemCount: _processedBaks.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index == _processedBaks.length) {
-                        if (_isFetchingMore) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16.0),
-                            child: Center(child: CircularProgressIndicator()),
-                          );
-                        }
-
-                        if (!_hasMoreData) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16.0),
-                            child: Center(child: Text('No more data to load')),
-                          );
-                        }
-
-                        return const SizedBox();
-                      }
-
-                      return _buildTransactionTile(_processedBaks[index]);
-                    },
-                  ),
+                : _buildTransactionsList(),
       ),
+    );
+  }
+
+  // Method to build the list of transactions
+  Widget _buildTransactionsList() {
+    return ListView.builder(
+      controller: _scrollPaginationController.scrollController,
+      padding: const EdgeInsets.all(16.0),
+      itemCount: _processedBaks.length + 1,
+      itemBuilder: (context, index) {
+        if (index == _processedBaks.length) {
+          if (_scrollPaginationController.isFetchingMore) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16.0),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          if (!_scrollPaginationController.hasMoreData) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16.0),
+              child: Center(child: Text('No more data to load')),
+            );
+          }
+
+          return const SizedBox();
+        }
+
+        return _buildTransactionTile(_processedBaks[index]);
+      },
     );
   }
 
@@ -157,8 +152,7 @@ class _ProcessedBaksTransactionsScreenState
     final status = bak['status'].toString().toUpperCase();
     final statusColor = status == 'APPROVED' ? Colors.green : Colors.red;
     final createdAt = DateTime.parse(bak['created_at']).toLocal();
-    final formattedDate =
-        '${createdAt.day}/${createdAt.month}/${createdAt.year}';
+    final formattedDate = DateFormat('dd/MM/yyyy').format(createdAt);
 
     return Card(
       elevation: 3,
@@ -186,10 +180,7 @@ class _ProcessedBaksTransactionsScreenState
   Widget _buildTransactionHeader(String takerName) {
     return Row(
       children: [
-        const Icon(
-          Icons.person,
-          size: 20,
-        ),
+        const Icon(Icons.person, size: 20),
         const SizedBox(width: 8),
         Text(
           'Requested by: $takerName',
@@ -219,10 +210,7 @@ class _ProcessedBaksTransactionsScreenState
         ),
         Text(
           status,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: statusColor,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: statusColor),
         ),
       ],
     );

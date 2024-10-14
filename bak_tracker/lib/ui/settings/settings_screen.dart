@@ -31,15 +31,14 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _isNotificationEnabled = false; // Track notification switch state
+  bool _isNotificationEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    _checkNotificationPermission(); // Check notification status on load
+    _checkNotificationPermission();
   }
 
-  // Method to check current notification permission status
   Future<void> _checkNotificationPermission() async {
     final status = await Permission.notification.status;
     setState(() {
@@ -47,21 +46,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  // Method to handle notification switch toggle
   Future<void> _onNotificationToggle(bool value) async {
     if (value) {
-      // Request notification permission if enabling
       final status = await Permission.notification.request();
       if (status.isGranted) {
         setState(() {
           _isNotificationEnabled = true;
         });
       } else if (status.isPermanentlyDenied) {
-        // If permanently denied, open app settings
         await openAppSettings();
       }
     } else {
-      // Disable notifications (no real way to disable from code, just UI control)
       setState(() {
         _isNotificationEnabled = false;
       });
@@ -90,167 +85,169 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
-            _buildSectionTitle('General'),
-            _buildListTile(
+            _buildSectionHeader('General'),
+            _buildOptionCard(
               context,
+              icon: FontAwesomeIcons.language,
               title: 'Select Language',
               subtitle: 'Choose your preferred language',
-              icon: FontAwesomeIcons.language,
               onTap: () => _showLanguageSelector(context),
             ),
-            _buildDivider(),
-            SwitchListTile(
-              title: const Text('Enable Notifications'),
-              subtitle: const Text('Allow notifications from the app'),
-              value: _isNotificationEnabled,
-              onChanged: _onNotificationToggle,
-              secondary: const Icon(FontAwesomeIcons.bell,
-                  color: AppColors.lightSecondary),
-            ),
-            _buildDivider(),
-            _buildListTile(
+            _buildOptionCard(
               context,
+              icon: FontAwesomeIcons.bell,
+              title: 'Enable Notifications',
+              subtitle: 'Allow notifications from the app',
+              onTap: () {
+                _onNotificationToggle(!_isNotificationEnabled);
+              },
+              trailing: Switch(
+                value: _isNotificationEnabled,
+                onChanged: _onNotificationToggle,
+              ),
+            ),
+            _buildOptionCard(
+              context,
+              icon: FontAwesomeIcons.circleUser,
               title: 'Profile Settings',
               subtitle: 'Update your profile information',
-              icon: FontAwesomeIcons.circleUser,
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                      builder: (context) => const ProfileScreen()),
+                    builder: (context) => const ProfileScreen(),
+                  ),
                 );
               },
             ),
             BlocBuilder<AssociationBloc, AssociationState>(
               builder: (context, state) {
                 if (state is AssociationLoaded) {
-                  return _buildAssociationSettings(context, state);
+                  return _buildAssociationActions(context, state);
+                } else if (state is NoAssociationsLeft) {
+                  return _buildJoinOrCreateAssociationActions(context);
                 } else if (state is AssociationLoading) {
                   return const Center(child: CircularProgressIndicator());
                 } else {
-                  return _buildJoinAssociationActions(context);
+                  return _buildJoinOrCreateAssociationActions(context);
                 }
               },
             ),
-            _buildSectionTitle('Legal'),
-            _buildListTile(
+            _buildSectionHeader('Legal'),
+            _buildOptionCard(
               context,
+              icon: FontAwesomeIcons.shieldHalved,
               title: 'Privacy Policy',
               subtitle: 'Read our privacy policy',
-              icon: FontAwesomeIcons.shieldHalved,
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                      builder: (context) => const PrivacyPolicyScreen()),
+                    builder: (context) => const PrivacyPolicyScreen(),
+                  ),
                 );
               },
             ),
-            _buildDivider(),
-            _buildListTile(
+            _buildOptionCard(
               context,
+              icon: FontAwesomeIcons.fileContract,
               title: 'Terms & Conditions',
               subtitle: 'Read our terms and conditions',
-              icon: FontAwesomeIcons.fileContract,
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                      builder: (context) => const TermsAndConditionsScreen()),
+                    builder: (context) => const TermsAndConditionsScreen(),
+                  ),
                 );
               },
             ),
-            _buildDivider(),
-            _buildSectionTitle('Account'),
-            _buildListTile(
+            _buildSectionHeader('Account'),
+            _buildOptionCard(
               context,
+              icon: FontAwesomeIcons.userMinus,
               title: 'Request Account Deletion',
               subtitle: 'Permanently delete your account',
-              icon: FontAwesomeIcons.userMinus,
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                      builder: (context) => const AccountDeletionScreen()),
+                    builder: (context) => const AccountDeletionScreen(),
+                  ),
                 );
               },
             ),
-            const SizedBox(height: 20),
-            _buildVersionInfo(context), // Add app version and build number
+            _buildVersionInfo(context),
           ],
         ),
       ),
     );
   }
 
-  // Method to handle the logout functionality
-  void _handleLogout(BuildContext context) {
-    context.read<AuthenticationBloc>().signOut();
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
-  }
-
-  // Method to handle association state changes
-  void _handleAssociationStateChanges(
-      BuildContext context, AssociationState state) {
-    if (state is NoAssociationsLeft) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
-        (Route<dynamic> route) => false,
-      );
-    } else if (state is AssociationLeft || state is AssociationJoined) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const MainScreen()),
-        (Route<dynamic> route) => false,
-      );
-    } else if (state is AssociationLoaded && state.errorMessage != null) {
-      _showErrorSnackBar(context, state.errorMessage!);
-      context.read<AssociationBloc>().add(ClearAssociationError());
-    } else if (state is AssociationError) {
-      _showErrorSnackBar(context, state.message);
-      context.read<AssociationBloc>().add(ClearAssociationError());
-    }
-  }
-
-  // Widget to display association settings
-  Widget _buildAssociationSettings(
+  Widget _buildAssociationActions(
       BuildContext context, AssociationLoaded state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Association Settings'),
-        _buildListTile(
+        _buildSectionHeader('Association Settings'),
+        _buildOptionCard(
           context,
+          icon: FontAwesomeIcons.filePdf,
           title: 'View BAK Regulations',
           subtitle: 'Read the association\'s regulations',
-          icon: FontAwesomeIcons.filePdf,
           onTap: () => _handleViewAssociationPdf(context, state),
         ),
-        _buildDivider(),
-        _buildListTile(
+        _buildOptionCard(
           context,
-          title: 'Join Another Association',
-          subtitle: 'Enter an invite code to join',
           icon: FontAwesomeIcons.circlePlus,
+          title: 'Join Association',
+          subtitle: 'Enter an invite code to join',
           onTap: () => _showInviteCodeModal(context),
         ),
-        _buildDivider(),
-        _buildListTile(
+        _buildOptionCard(
           context,
+          icon: FontAwesomeIcons.sitemap,
           title: 'Create Association',
           subtitle: 'Create a new association',
-          icon: FontAwesomeIcons.sitemap,
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                  builder: (context) => const AssociationRequestScreen()),
+                builder: (context) => const AssociationRequestScreen(),
+              ),
             );
           },
         ),
-        _buildDivider(),
-        _buildListTile(
+        _buildOptionCard(
           context,
+          icon: FontAwesomeIcons.personWalkingArrowRight,
           title: 'Leave Association',
           subtitle: 'Leave the current association',
-          icon: FontAwesomeIcons.personWalkingArrowRight,
           onTap: () => _showConfirmLeaveDialog(context, state),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildJoinOrCreateAssociationActions(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Association Actions'),
+        _buildOptionCard(
+          context,
+          icon: FontAwesomeIcons.circlePlus,
+          title: 'Join Association',
+          subtitle: 'Enter an invite code to join',
+          onTap: () => _showInviteCodeModal(context),
+        ),
+        _buildOptionCard(
+          context,
+          icon: FontAwesomeIcons.sitemap,
+          title: 'Create Association',
+          subtitle: 'Create a new association',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const AssociationRequestScreen(),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -288,7 +285,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // Widget to display version and build number in a compact "version+build" format
+  // Section Header Widget
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.lightSecondary,
+        ),
+      ),
+    );
+  }
+
+  // Option Card Widget
+  Widget _buildOptionCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    Widget? trailing,
+    required VoidCallback? onTap,
+  }) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: Icon(icon, color: AppColors.lightSecondary),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(subtitle),
+        trailing: trailing ?? const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  // Version Info
   Widget _buildVersionInfo(BuildContext context) {
     final appVersion = appInfoService.appVersion;
     final buildNumber = appInfoService.buildNumber;
@@ -400,6 +437,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       },
     );
+  }
+
+  // Method to handle the logout functionality
+  void _handleLogout(BuildContext context) {
+    context.read<AuthenticationBloc>().signOut();
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
+  }
+
+  // Method to handle association state changes
+  void _handleAssociationStateChanges(
+      BuildContext context, AssociationState state) {
+    if (state is NoAssociationsLeft) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
+        (Route<dynamic> route) => false,
+      );
+    } else if (state is AssociationLeft || state is AssociationJoined) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+        (Route<dynamic> route) => false,
+      );
+    } else if (state is AssociationLoaded && state.errorMessage != null) {
+      _showErrorSnackBar(context, state.errorMessage!);
+      context.read<AssociationBloc>().add(ClearAssociationError());
+    } else if (state is AssociationError) {
+      _showErrorSnackBar(context, state.message);
+      context.read<AssociationBloc>().add(ClearAssociationError());
+    }
   }
 
   List<Widget> _buildLanguageOptions(BuildContext context) {
