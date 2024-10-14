@@ -1,177 +1,173 @@
-# Bak-Tracker
+# BAK
 
+BAK is a mobile app designed for student associations to manage and track
+"bakken" – a Dutch term referring to drink debts within associations. The app
+allows members to send, track, and approve bakken, manage association
+memberships, and engage with other members through bets and competitions. The
+app is invite-only, ensuring privacy and exclusivity for each association.
 
-### **Bottom Navigation Tabs (Navbar)**
+## Features
 
-#### **If the User Has Joined an Association:**
+- **Invite-Only Membership**: Join associations by invitation only, using unique
+  invite codes.
+- **Multiple Associations**: Manage memberships across multiple associations and
+  easily switch between them.
+- **Role-Based Permissions**: Assign and manage roles such as "Voorzitter,"
+  "Penningmeester," and more, with custom permissions for each user.
+- **Bak Tracking**: Send and receive "bakken," track pending approvals, and
+  manage your bak history.
+- **Leaderboards**: Stay competitive with leaderboard rankings for both bak
+  debts and bak consumption.
+- **Bets**: Create and track bets with other members. Losers get assigned
+  additional bakken based on the outcome of the bet.
+- **Association Requests**: Submit requests to create an association and get
+  approved by providing your association's website.
+- **Profile Management**: Update your profile information, including display
+  name and profile picture.
+- **Deep Linking**: Automatically join an association by clicking an invite link
+  shared by other members.
 
-1. **Home Tab**
-   - **Icon:** 🏠 Home
-   - **Purpose:** The main dashboard showing stats and leaderboard related to the selected association.
-   - **Actions:**
-     - View "bakken" stats: total "bakken" given, received, and pending approval.
-     - View the **leaderboard** for the current association (Top Givers and Biggest Debt Holders).
-     - **Switch between associations** using the dropdown in the AppBar (accessible only if the user is part of multiple associations).
-     - Quick links to:
-       - **Add a Bak**
-       - **View Pending Approvals**
-       - **View Transaction History**
-     - The **FAB button** for joining an association is **hidden** once the user is part of an association.
+## Screens
 
-2. **Add Bak Tab**
-   - **Icon:** ➕ Add Bak
-   - **Purpose:** Allow users to send a new "bak" to another member of their current association.
-   - **Actions:**
-     - Select a member from the association.
-     - Enter the number of "bakken" to give.
-     - Submit the "bak" request (pending approval from the receiver).
+1. **Home Screen**: Displays your association's leaderboard and allows you to
+   switch between associations.
+2. **Add Bak**: Send a bak to another member in your association.
+3. **Pending Approvals**: View and manage pending bak requests that need
+   approval.
+4. **History**: View a full list of all bak transactions you've been involved
+   in.
+5. **Settings**: Manage your profile, join new associations, and adjust app
+   preferences.
 
-3. **Pending Approvals Tab**
-   - **Icon:** ⏳ Pending Approvals
-   - **Purpose:** Show a list of pending "bakken" that require the user’s approval or need approval from others.
-   - **Actions:**
-     - Approve or reject "bakken" requests sent by other members.
-     - See pending "bakken" the user has sent, awaiting approval.
+## Getting Started
 
-4. **History Tab**
-   - **Icon:** 📜 History
-   - **Purpose:** Provide a full list of "bakken" transactions for the current association.
-   - **Actions:**
-     - View all completed "bakken" transactions.
-     - Filter the transaction history by date or member.
-     - Search for specific transactions.
+### Prerequisites
 
-5. **Settings Tab**
-   - **Icon:** ⚙️ Settings
-   - **Purpose:** Manage association-related settings (for admins) or join a new association.
-   - **Actions:**
-     - **Join Association**: Enter a code to join a new association via the dropdown in the AppBar.
-     - **Association Settings (Admin Only)**: Access admin-specific actions like inviting members, managing roles, and updating association info.
+- Flutter SDK
+- Supabase account (for authentication and database)
+- Dart >= 2.12.0
 
----
+### Installation
 
-#### **If the User Hasn’t Joined an Association Yet:**
+1. Clone the repository:
 
-1. **Home Tab**
-   - **Icon:** 🏠 Home
-   - **Purpose:** Encourage the user to join or create an association.
-   - **Actions:**
-     - Show a **message** indicating the user needs to join or create an association to start using the app.
-     - The **FAB button** allows users to **Join an Association** via a code.
-     - The **dropdown in the AppBar** allows users to create a new association.
-     - **Disable or hide leaderboard, stats, and other association-specific content**.
+```bash
+git clone https://github.com/rubentalstra/BAK.git
+```
 
-2. **Add Bak Tab**
-   - **Hidden**: The "Add Bak" tab should not be visible since the user is not part of an association.
+2. Install dependencies:
 
-3. **Pending Approvals Tab**
-   - **Hidden**: This tab should not be visible since there are no pending "bakken" without an association.
+```bash
+flutter pub get
+```
 
-4. **History Tab**
-   - **Hidden**: Since no "bakken" transactions exist without an association, this tab should also be hidden.
+3. Configure Supabase:
 
-5. **Settings Tab**
-   - **Visible**: Users can still access the **Join Association** option, but no association-specific settings (such as Association Settings for admins) will be shown.
+- Set Up Environment Variables:
+  - Create a `.env` file in the root of your project with the following
+    structure:
 
----
+    ```env
+    # Supabase-related environment variables
+    SUPABASE_URL=https://your-supabase-url.supabase.co
+    SUPABASE_ANON_KEY=your-supabase-anon-key
 
-### **Screens Overview**
+    # Google OAuth Client IDs
+    YOUR_WEB_CLIENT_ID=your-google-oauth-web-client-id
+    YOUR_IOS_CLIENT_ID=your-google-oauth-ios-client-id
+    ```
 
-#### **If the User Has Joined an Association:**
+  - Ensure you replace the placeholder values with your actual Supabase URL, API
+    key, and Google OAuth client IDs.
 
-1. **Splash Screen**
-   - **Purpose:** Display the app logo or animation while checking if the user is authenticated.
-   - **Actions:**
-     - If logged in, navigate to the **Home Screen**.
-     - If not logged in, navigate to the **Login Screen**.
+- These environment variables are automatically generated into `env.g.dart` via
+  the `envied` package. Make sure you have this file properly set up to access
+  the environment variables in your code.
 
-2. **Login Screen**
-   - **Purpose:** Allow users to log in with their Google account.
-   - **Actions:**
-     - Google Sign-In button.
-     - Redirect to the **Home Screen** after successful login.
+4. Run the app:
 
-3. **Home Screen**
-   - **Purpose:** Display user stats, leaderboard, and allow users to switch between associations.
-   - **Actions:**
-     - **Switch associations** using a dropdown (if applicable) in the AppBar.
-     - View personal "bakken" stats.
-     - View the **Leaderboard**: Top Givers and Biggest Debt Holders.
-     - Quick links to Add a Bak, Pending Approvals, and History.
+```bash
+flutter run
+```
 
-4. **Association Selection Screen**
-   - **Purpose:** Allow users to select between multiple associations (if applicable).
-   - **Actions:**
-     - List all associations the user is part of.
-     - Select an association to switch the context of the app.
+### Usage
 
-5. **Add Bak Screen**
-   - **Purpose:** Allow the user to give a "bak" to another member of their association.
-   - **Actions:**
-     - Select a member.
-     - Enter the number of "bakken."
-     - Submit the request.
+- Create or join an association using an invite code.
+- Assign roles to members and manage permissions.
+- Track, send, and approve “bakken.”
+- Participate in bets and keep track of winners and losers.
+- View leaderboard rankings for all members in your association.
 
-6. **Pending Approvals Screen**
-   - **Purpose:** Manage pending "bakken" requests that require the user’s approval.
-   - **Actions:**
-     - Approve or reject pending "bakken."
-     - View pending "bakken" the user has sent to others.
+## Project Structure
 
-7. **History Screen**
-   - **Purpose:** Show a detailed history of all "bakken" transactions.
-   - **Actions:**
-     - View completed "bakken."
-     - Filter and search transaction history.
+- `lib/`: Contains the main Flutter codebase and entry point of the application.
+- `lib/models/`: Contains the data models for associations, members, bak
+  transactions, bets, permissions, and more. These models manage the structure
+  of the app's data and include methods to convert to and from maps for database
+  interactions.
+- `lib/screens/`: Includes all the UI screens such as Home, Add Bak, Pending
+  Approvals, History, and Settings. Each screen provides a user-friendly
+  interface to interact with the app's functionality.
+- `lib/services/`: Handles authentication, database access, and API requests.
+  These services connect the app with Supabase for managing associations, user
+  data, and transactions.
+- `lib/bloc/`: Manages state using the Bloc pattern. It is responsible for
+  handling complex state management across the app, such as user sessions,
+  association data, and bak transactions.
+- `lib/widgets/`: Contains reusable UI components such as buttons, modals, and
+  custom widgets used throughout the app to maintain consistency.
+- `lib/constants/`: Stores global constants such as API keys, Supabase URLs, and
+  any fixed values used across the app.
 
-8. **Join Association Screen (Settings)**
-   - **Purpose:** Allow users to enter a code to join a new association.
-   - **Actions:**
-     - Enter and submit an association code.
-     - If valid, join the association and update the app’s context.
+## Contributing
 
-9. **Association Settings Screen (Admin Only)**
-    - **Purpose:** Allow admins to manage the association.
-    - **Actions:**
-      - **Invite Members**: Send invites to new members.
-      - **Manage Roles**: Assign or change user roles within the association.
-      - **Remove Members**: Remove or block members from the association.
-      - **Edit Association Info**: Change association name and other metadata.
+We welcome contributions to the BAK Tracker project. To contribute:
 
----
+1. Fork the repository.
+2. Create a new branch:
 
-#### **If the User Hasn’t Joined an Association Yet:**
+```bash
+git checkout -b feature/your-feature
+```
 
-1. **Splash Screen**
-   - **Same as when the user has joined an association**.
+3. Make your changes and commit them
 
-2. **Login Screen**
-   - **Same as when the user has joined an association**.
+```bash
+git commit -am 'Add new feature'
+```
 
-3. **Home Screen**
-   - **Purpose:** Encourage the user to join or create an association.
-   - **Actions:**
-     - **FAB Button**: Allows the user to **Join an Association** using a code.
-     - **Dropdown in the AppBar**: Allows the user to create a new association.
+4. Push your branch
 
-4. **Add Bak Screen**
-   - **Hidden**: The user can’t give a "bak" without being part of an association.
+```bash
+git push origin feature/your-feature
+```
 
-5. **Pending Approvals Screen**
-   - **Hidden**: No pending approvals without an association.
+5. Create a pull request.
 
-6. **History Screen**
-   - **Hidden**: No history to display without an association.
+Please ensure your code follows our [Code of Conduct](CODE_OF_CONDUCT).
 
-7. **Join Association Screen (Settings)**
-   - **Same as when the user has joined an association**.
+## License
 
-8. **Association Settings Screen (Admin Only)**
-   - **Hidden**: Not applicable since the user is not part of any associations.
+This project is licensed under the GNU General Public License v3.0. See the
+[LICENSE](LICENSE) file for details.
 
----
+```
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
 
-### Flow and Behavior Adjustments
-- **If the User Has Joined an Association:** The full app functionality is available, and the user can switch associations via the dropdown in the AppBar. The FAB button is hidden.
-- **If the User Hasn’t Joined an Association:** The FAB button is visible to join an association, while the app bar dropdown allows the user to create a new association. Non-relevant screens (e.g., Add Bak, History) are hidden.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
+You should have received a copy of the GNU General Public License along with
+this program. If not, see <https://www.gnu.org/licenses/>.
+```
+
+##Contact
+
+If you have any questions, issues, or suggestions, please open an issue on the
+GitHub repository or reach out via [contact method].
+
+Happy Drinking!
