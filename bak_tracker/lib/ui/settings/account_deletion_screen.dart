@@ -1,3 +1,4 @@
+import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
 import 'package:bak_tracker/ui/login/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -94,7 +95,7 @@ class AccountDeletionScreen extends StatelessWidget {
         );
 
         // Sign out the user
-        await supabase.auth.signOut();
+        AuthenticationBloc().signOut(); // Clear the authentication state
 
         // Navigate to the LoginScreen and remove all previous routes
         Navigator.of(context).pushAndRemoveUntil(

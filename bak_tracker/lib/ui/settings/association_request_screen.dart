@@ -1,6 +1,7 @@
+import 'package:bak_tracker/models/association_request_model.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:intl/intl.dart'; // For date formatting and localization
+import 'package:intl/intl.dart';
 
 class AssociationRequestScreen extends StatefulWidget {
   const AssociationRequestScreen({super.key});
@@ -15,9 +16,9 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
   final _nameController = TextEditingController();
   final _websiteUrlController = TextEditingController();
   bool _isSubmitting = false;
-  bool _isLoadingRequests = true; // Start with loading true
+  bool _isLoadingRequests = true;
   bool _canSubmitRequest = true;
-  List<Map<String, dynamic>> _requests = [];
+  List<AssociationRequestModel> _requests = [];
 
   late TabController _tabController;
 
@@ -26,8 +27,8 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_handleTabSelection);
-    _preloadRequests(); // Preload requests during initialization
-    _checkSubmissionEligibility(); // Check if the user can submit a request
+    _preloadRequests();
+    _checkSubmissionEligibility();
   }
 
   @override
@@ -45,7 +46,6 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
     }
   }
 
-  // Preload the request data on initialization for better UX
   Future<void> _preloadRequests() async {
     await _fetchRequests();
   }
@@ -55,7 +55,6 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
 
-      // Fetch the user's pending requests
       final existingRequests = await Supabase.instance.client
           .from('association_requests')
           .select()
@@ -63,9 +62,11 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
           .eq('status', 'Pending')
           .order('created_at', ascending: false);
 
-      final pendingRequests = List<Map<String, dynamic>>.from(existingRequests);
+      final pendingRequests = existingRequests
+          .map<AssociationRequestModel>(
+              (data) => AssociationRequestModel.fromMap(data))
+          .toList();
 
-      // Check if the user has more than 3 pending requests
       if (pendingRequests.length >= 3) {
         setState(() {
           _canSubmitRequest = false;
@@ -73,18 +74,14 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
         return;
       }
 
-      // Check if the last request was made within the last week
-      if (pendingRequests.isNotEmpty) {
-        final lastRequestDate =
-            DateTime.parse(pendingRequests.first['created_at']);
-        final oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
+      final lastRequestDate = pendingRequests.firstOrNull?.createdAt;
+      final oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
 
-        if (lastRequestDate.isAfter(oneWeekAgo)) {
-          setState(() {
-            _canSubmitRequest = false;
-          });
-          return;
-        }
+      if (lastRequestDate != null && lastRequestDate.isAfter(oneWeekAgo)) {
+        setState(() {
+          _canSubmitRequest = false;
+        });
+        return;
       }
 
       setState(() {
@@ -108,8 +105,9 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
           .order('created_at', ascending: false);
 
       setState(() {
-        _requests = List<Map<String, dynamic>>.from(response);
-        _isLoadingRequests = false; // Stop loading once data is fetched
+        _requests = List<AssociationRequestModel>.from(
+            response.map((data) => AssociationRequestModel.fromMap(data)));
+        _isLoadingRequests = false;
       });
     } catch (e) {
       _showSnackBar('Error fetching requests: $e');
@@ -143,10 +141,9 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
       _showSnackBar('Request submitted successfully');
       _nameController.clear();
       _websiteUrlController.clear();
-
-      _tabController.animateTo(1); // Switch to "View Requests" tab
-      await _fetchRequests(); // Fetch requests after submission
-      _checkSubmissionEligibility(); // Re-check eligibility after submission
+      _tabController.animateTo(1);
+      await _fetchRequests();
+      _checkSubmissionEligibility();
     } catch (e) {
       _showSnackBar('Failed to submit request: $e');
     } finally {
@@ -168,8 +165,8 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
           .eq('id', requestId);
 
       _showSnackBar('Request deleted successfully');
-      await _fetchRequests(); // Refresh the list after deletion
-      _checkSubmissionEligibility(); // Re-check eligibility after deletion
+      await _fetchRequests();
+      _checkSubmissionEligibility();
     } catch (e) {
       _showSnackBar('Failed to delete request: $e');
     } finally {
@@ -184,10 +181,8 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  String _formatDate(String dateString) {
-    final date = DateTime.parse(dateString);
-    final localDate = date.toLocal(); // Convert to local timezone
-
+  String _formatDate(DateTime date) {
+    final localDate = date.toLocal();
     return DateFormat('HH:mm dd-MM-yyyy').format(localDate);
   }
 
@@ -198,6 +193,7 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
         title: const Text('Association Requests'),
         bottom: TabBar(
           controller: _tabController,
+          dividerColor: Colors.transparent,
           tabs: const [
             Tab(text: 'Request New'),
             Tab(text: 'View Requests'),
@@ -224,7 +220,7 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
         padding: EdgeInsets.all(16.0),
         child: Center(
           child: Text(
-            'You cannot submit more requests at this time.\nEither you have 3 pending requests or you submitted a request in the past week.',
+            'You cannot submit more requests at this time.\nYou have 3 pending requests or you submitted a request in the past week.',
             textAlign: TextAlign.center,
           ),
         ),
@@ -277,14 +273,13 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
 
   Widget _buildRequestsList() {
     if (_isLoadingRequests) {
-      // Show a centered loading spinner instead of a loading ListView
       return const Center(child: CircularProgressIndicator());
     }
 
     if (_requests.isEmpty) {
       return const Center(
         child: Text(
-          'No requests found.\nSubmit a new request or wait for approval.',
+          'No requests found. Submit a new request or wait for approval.',
           textAlign: TextAlign.center,
         ),
       );
@@ -295,33 +290,26 @@ class _AssociationRequestScreenState extends State<AssociationRequestScreen>
       itemCount: _requests.length,
       itemBuilder: (context, index) {
         final request = _requests[index];
-        final status = request['status'];
-        final declineReason = request['decline_reason'];
-        final requestId = request['id'];
-        final createdAt = request['created_at'];
-
         return Card(
           child: ListTile(
             title: Text(
-              request['name'],
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
+              request.name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle: Text(
-              'Status: $status\nSubmitted: ${_formatDate(createdAt)}${status == 'Declined' && declineReason != null ? '\nReason: $declineReason' : ''}',
+              'Status: ${request.status}\nSubmitted: ${_formatDate(request.createdAt)}${request.status == 'Declined' && request.declineReason != null ? '\nReason: ${request.declineReason}' : ''}',
               style: TextStyle(
-                color: status == 'Approved'
+                color: request.status == 'Approved'
                     ? Colors.green
-                    : status == 'Declined'
+                    : request.status == 'Declined'
                         ? Colors.red
                         : Colors.grey,
               ),
             ),
-            trailing: status == 'Pending'
+            trailing: request.status == 'Pending'
                 ? IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _deleteRequest(requestId),
+                    onPressed: () => _deleteRequest(request.id),
                   )
                 : null,
           ),
