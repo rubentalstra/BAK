@@ -1,0 +1,215 @@
+/* General Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    color: #1D1D1D;
+    background-color: #E1E5E7; /* Neutral background */
+    margin: 0;
+    padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: bold;
+    color: #1D282D; /* Main text color */
+}
+
+p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #2B343B;
+}
+
+/* Navbar */
+.navbar {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.nav-link {
+    font-size: 1rem;
+    color: #FAFAFA !important; /* Light text */
+}
+
+.nav-link:hover {
+    color: #DAA442 !important; /* Accent color on hover */
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: #DAA442; /* Accent color */
+    border-color: #DAA442;
+}
+
+.btn-primary:hover {
+    background-color: #D98C4B; /* Darker accent color */
+    border-color: #D98C4B;
+}
+
+/* Hero Section */
+.hero {
+    background-color: #F0F4F8; /* Light background for hero */
+    padding: 80px 0;
+}
+
+.hero h1 {
+    font-size: 2.8rem;
+    color: #1D282D;
+}
+
+.hero p {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    color: #2B343B;
+}
+
+.hero .btn-lg {
+    padding: 15px 30px;
+    font-size: 1.2rem;
+}
+
+/* Features Section */
+.features {
+    padding: 60px 0;
+}
+
+.features h2 {
+    font-size: 2.2rem;
+    color: #1D282D;
+    margin-bottom: 40px;
+}
+
+.features .col-md-3 img {
+    margin-bottom: 15px;
+    border-radius: 10px;
+}
+
+/* Testimonials Section */
+.testimonials {
+    background-color: #F5C76E; /* Light accent background */
+    padding: 60px 0;
+}
+
+.testimonials h2 {
+    font-size: 2.2rem;
+    color: #1D282D;
+}
+
+.testimonials .testimonial p {
+    font-size: 1.1rem;
+    font-style: italic;
+}
+
+.testimonials .testimonial strong {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+/* Associations Section */
+.associations {
+    padding: 60px 0;
+}
+
+.association-card {
+    border: 1px solid #B0BEC5;
+    transition: box-shadow 0.3s ease;
+}
+
+.association-card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.associations h2 {
+    font-size: 2.2rem;
+}
+
+/* Benefits Section */
+.benefits {
+    padding: 60px 0;
+}
+
+.benefits h4 {
+    font-size: 1.5rem;
+    color: #1D282D;
+    margin-bottom: 15px;
+}
+
+.benefits p {
+    color: #2B343B;
+}
+
+/* Call-to-Action */
+.cta {
+    background-color: #DAA442; /* Primary accent color */
+    padding: 60px 0;
+}
+
+.cta h2 {
+    font-size: 2.5rem;
+    color: #FAFAFA;
+}
+
+.cta p {
+    color: #FAFAFA;
+}
+
+.cta .btn-light {
+    background-color: #FAFAFA;
+    color: #1D1D1D;
+}
+
+/* Footer */
+footer {
+    padding: 20px 0;
+    background-color: #1D282D;
+    color: #FAFAFA;
+}
+
+footer p {
+    margin: 0;
+    color: #FAFAFA;
+}
+
+footer a {
+    color: #DAA442;
+    text-decoration: none;
+}
+
+footer a:hover {
+    color: #FAFAFA;
+}
+
+/* Forms */
+.form-control {
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #B0BEC5;
+}
+
+.form-control:focus {
+    border-color: #DAA442;
+    box-shadow: none;
+}
+
+.btn-primary, .submit-button {
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    border-radius: 5px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2rem;
+    }
+
+    .hero p {
+        font-size: 1.1rem;
+    }
+
+    .features h2, .testimonials h2, .associations h2 {
+        font-size: 1.8rem;
+    }
+
+    .btn-lg {
+        font-size: 1rem;
+    }
+}
