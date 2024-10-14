@@ -168,6 +168,6 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 ## Contact
 
 If you have any questions, issues, or suggestions, please open an issue on the
-GitHub repository or reach out via [@rubentalstra](@rubentalstra).
+GitHub repository or reach out via [@rubentalstra](https://github.com/rubentalstra).
 
 Happy Drinking!
