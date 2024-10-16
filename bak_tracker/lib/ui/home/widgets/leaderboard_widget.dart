@@ -173,25 +173,60 @@ class LeaderboardWidget extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Profile image skeleton
               const CircleAvatar(
                 radius: 24.0,
-                backgroundColor: Colors.grey,
+                backgroundColor: Color.fromRGBO(158, 158, 158, 1),
               ),
               const SizedBox(width: 16.0),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Name skeleton
                     _buildSkeletonBox(100.0, 16.0),
                     const SizedBox(height: 8.0),
-                    _buildSkeletonBox(150.0, 14.0),
+
+                    // Row for streak, baks consumed, and bak received
+                    Row(
+                      children: [
+                        // Streak skeleton
+                        _buildSkeletonIconAndText(60.0),
+                        const SizedBox(width: 16.0),
+
+                        // Baks Consumed skeleton
+                        _buildSkeletonBox(50.0, 14.0),
+                        const SizedBox(width: 16.0),
+
+                        // Bak Received skeleton
+                        _buildSkeletonBox(50.0, 14.0),
+                      ],
+                    ),
                   ],
                 ),
               ),
+              // Rank skeleton
+              _buildSkeletonBox(30.0, 16.0),
             ],
           ),
         );
       },
+    );
+  }
+
+// Helper function for skeleton with icon and text
+  Widget _buildSkeletonIconAndText(double width) {
+    return Row(
+      children: [
+        Container(
+          width: 18.0,
+          height: 18.0,
+          decoration: const BoxDecoration(
+            color: Colors.grey,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ],
     );
   }
 
