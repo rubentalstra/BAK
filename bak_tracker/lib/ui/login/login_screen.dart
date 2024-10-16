@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/services/notifications_service.dart';
 import 'package:bak_tracker/ui/home/main_screen.dart';
 import 'package:bak_tracker/ui/no_association/no_association_screen.dart';
@@ -34,65 +36,123 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(24.0),
-        children: [
-          SupaSocialsAuth(
-            colored: true,
-            nativeGoogleAuthConfig: NativeGoogleAuthConfig(
-              webClientId: Env.webClientId,
-              iosClientId: Env.iosClientId,
+      backgroundColor: AppColors.lightPrimary,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Logo at the top of the screen
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/icon/bak_tracker_logo.jpg',
+                      height: 150.0,
+                      width: 150.0,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 24.0),
+                    const Text(
+                      'Welcome to BAK app!',
+                      style: TextStyle(
+                          fontSize: 24.0,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.lightSecondary),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16.0),
+                    const Text(
+                      'Login to continue',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        color: Colors.grey,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 38.0),
+
+                // Social Login Button
+                SupaSocialsAuth(
+                  colored: true,
+                  nativeGoogleAuthConfig: NativeGoogleAuthConfig(
+                    webClientId: Env.webClientId,
+                    iosClientId: Env.iosClientId,
+                  ),
+                  enableNativeAppleAuth: Platform.isIOS ? true : false,
+                  socialProviders: Platform.isIOS
+                      ? const [OAuthProvider.apple, OAuthProvider.google]
+                      : const [OAuthProvider.google],
+                  redirectUrl: kIsWeb
+                      ? null
+                      : 'https://iywlypvipqaibumbgsyf.supabase.co/auth/v1/callback',
+                  onSuccess: (Session session) async {
+                    try {
+                      // Automatically handle FCM token after login
+                      FirebaseMessaging messaging = FirebaseMessaging.instance;
+                      final FlutterLocalNotificationsPlugin
+                          flutterLocalNotificationsPlugin =
+                          FlutterLocalNotificationsPlugin();
+                      final notificationsService =
+                          NotificationsService(flutterLocalNotificationsPlugin);
+
+                      // Handle FCM token and notifications registration
+                      await notificationsService.handleFCMToken(messaging);
+
+                      // Check if the user belongs to an association
+                      bool isPartOfAssociation = await _checkUserAssociation();
+
+                      // Navigate to the appropriate screen based on association status
+                      if (isPartOfAssociation) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                              builder: (context) => const MainScreen()),
+                          (route) => false,
+                        );
+                      } else {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  const NoAssociationScreen()),
+                          (route) => false,
+                        );
+                      }
+                    } catch (error) {
+                      print('Login error details: $error'); // Log error details
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Login Failed: $error')),
+                      );
+                    }
+                  },
+                  onError: (error) {
+                    print('Login error details: $error'); // Log error details
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Login Failed: $error')),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 48.0),
+                // Footer text or any additional options
+                Center(
+                  child: Text(
+                    'By continuing, you agree to our Terms of Service and Privacy Policy',
+                    style: const TextStyle(
+                      fontSize: 12.0,
+                      color: Colors.grey,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
-            enableNativeAppleAuth: false,
-            socialProviders: const [OAuthProvider.google],
-            redirectUrl: kIsWeb
-                ? null
-                : 'https://iywlypvipqaibumbgsyf.supabase.co/auth/v1/callback',
-            onSuccess: (Session session) async {
-              try {
-                // Automatically handle FCM token after login
-                FirebaseMessaging messaging = FirebaseMessaging.instance;
-                final FlutterLocalNotificationsPlugin
-                    flutterLocalNotificationsPlugin =
-                    FlutterLocalNotificationsPlugin();
-                final notificationsService =
-                    NotificationsService(flutterLocalNotificationsPlugin);
-
-                // Handle FCM token and notifications registration
-                await notificationsService.handleFCMToken(messaging);
-
-                // Check if the user belongs to an association
-                bool isPartOfAssociation = await _checkUserAssociation();
-
-                // Navigate to the appropriate screen based on association status
-                if (isPartOfAssociation) {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => const MainScreen()),
-                  );
-                } else {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                        builder: (context) => const NoAssociationScreen()),
-                  );
-                }
-              } catch (error) {
-                print('Login error details: $error'); // Log error details
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Login Failed: $error')),
-                );
-              }
-            },
-            onError: (error) {
-              print('Login error details: $error'); // Log error details
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Login Failed: $error')),
-              );
-            },
           ),
-        ],
+        ),
       ),
     );
   }

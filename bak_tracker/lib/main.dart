@@ -151,17 +151,24 @@ class AppStartupState extends State<AppStartup> {
             .select()
             .eq('user_id', session.user.id);
 
-        if (associationData.isNotEmpty) {
-          _navigateToMainScreen();
-        } else {
-          _navigateToNoAssociationScreen();
-        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (associationData.isNotEmpty) {
+            print('User is part of an association.');
+            _navigateToMainScreen();
+          } else {
+            _navigateToNoAssociationScreen();
+          }
+        });
       } catch (e) {
         print('Error fetching association data: $e');
-        _navigateToNoAssociationScreen();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _navigateToNoAssociationScreen();
+        });
       }
     } else {
-      _navigateToLoginScreen();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _navigateToLoginScreen();
+      });
     }
   }
 
@@ -203,31 +210,37 @@ class AppStartupState extends State<AppStartup> {
   }
 
   // Navigation methods
-  void _navigateToLoginScreen() {
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (route) => false, // Remove all routes from stack
-      );
-    }
-  }
-
   void _navigateToMainScreen() {
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const MainScreen()),
-        (route) => false, // Remove all routes from stack
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const MainScreen()),
+          (route) => false,
+        );
+      }
+    });
   }
 
   void _navigateToNoAssociationScreen() {
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
-        (route) => false, // Remove all routes from stack
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const NoAssociationScreen()),
+          (route) => false,
+        );
+      }
+    });
+  }
+
+  void _navigateToLoginScreen() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    });
   }
 
   @override

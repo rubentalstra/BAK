@@ -1,6 +1,7 @@
 import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
 import 'package:bak_tracker/ui/login/login_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AccountDeletionScreen extends StatelessWidget {
@@ -78,10 +79,12 @@ class AccountDeletionScreen extends StatelessWidget {
 
       if (res.status == 200) {
         _showSnackBar(context, 'Account successfully deleted.');
-
-        // Sign out and navigate to LoginScreen
-        AuthenticationBloc().signOut();
-        _navigateToLoginScreen(context);
+        // Sign out the user after account deletion
+        context.read<AuthenticationBloc>().signOut();
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
       } else {
         _showSnackBar(context, 'Error deleting account: ${res.data}');
       }
@@ -94,14 +97,6 @@ class AccountDeletionScreen extends StatelessWidget {
   void _showSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
-    );
-  }
-
-  // Navigate to LoginScreen and remove all previous routes
-  void _navigateToLoginScreen(BuildContext context) {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-      (route) => false,
     );
   }
 }
