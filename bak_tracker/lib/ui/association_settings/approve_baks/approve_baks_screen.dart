@@ -68,6 +68,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
       if (status == 'approved') {
         await _adjustBaksOnApproval(
             bak.taker.id, bak.amount, bak.associationId);
+        await _incrementBakStreak(bak.taker.id, bak.associationId);
       } else if (status == 'rejected') {
         await _adjustBaksOnRejection(
             bak.taker.id, bak.amount, bak.associationId);
@@ -117,6 +118,34 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
           'baks_received': updatedReceived,
         })
         .eq('user_id', takerId)
+        .eq('association_id', associationId);
+  }
+
+  // Increment the bak streak on approval
+  Future<void> _incrementBakStreak(String userId, String associationId) async {
+    final supabase = Supabase.instance.client;
+
+    // Fetch current streak and last bak activity
+    final memberResponse = await supabase
+        .from('association_members')
+        .select('bak_streak')
+        .eq('user_id', userId)
+        .eq('association_id', associationId)
+        .single();
+
+    int currentStreak = memberResponse['bak_streak'] ?? 0;
+
+    // Increment the streak
+    currentStreak += 1;
+
+    // Update the streak and last bak activity in the database
+    await supabase
+        .from('association_members')
+        .update({
+          'bak_streak': currentStreak,
+          'last_bak_activity': DateTime.now().toIso8601String(),
+        })
+        .eq('user_id', userId)
         .eq('association_id', associationId);
   }
 

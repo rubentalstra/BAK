@@ -102,7 +102,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     final response = await Supabase.instance.client
         .from('association_members')
         .select(
-            'id, user_id (id, name, profile_image, bio, fcm_token), association_id, role, permissions, joined_at, baks_received, baks_consumed, bets_won, bets_lost, member_achievements (id, assigned_at, achievement_id(id, name, association_id, description, created_at))')
+            'id, user_id (id, name, profile_image, bio, fcm_token), association_id, role, permissions, joined_at, baks_received, baks_consumed, bets_won, bets_lost, bak_streak, highest_streak, last_bak_activity, member_achievements (id, assigned_at, achievement_id(id, name, association_id, description, created_at))')
         .eq('user_id', userId)
         .eq('association_id', associationId)
         .single();

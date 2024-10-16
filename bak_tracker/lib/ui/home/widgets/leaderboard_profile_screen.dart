@@ -7,23 +7,66 @@ import 'package:bak_tracker/ui/widgets/full_screen_profile_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 
-class LeaderboardProfileScreen extends StatelessWidget {
+class LeaderboardProfileScreen extends StatefulWidget {
   final AssociationMemberModel member;
   final File? localImageFile;
 
-  const LeaderboardProfileScreen({
-    super.key,
-    required this.member,
-    this.localImageFile,
-  });
+  const LeaderboardProfileScreen(
+      {super.key, required this.member, this.localImageFile});
+
+  @override
+  _LeaderboardProfileScreenState createState() =>
+      _LeaderboardProfileScreenState();
+}
+
+class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late ValueNotifier<IconData> _hourglassIconNotifier;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize the animation controller for the hourglass icon
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(
+          seconds: 3), // Total duration of the hourglass animation cycle
+    )..repeat(); // Repeat the animation infinitely
+
+    // Set initial hourglass icon
+    _hourglassIconNotifier =
+        ValueNotifier<IconData>(FontAwesomeIcons.hourglassStart);
+
+    // Update the icon based on animation progress
+    _controller.addListener(() {
+      final progress = _controller.value;
+
+      if (progress < 0.33) {
+        _hourglassIconNotifier.value = FontAwesomeIcons.hourglassStart;
+      } else if (progress < 0.66) {
+        _hourglassIconNotifier.value = FontAwesomeIcons.hourglassHalf;
+      } else if (progress < 1.0) {
+        _hourglassIconNotifier.value = FontAwesomeIcons.hourglassEnd;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _hourglassIconNotifier.dispose();
+    super.dispose();
+  }
 
   void _showFullScreenImage(BuildContext context) {
-    if (localImageFile != null) {
+    if (widget.localImageFile != null) {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) =>
-              FullScreenImage(localImageFile: localImageFile!),
+              FullScreenImage(localImageFile: widget.localImageFile!),
         ),
       );
     }
@@ -33,7 +76,7 @@ class LeaderboardProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(member.user.name),
+        title: Text(widget.member.user.name),
         centerTitle: true,
       ),
       body: Padding(
@@ -43,6 +86,8 @@ class LeaderboardProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildProfileImage(context),
+              const SizedBox(height: 20),
+              _buildStreakAndHourglass(),
               const SizedBox(height: 20),
               _buildAchievementsSection(context),
               const SizedBox(height: 20),
@@ -63,12 +108,13 @@ class LeaderboardProfileScreen extends StatelessWidget {
         onTap: () => _showFullScreenImage(context),
         child: CircleAvatar(
           radius: 80,
-          backgroundColor: Colors.grey[300],
-          backgroundImage:
-              localImageFile != null ? FileImage(localImageFile!) : null,
-          child: localImageFile == null
+          backgroundColor: Color.fromRGBO(158, 158, 158, 1),
+          backgroundImage: widget.localImageFile != null
+              ? FileImage(widget.localImageFile!)
+              : null,
+          child: widget.localImageFile == null
               ? Text(
-                  member.user.name[0].toUpperCase(),
+                  widget.member.user.name[0].toUpperCase(),
                   style: const TextStyle(
                     fontSize: 70,
                     fontWeight: FontWeight.bold,
@@ -96,12 +142,12 @@ class LeaderboardProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          member.achievements.isEmpty
+          widget.member.achievements.isEmpty
               ? const Text('No achievements earned yet.')
               : Wrap(
                   spacing: 10,
                   runSpacing: 8,
-                  children: member.achievements
+                  children: widget.member.achievements
                       .map((achievement) => GestureDetector(
                             onTap: () =>
                                 _showAchievementDetails(context, achievement),
@@ -111,6 +157,78 @@ class LeaderboardProfileScreen extends StatelessWidget {
                 ),
         ],
       ),
+    );
+  }
+
+// Build the streak and hourglass widgets, and include the highest streak
+  Widget _buildStreakAndHourglass() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Display the highest streak
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              FontAwesomeIcons.trophy,
+              color: Colors.orangeAccent,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+
+            // Highest Streak text
+            Text(
+              'Highest Streak: ${widget.member.highestStreak} ${widget.member.highestStreak == 1 ? 'day' : 'days'}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.orangeAccent,
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 8),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Flame icon for streaks
+            Icon(
+              FontAwesomeIcons.fire,
+              color: Colors.deepOrangeAccent,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+
+            // Current Streak text
+            Text(
+              '${widget.member.bakStreak} ${widget.member.bakStreak == 1 ? 'day' : 'days'}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.deepOrangeAccent,
+              ),
+            ),
+
+            // Animated hourglass if streak is about to expire
+            if (widget.member.shouldShowHourglass())
+              Padding(
+                padding: const EdgeInsets.only(left: 12.0),
+                child: ValueListenableBuilder<IconData>(
+                  valueListenable: _hourglassIconNotifier,
+                  builder: (context, icon, _) {
+                    return Icon(
+                      icon,
+                      color: Colors.orangeAccent,
+                      size: 28,
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -138,13 +256,13 @@ class LeaderboardProfileScreen extends StatelessWidget {
           children: [
             _buildInfoRow(
               'Role',
-              member.role ?? 'No role available',
+              widget.member.role ?? 'No role available',
               Icons.person,
             ),
             const SizedBox(height: 16),
             _buildInfoRow(
               'Bio',
-              member.user.bio ?? 'No bio available',
+              widget.member.user.bio ?? 'No bio available',
               Icons.info_outline,
             ),
           ],
@@ -164,12 +282,12 @@ class LeaderboardProfileScreen extends StatelessWidget {
             _buildStatsRow([
               _buildStatColumn(
                 'Chucked',
-                member.baksConsumed,
+                widget.member.baksConsumed,
                 FontAwesomeIcons.wineBottle,
               ),
               _buildStatColumn(
                 'BAK Debt',
-                member.baksReceived,
+                widget.member.baksReceived,
                 FontAwesomeIcons.beerMugEmpty,
               ),
             ]),
@@ -177,12 +295,12 @@ class LeaderboardProfileScreen extends StatelessWidget {
             _buildStatsRow([
               _buildStatColumn(
                 'Bets Won',
-                member.betsWon,
+                widget.member.betsWon,
                 Icons.emoji_events,
               ),
               _buildStatColumn(
                 'Bets Lost',
-                member.betsLost,
+                widget.member.betsLost,
                 FontAwesomeIcons.dice,
               ),
             ]),

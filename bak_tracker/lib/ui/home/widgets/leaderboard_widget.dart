@@ -6,6 +6,7 @@ import 'package:bak_tracker/ui/home/widgets/leaderboard_profile_screen.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/ui/widgets/profile_image_widget.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class LeaderboardWidget extends StatelessWidget {
   final List<LeaderboardEntry> entries;
@@ -102,6 +103,9 @@ class LeaderboardWidget extends StatelessWidget {
                 const SizedBox(height: 4.0),
                 Row(
                   children: [
+                    _buildInfoIconText(FontAwesomeIcons.fire, member.bakStreak,
+                        Colors.deepOrangeAccent),
+                    const SizedBox(width: 16.0),
                     _buildInfoText(
                         'Chucked', member.baksConsumed, Colors.green[700]),
                     const SizedBox(width: 16.0),
@@ -129,8 +133,29 @@ class LeaderboardWidget extends StatelessWidget {
       style: TextStyle(
         fontSize: 14.0,
         color: color,
-        fontWeight: FontWeight.w400,
+        fontWeight: FontWeight.bold,
       ),
+    );
+  }
+
+  Widget _buildInfoIconText(IconData icon, int count, Color? color) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          color: Colors.deepOrangeAccent,
+          size: 18,
+        ),
+        const SizedBox(width: 2.0),
+        Text(
+          count.toString(),
+          style: TextStyle(
+            fontSize: 14.0,
+            color: color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     );
   }
 

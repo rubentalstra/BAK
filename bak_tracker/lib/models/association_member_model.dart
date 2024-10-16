@@ -15,6 +15,9 @@ class AssociationMemberModel extends Equatable {
   final int betsWon;
   final int betsLost;
   final List<MemberAchievementModel> achievements;
+  final DateTime? lastBakActivity;
+  final int bakStreak;
+  final int highestStreak;
 
   const AssociationMemberModel({
     required this.id,
@@ -28,6 +31,9 @@ class AssociationMemberModel extends Equatable {
     this.betsWon = 0,
     this.betsLost = 0,
     this.achievements = const [],
+    this.lastBakActivity,
+    this.bakStreak = 0,
+    this.highestStreak = 0,
   });
 
   // Factory method to create the model from a Map
@@ -43,6 +49,11 @@ class AssociationMemberModel extends Equatable {
       baksConsumed: map['baks_consumed'] ?? 0,
       betsWon: map['bets_won'] ?? 0,
       betsLost: map['bets_lost'] ?? 0,
+      lastBakActivity: map['last_bak_activity'] != null
+          ? DateTime.parse(map['last_bak_activity'])
+          : null,
+      bakStreak: map['bak_streak'] ?? 0,
+      highestStreak: map['highest_streak'] ?? 0,
       achievements: List<MemberAchievementModel>.from(
         (map['member_achievements'] as List).map(
           (achievementMap) => MemberAchievementModel.fromMap(achievementMap),
@@ -64,11 +75,14 @@ class AssociationMemberModel extends Equatable {
       'baks_consumed': baksConsumed,
       'bets_won': betsWon,
       'bets_lost': betsLost,
+      'last_bak_activity': lastBakActivity?.toIso8601String(),
+      'bak_streak': bakStreak,
+      'highest_streak': highestStreak,
       'achievements': achievements.map((e) => e.toMap()).toList(),
     };
   }
 
-  // Add the copyWith method
+  // Add the copyWith method, now with the new fields included
   AssociationMemberModel copyWith({
     String? id,
     UserModel? user,
@@ -80,6 +94,9 @@ class AssociationMemberModel extends Equatable {
     int? baksConsumed,
     int? betsWon,
     int? betsLost,
+    DateTime? lastBakActivity,
+    int? bakStreak,
+    int? highestStreak,
     List<MemberAchievementModel>? achievements,
   }) {
     return AssociationMemberModel(
@@ -93,6 +110,9 @@ class AssociationMemberModel extends Equatable {
       baksConsumed: baksConsumed ?? this.baksConsumed,
       betsWon: betsWon ?? this.betsWon,
       betsLost: betsLost ?? this.betsLost,
+      lastBakActivity: lastBakActivity ?? this.lastBakActivity,
+      bakStreak: bakStreak ?? this.bakStreak,
+      highestStreak: highestStreak ?? this.highestStreak,
       achievements: achievements ?? this.achievements,
     );
   }
@@ -100,6 +120,16 @@ class AssociationMemberModel extends Equatable {
   // Method to check if the member has a specific permission
   bool hasPermission(PermissionEnum permission) {
     return permissions.hasPermission(permission);
+  }
+
+  // Calculate whether to show the hourglass (last activity between 24 and 36 hours ago)
+  bool shouldShowHourglass() {
+    if (lastBakActivity == null) return false;
+    final durationSinceLastActivity =
+        DateTime.now().difference(lastBakActivity!);
+    return durationSinceLastActivity > Duration(hours: 24) &&
+        durationSinceLastActivity <= Duration(hours: 36) &&
+        bakStreak > 0;
   }
 
   @override
@@ -114,6 +144,9 @@ class AssociationMemberModel extends Equatable {
         baksConsumed,
         betsWon,
         betsLost,
+        lastBakActivity,
+        bakStreak,
+        highestStreak,
         achievements,
       ];
 }

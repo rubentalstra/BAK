@@ -28,6 +28,9 @@ class AssociationService {
             baks_consumed, 
             bets_won, 
             bets_lost,
+            bak_streak, 
+            highest_streak, 
+            last_bak_activity,
             member_achievements (id, assigned_at, achievement_id(id, name, description, created_at))
         ''')
           .eq('association_id', associationId)
