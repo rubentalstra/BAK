@@ -1,4 +1,5 @@
 import 'package:app_badge_plus/app_badge_plus.dart';
+import 'package:bak_tracker/bloc/user/user_bloc.dart';
 import 'package:bak_tracker/services/association_service.dart';
 import 'package:bak_tracker/services/deep_link_service.dart';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
@@ -9,6 +10,7 @@ import 'package:bak_tracker/services/join_association_service.dart';
 import 'package:bak_tracker/services/notifications_service.dart';
 import 'package:bak_tracker/services/app_info_service.dart';
 import 'package:bak_tracker/core/utils/my_secure_storage.dart';
+import 'package:bak_tracker/services/user_service.dart';
 import 'package:bak_tracker/ui/home/main_screen.dart';
 import 'package:bak_tracker/ui/no_association/no_association_screen.dart';
 import 'package:bak_tracker/ui/login/login_screen.dart';
@@ -68,6 +70,7 @@ class BakTrackerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final supabaseClient = Supabase.instance.client;
     final associationService = AssociationService(supabaseClient);
+    final userService = UserService(supabaseClient);
 
     return MultiBlocProvider(
       providers: [
@@ -75,6 +78,7 @@ class BakTrackerApp extends StatelessWidget {
             create: (_) => AssociationBloc(associationService)),
         BlocProvider<AuthenticationBloc>(create: (_) => AuthenticationBloc()),
         BlocProvider<LocaleBloc>(create: (_) => LocaleBloc()),
+        BlocProvider<UserBloc>(create: (_) => UserBloc(userService)),
       ],
       child: BlocBuilder<LocaleBloc, LocaleState>(
         builder: (context, localeState) {

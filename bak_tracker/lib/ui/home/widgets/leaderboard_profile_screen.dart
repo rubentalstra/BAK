@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
-import 'package:bak_tracker/models/member_achievement_model.dart';
+import 'package:bak_tracker/models/association_member_achievement_model.dart';
 import 'package:flutter/material.dart';
 import 'package:bak_tracker/ui/widgets/full_screen_profile_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -134,7 +134,7 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Achievements',
+            'Association Achievements',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -178,7 +178,7 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
 
             // Highest Streak text
             Text(
-              'Highest Streak: ${widget.member.highestStreak} ${widget.member.highestStreak == 1 ? 'day' : 'days'}',
+              'Highest Streak: ${widget.member.user.highestAlcoholStreak} ${widget.member.user.highestAlcoholStreak == 1 ? 'day' : 'days'}',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -201,9 +201,9 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
             ),
             const SizedBox(width: 8),
 
-            // Current Streak text
+            // Current Adje Streak text
             Text(
-              '${widget.member.bakStreak} ${widget.member.bakStreak == 1 ? 'day' : 'days'}',
+              '${widget.member.user.alcoholStreak} ${widget.member.user.alcoholStreak == 1 ? 'day' : 'days'}',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -212,7 +212,7 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
             ),
 
             // Animated hourglass if streak is about to expire
-            if (widget.member.shouldShowHourglass())
+            if (widget.member.user.shouldShowHourglass())
               Padding(
                 padding: const EdgeInsets.only(left: 12.0),
                 child: ValueListenableBuilder<IconData>(
@@ -233,7 +233,7 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
   }
 
   // Reusable method for achievement badge
-  Widget _buildAchievementBadge(MemberAchievementModel achievement) {
+  Widget _buildAchievementBadge(AssociationMemberAchievementModel achievement) {
     return Chip(
       avatar: const Icon(Icons.star, color: Colors.white),
       label: Text(achievement.achievement.name),
@@ -379,7 +379,7 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
   // Method to show achievement details in a modal bottom sheet
   void _showAchievementDetails(
     BuildContext context,
-    MemberAchievementModel achievement,
+    AssociationMemberAchievementModel achievement,
   ) {
     final localDate = achievement.assignedAt.toLocal();
     final formattedDate = DateFormat('HH:mm dd-MM-yyyy').format(localDate);
@@ -419,7 +419,8 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
   }
 
   // Reusable method for achievement header
-  Widget _buildAchievementHeader(MemberAchievementModel achievement) {
+  Widget _buildAchievementHeader(
+      AssociationMemberAchievementModel achievement) {
     return Row(
       children: [
         const Icon(Icons.star, color: Colors.orangeAccent, size: 28),

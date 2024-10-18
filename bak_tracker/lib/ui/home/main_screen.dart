@@ -3,13 +3,16 @@ import 'dart:convert';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
+import 'package:bak_tracker/bloc/user/user_bloc.dart';
+import 'package:bak_tracker/bloc/user/user_event.dart';
+import 'package:bak_tracker/bloc/user/user_state.dart';
 import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:bak_tracker/ui/home/bak/bak_screen.dart';
 import 'package:bak_tracker/ui/home/bets/bets_screen.dart';
 import 'package:bak_tracker/ui/home/chucked/chucked_screen.dart';
 import 'package:bak_tracker/ui/home/home_screen.dart';
 import 'package:bak_tracker/ui/home/widgets/bottom_nav_bar.dart';
-import 'package:bak_tracker/ui/settings/settings_screen.dart';
+import 'package:bak_tracker/ui/profile/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -47,6 +50,12 @@ class MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _initialize() async {
+    // Load user details at initialization via UserBloc
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser != null) {
+      context.read<UserBloc>().add(LoadUser(currentUser.id));
+    }
+
     await _fetchAssociations();
     await _loadSavedAssociation();
     _startPollingApproveBaks();
@@ -169,30 +178,45 @@ class MainScreenState extends State<MainScreen> {
       const BakScreen(),
       const ChuckedScreen(),
       const BetsScreen(),
-      const SettingsScreen(),
+      const ProfileScreen(),
     ];
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AssociationBloc, AssociationState>(
-      listener: (context, state) {
-        if (state is AssociationLoaded) {
-          // Update pending counts
-          setState(() {
-            pendingBaksCount = state.pendingBaksCount;
-            pendingBetsCount = state.pendingBetsCount;
-          });
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AssociationBloc, AssociationState>(
+          listener: (context, state) {
+            if (state is AssociationLoaded) {
+              // Update pending counts
+              setState(() {
+                pendingBaksCount = state.pendingBaksCount;
+                pendingBetsCount = state.pendingBetsCount;
+              });
 
-          // Check if user has permission to approve BAKs and start polling if true
-          if (_hasApproveBaksPermission(state)) {
-            _startPollingApproveBaks();
-          }
+              // Check if user has permission to approve BAKs and start polling if true
+              if (_hasApproveBaksPermission(state)) {
+                _startPollingApproveBaks();
+              }
 
-          // Start polling for pending Baks and Bets
-          _startPollingPendingBaksAndBets();
-        }
-      },
+              // Start polling for pending Baks and Bets
+              _startPollingPendingBaksAndBets();
+            }
+          },
+        ),
+        BlocListener<UserBloc, UserState>(
+          listener: (context, state) {
+            if (state is UserLoaded) {
+              // Handle user data (e.g., FCM token registration or profile updates)
+              print('User Loaded: ${state.user.name}');
+            } else if (state is UserError) {
+              // Handle error
+              print('Error loading user: ${state.errorMessage}');
+            }
+          },
+        ),
+      ],
       child: Scaffold(
         body: _buildPages()[_selectedIndex],
         bottomNavigationBar: BottomNavBar(

@@ -103,8 +103,8 @@ class LeaderboardWidget extends StatelessWidget {
                 const SizedBox(height: 4.0),
                 Row(
                   children: [
-                    _buildInfoIconText(FontAwesomeIcons.fire, member.bakStreak,
-                        Colors.deepOrangeAccent),
+                    _buildInfoIconText(FontAwesomeIcons.fire,
+                        member.user.alcoholStreak, Colors.deepOrangeAccent),
                     const SizedBox(width: 16.0),
                     _buildInfoText(
                         'Chucked', member.baksConsumed, Colors.green[700]),

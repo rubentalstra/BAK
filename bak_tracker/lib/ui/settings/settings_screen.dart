@@ -3,9 +3,13 @@ import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
 import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
+import 'package:bak_tracker/bloc/user/user_bloc.dart';
+import 'package:bak_tracker/bloc/user/user_event.dart';
+import 'package:bak_tracker/bloc/user/user_state.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/core/utils/locale_utils.dart';
 import 'package:bak_tracker/main.dart';
+import 'package:bak_tracker/models/user_model.dart';
 import 'package:bak_tracker/ui/home/main_screen.dart';
 import 'package:bak_tracker/ui/legal/privacy_policy_screen.dart';
 import 'package:bak_tracker/ui/legal/terms_conditions_screen.dart';
@@ -28,38 +32,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _isNotificationEnabled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkNotificationPermission();
-  }
-
-  Future<void> _checkNotificationPermission() async {
-    final status = await Permission.notification.status;
-    setState(() {
-      _isNotificationEnabled = status.isGranted;
-    });
-  }
-
-  Future<void> _onNotificationToggle(bool value) async {
-    if (value) {
-      final status = await Permission.notification.request();
-      if (status.isGranted) {
-        setState(() {
-          _isNotificationEnabled = true;
-        });
-      } else if (status.isPermanentlyDenied) {
-        await openAppSettings();
-      }
-    } else {
-      setState(() {
-        _isNotificationEnabled = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,23 +50,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: 'Choose your preferred language',
               onTap: () => _showLanguageSelector(context),
             ),
-            _buildOptionCard(
-              context,
-              icon: FontAwesomeIcons.bell,
-              title: 'Enable Notifications',
-              subtitle: 'Allow notifications from the app',
-              onTap: () => _onNotificationToggle(!_isNotificationEnabled),
-              trailing: Switch(
-                value: _isNotificationEnabled,
-                onChanged: _onNotificationToggle,
-              ),
+            BlocBuilder<UserBloc, UserState>(
+              buildWhen: (previous, current) =>
+                  current is UserLoaded && previous != current,
+              builder: (context, state) {
+                if (state is UserLoaded) {
+                  return _buildNotificationOptions(context, state.user);
+                }
+                return const SizedBox.shrink();
+              },
             ),
             _buildOptionCard(
               context,
               icon: FontAwesomeIcons.circleUser,
               title: 'Profile Settings',
               subtitle: 'Update your profile information',
-              onTap: () => _navigateTo(context, const ProfileScreen()),
+              onTap: () => _navigateTo(context, const EditProfileScreen()),
             ),
             _buildSectionHeader('Join or Create Association'),
             _buildOptionCard(
@@ -156,14 +127,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _handleLogout(BuildContext context) async {
-    await context.read<AuthenticationBloc>().signOut();
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-      (route) => false,
-    );
-  }
-
   void _handleAssociationStateChanges(
       BuildContext context, AssociationState state) {
     if (state is AssociationJoined) {
@@ -195,6 +158,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // Helper method to build the notification options
+  Widget _buildNotificationOptions(BuildContext context, UserModel user) {
+    return Column(
+      children: [
+        _buildOptionCard(
+          context,
+          icon: FontAwesomeIcons.bell,
+          title: 'Enable Notifications',
+          subtitle: 'Allow notifications from the app',
+          onTap: () {},
+          trailing: Switch(
+            value: user.notificationsEnabled,
+            onChanged: (value) => _onNotificationToggle(context, value),
+          ),
+        ),
+        _buildOptionCard(
+          context,
+          icon: FontAwesomeIcons.fire,
+          title: 'Enable Streak Notifications',
+          subtitle: 'Allow notifications for streak tracking',
+          onTap: () {},
+          trailing: Switch(
+            value: user.streakNotificationsEnabled,
+            onChanged: (value) => _onStreakNotificationToggle(context, value),
+          ),
+        ),
+      ],
+    );
+  }
+
   // Helper method to build the option card
   Widget _buildOptionCard(
     BuildContext context, {
@@ -215,6 +208,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
         onTap: onTap,
       ),
     );
+  }
+
+  // Toggle notification settings
+
+  void _onNotificationToggle(BuildContext context, bool value) async {
+    if (value) {
+      final status = await Permission.notification.request();
+      if (status.isGranted) {
+        // If permission is granted, toggle the notifications
+        context.read<UserBloc>().add(ToggleNotifications(true));
+      } else if (status.isPermanentlyDenied) {
+        // Open app settings if permission is permanently denied
+        await openAppSettings();
+      }
+    } else {
+      // If notifications are being disabled, toggle it off
+      context.read<UserBloc>().add(ToggleNotifications(false));
+    }
+  }
+
+  // Toggle streak notification settings
+  void _onStreakNotificationToggle(BuildContext context, bool value) async {
+    if (value) {
+      final status = await Permission.notification.request();
+      if (status.isGranted) {
+        // If permission is granted, toggle streak notifications
+        context.read<UserBloc>().add(ToggleStreakNotifications(true));
+      } else if (status.isPermanentlyDenied) {
+        // Open app settings if permission is permanently denied
+        await openAppSettings();
+      }
+    } else {
+      // If streak notifications are being disabled, toggle it off
+      context.read<UserBloc>().add(ToggleStreakNotifications(false));
+    }
   }
 
   // Helper method to navigate to screens
@@ -281,6 +309,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
         },
       );
     }).toList();
+  }
+
+  Future<void> _handleLogout(BuildContext context) async {
+    final isLogoutConfirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Logout'),
+          content: const Text('Are you sure you want to log out?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false); // User cancels logout
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(true); // User confirms logout
+                },
+                child: const Text(
+                  'Logout',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )),
+          ],
+        );
+      },
+    );
+
+    if (isLogoutConfirmed == true) {
+      // Proceed with logout if the user confirms
+      await context.read<AuthenticationBloc>().signOut();
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
+    }
   }
 
   // Version information

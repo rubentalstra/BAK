@@ -1,24 +1,24 @@
-import 'package:bak_tracker/models/achievement_model.dart';
+import 'package:bak_tracker/models/association_achievement_model.dart';
 import 'package:equatable/equatable.dart';
 
-class MemberAchievementModel extends Equatable {
+class AssociationMemberAchievementModel extends Equatable {
   final String id;
   final String? memberId;
-  final AchievementModel achievement;
+  final AssociationAchievementModel achievement;
   final DateTime assignedAt;
 
-  const MemberAchievementModel({
+  const AssociationMemberAchievementModel({
     required this.id,
     this.memberId,
     required this.achievement,
     required this.assignedAt,
   });
 
-  factory MemberAchievementModel.fromMap(Map<String, dynamic> map) {
-    return MemberAchievementModel(
+  factory AssociationMemberAchievementModel.fromMap(Map<String, dynamic> map) {
+    return AssociationMemberAchievementModel(
         id: map['id'] ?? 'Unknown Achievement ID',
         memberId: map['member_id'] ?? 'Unknown Member ID',
-        achievement: AchievementModel.fromMap(map['achievement_id']),
+        achievement: AssociationAchievementModel.fromMap(map['achievement_id']),
         assignedAt: DateTime.parse(map['assigned_at']));
   }
 

@@ -24,8 +24,8 @@ class BottomNavBarNoAssociation extends StatelessWidget {
         label: 'Home',
       ),
       BottomNavigationBarItem(
-        icon: Icon(FontAwesomeIcons.gear, size: 25), // Settings Tab
-        label: 'Settings',
+        icon: Icon(FontAwesomeIcons.user, size: 25), // Profile Tab
+        label: 'Profile',
       ),
     ];
 

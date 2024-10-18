@@ -8,7 +8,7 @@ import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:bak_tracker/ui/widgets/profile_image_widget.dart';
-import 'package:bak_tracker/models/achievement_model.dart';
+import 'package:bak_tracker/models/association_achievement_model.dart';
 
 class MembersTab extends StatefulWidget {
   final String associationId;
@@ -27,7 +27,7 @@ class MembersTab extends StatefulWidget {
 }
 
 class _MembersTabState extends State<MembersTab> {
-  late Future<List<AchievementModel>> _achievementsFuture;
+  late Future<List<AssociationAchievementModel>> _achievementsFuture;
 
   @override
   void initState() {
@@ -136,7 +136,7 @@ class _MembersTabState extends State<MembersTab> {
   ) {
     return StatefulBuilder(
       builder: (context, setDialogState) {
-        return FutureBuilder<List<AchievementModel>>(
+        return FutureBuilder<List<AssociationAchievementModel>>(
           future: _achievementsFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -170,7 +170,7 @@ class _MembersTabState extends State<MembersTab> {
   }
 
   Widget _buildAchievementList(
-    List<AchievementModel> achievements,
+    List<AssociationAchievementModel> achievements,
     List<String> assignedAchievementIds,
     StateSetter setDialogState,
   ) {

@@ -1,6 +1,6 @@
 import 'package:bak_tracker/core/const/permissions_constants.dart';
-import 'package:bak_tracker/models/achievement_model.dart';
-import 'package:bak_tracker/models/member_achievement_model.dart';
+import 'package:bak_tracker/models/association_achievement_model.dart';
+import 'package:bak_tracker/models/association_member_achievement_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bak_tracker/models/association_model.dart';
 import 'package:bak_tracker/models/association_member_model.dart';
@@ -19,7 +19,7 @@ class AssociationService {
           .from('association_members')
           .select('''
             id, 
-            user_id (id, name, profile_image, bio, fcm_token), 
+            user_id (id, name, profile_image, bio, alcohol_streak, highest_alcohol_streak, last_drink_consumed_at, fcm_token, user_achievements (id, assigned_at, achievement_id(id, name, description, created_at))), 
             association_id, 
             role, 
             permissions, 
@@ -28,10 +28,7 @@ class AssociationService {
             baks_consumed, 
             bets_won, 
             bets_lost,
-            bak_streak, 
-            highest_streak, 
-            last_bak_activity,
-            member_achievements (id, assigned_at, achievement_id(id, name, description, created_at))
+            association_member_achievements (id, assigned_at, achievement_id(id, name, description, created_at))
         ''')
           .eq('association_id', associationId)
           .order('user_id(name)', ascending: true);
@@ -167,17 +164,19 @@ class AssociationService {
   }
 
   // Fetches achievements for a given association
-  Future<List<AchievementModel>> fetchAchievements(String associationId) async {
+  Future<List<AssociationAchievementModel>> fetchAchievements(
+      String associationId) async {
     try {
       final response = await _supabase
-          .from('achievements')
+          .from('association_achievements')
           .select()
           .eq('association_id', associationId)
           .order('created_at', ascending: false);
 
       return response.isNotEmpty
           ? response
-              .map<AchievementModel>((data) => AchievementModel.fromMap(data))
+              .map<AssociationAchievementModel>(
+                  (data) => AssociationAchievementModel.fromMap(data))
               .toList()
           : [];
     } catch (e) {
@@ -191,7 +190,7 @@ class AssociationService {
       String associationId, String name, String? description) async {
     final userId = _supabase.auth.currentUser!.id;
     try {
-      await _supabase.from('achievements').insert({
+      await _supabase.from('association_achievements').insert({
         'association_id': associationId,
         'created_by': userId,
         'name': name,
@@ -206,7 +205,7 @@ class AssociationService {
   Future<void> updateAchievement(
       String achievementId, String name, String? description) async {
     try {
-      await _supabase.from('achievements').update(
+      await _supabase.from('association_achievements').update(
           {'name': name, 'description': description}).eq('id', achievementId);
     } catch (e) {
       _handleError('updateAchievement', e);
@@ -216,26 +215,29 @@ class AssociationService {
   // Deletes an achievement
   Future<void> deleteAchievement(String achievementId) async {
     try {
-      await _supabase.from('achievements').delete().eq('id', achievementId);
+      await _supabase
+          .from('association_achievements')
+          .delete()
+          .eq('id', achievementId);
     } catch (e) {
       _handleError('deleteAchievement', e);
     }
   }
 
   // Fetches member achievements
-  Future<List<MemberAchievementModel>> fetchMemberAchievements(
+  Future<List<AssociationMemberAchievementModel>> fetchMemberAchievements(
       String memberId) async {
     try {
       final response = await _supabase
-          .from('member_achievements')
+          .from('association_member_achievements')
           .select(
               'achievement_id(id, name, description, created_at), assigned_at')
           .eq('member_id', memberId);
 
       return response.isNotEmpty
           ? response
-              .map<MemberAchievementModel>(
-                  (data) => MemberAchievementModel.fromMap(data))
+              .map<AssociationMemberAchievementModel>(
+                  (data) => AssociationMemberAchievementModel.fromMap(data))
               .toList()
           : [];
     } catch (e) {
@@ -249,7 +251,7 @@ class AssociationService {
       String memberId, List<String> achievementIds) async {
     try {
       await _supabase
-          .from('member_achievements')
+          .from('association_member_achievements')
           .insert(achievementIds.map((id) {
             return {'member_id': memberId, 'achievement_id': id};
           }).toList());
@@ -262,7 +264,7 @@ class AssociationService {
   Future<void> removeAchievement(String memberId, String achievementId) async {
     try {
       await _supabase
-          .from('member_achievements')
+          .from('association_member_achievements')
           .delete()
           .eq('member_id', memberId)
           .eq('achievement_id', achievementId);

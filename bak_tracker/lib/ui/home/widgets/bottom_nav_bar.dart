@@ -66,8 +66,8 @@ class BottomNavBar extends StatelessWidget {
         badgeCount: pendingBetsCount,
       ),
       const BottomNavigationBarItem(
-        icon: Icon(FontAwesomeIcons.gear, size: 25),
-        label: 'Settings',
+        icon: Icon(FontAwesomeIcons.user, size: 25),
+        label: 'Profile',
       ),
     ];
 

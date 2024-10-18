@@ -6,14 +6,14 @@ import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/services/image_upload_service.dart';
 import 'package:bak_tracker/ui/widgets/full_screen_profile_image.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+class EditProfileScreen extends StatefulWidget {
+  const EditProfileScreen({super.key});
 
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  _EditProfileScreenState createState() => _EditProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _EditProfileScreenState extends State<EditProfileScreen> {
   final _displayNameController = TextEditingController();
   final _bioController = TextEditingController();
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:bak_tracker/models/achievement_model.dart';
+import 'package:bak_tracker/models/association_achievement_model.dart';
 import 'package:intl/intl.dart';
 import 'package:bak_tracker/services/association_service.dart';
 
@@ -18,7 +18,7 @@ class AchievementsTab extends StatefulWidget {
 }
 
 class _AchievementsTabState extends State<AchievementsTab> {
-  Future<List<AchievementModel>>? _achievementsFuture;
+  Future<List<AssociationAchievementModel>>? _achievementsFuture;
 
   @override
   void initState() {
@@ -147,7 +147,7 @@ class _AchievementsTabState extends State<AchievementsTab> {
         tooltip: 'Create Achievement',
         child: const Icon(Icons.add),
       ),
-      body: FutureBuilder<List<AchievementModel>>(
+      body: FutureBuilder<List<AssociationAchievementModel>>(
         future: _achievementsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
