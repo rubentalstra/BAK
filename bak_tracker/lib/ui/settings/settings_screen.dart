@@ -3,13 +3,9 @@ import 'package:bak_tracker/bloc/association/association_event.dart';
 import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/bloc/auth/auth_bloc.dart';
 import 'package:bak_tracker/bloc/locale/locale_bloc.dart';
-import 'package:bak_tracker/bloc/user/user_bloc.dart';
-import 'package:bak_tracker/bloc/user/user_event.dart';
-import 'package:bak_tracker/bloc/user/user_state.dart';
 import 'package:bak_tracker/core/themes/colors.dart';
 import 'package:bak_tracker/core/utils/locale_utils.dart';
 import 'package:bak_tracker/main.dart';
-import 'package:bak_tracker/models/user_model.dart';
 import 'package:bak_tracker/ui/home/main_screen.dart';
 import 'package:bak_tracker/ui/legal/privacy_policy_screen.dart';
 import 'package:bak_tracker/ui/legal/terms_conditions_screen.dart';
@@ -22,7 +18,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/ui/login/login_screen.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -49,16 +44,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: 'Select Language',
               subtitle: 'Choose your preferred language',
               onTap: () => _showLanguageSelector(context),
-            ),
-            BlocBuilder<UserBloc, UserState>(
-              buildWhen: (previous, current) =>
-                  current is UserLoaded && previous != current,
-              builder: (context, state) {
-                if (state is UserLoaded) {
-                  return _buildNotificationOptions(context, state.user);
-                }
-                return const SizedBox.shrink();
-              },
             ),
             _buildOptionCard(
               context,
@@ -158,36 +143,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // Helper method to build the notification options
-  Widget _buildNotificationOptions(BuildContext context, UserModel user) {
-    return Column(
-      children: [
-        _buildOptionCard(
-          context,
-          icon: FontAwesomeIcons.bell,
-          title: 'Enable Notifications',
-          subtitle: 'Allow notifications from the app',
-          onTap: () {},
-          trailing: Switch(
-            value: user.notificationsEnabled,
-            onChanged: (value) => _onNotificationToggle(context, value),
-          ),
-        ),
-        _buildOptionCard(
-          context,
-          icon: FontAwesomeIcons.fire,
-          title: 'Enable Streak Notifications',
-          subtitle: 'Allow notifications for streak tracking',
-          onTap: () {},
-          trailing: Switch(
-            value: user.streakNotificationsEnabled,
-            onChanged: (value) => _onStreakNotificationToggle(context, value),
-          ),
-        ),
-      ],
-    );
-  }
-
   // Helper method to build the option card
   Widget _buildOptionCard(
     BuildContext context, {
@@ -208,41 +163,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         onTap: onTap,
       ),
     );
-  }
-
-  // Toggle notification settings
-
-  void _onNotificationToggle(BuildContext context, bool value) async {
-    if (value) {
-      final status = await Permission.notification.request();
-      if (status.isGranted) {
-        // If permission is granted, toggle the notifications
-        context.read<UserBloc>().add(ToggleNotifications(true));
-      } else if (status.isPermanentlyDenied) {
-        // Open app settings if permission is permanently denied
-        await openAppSettings();
-      }
-    } else {
-      // If notifications are being disabled, toggle it off
-      context.read<UserBloc>().add(ToggleNotifications(false));
-    }
-  }
-
-  // Toggle streak notification settings
-  void _onStreakNotificationToggle(BuildContext context, bool value) async {
-    if (value) {
-      final status = await Permission.notification.request();
-      if (status.isGranted) {
-        // If permission is granted, toggle streak notifications
-        context.read<UserBloc>().add(ToggleStreakNotifications(true));
-      } else if (status.isPermanentlyDenied) {
-        // Open app settings if permission is permanently denied
-        await openAppSettings();
-      }
-    } else {
-      // If streak notifications are being disabled, toggle it off
-      context.read<UserBloc>().add(ToggleStreakNotifications(false));
-    }
   }
 
   // Helper method to navigate to screens

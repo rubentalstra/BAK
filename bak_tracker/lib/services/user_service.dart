@@ -1,3 +1,4 @@
+import 'package:bak_tracker/models/alcohol_tracking_model.dart';
 import 'package:bak_tracker/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -34,37 +35,63 @@ class UserService {
     }
   }
 
-  /// Logs alcohol consumption and updates the user's streak information
+  // Log alcohol consumption and update streaks
   Future<UserModel> logAlcoholConsumption(
       UserModel user, String alcoholType) async {
     final now = DateTime.now();
 
-    // Calculate the streak update logic
+    // Initialize streak update variables
     int newStreak = user.alcoholStreak;
     int highestStreak = user.highestAlcoholStreak;
+    bool streakUpdated = false;
 
+    // Check if user has logged drinks before
     if (user.lastDrinkConsumedAt != null) {
-      final timeSinceLastDrink = now.difference(user.lastDrinkConsumedAt!);
-      if (timeSinceLastDrink.inHours <= 36) {
+      final lastDrinkDate = user.lastDrinkConsumedAt!;
+
+      // Check if it's a new day (i.e., after midnight)
+      if (now.day != lastDrinkDate.day ||
+          now.isAfter(DateTime(lastDrinkDate.year, lastDrinkDate.month,
+              lastDrinkDate.day, 23, 59, 59))) {
+        // Increment the current streak
         newStreak += 1;
+
+        // Only increment the highest streak if it's equal to the current streak
         if (newStreak > highestStreak) {
-          highestStreak = newStreak;
+          highestStreak += 1;
         }
+
+        streakUpdated = true;
       } else {
-        newStreak = 1; // Reset streak if more than 36 hours
+        // No streak increment if it's the same day
+        newStreak = user.alcoholStreak;
       }
     } else {
-      newStreak = 1; // Starting the streak for the first time
+      // First time logging alcohol consumption starts a new streak
+      newStreak = 1;
+      streakUpdated = true;
     }
 
     try {
-      await _supabaseClient.from('users').update({
-        'alcohol_streak': newStreak,
-        'highest_alcohol_streak': highestStreak,
-        'last_drink_consumed_at': now.toIso8601String(),
-      }).eq('id', user.id);
+      // Log the alcohol consumption in the alcohol_tracking table
+      await _supabaseClient.from('alcohol_tracking').insert({
+        'user_id': user.id,
+        'drink_type': alcoholType,
+        'drink_amount': 1,
+        'consumed_at': now.toIso8601String(),
+      });
 
-      return getUserById(user.id); // Fetch the updated user
+      // Only update the last_drink_consumed_at and streaks when necessary
+      if (streakUpdated) {
+        await _supabaseClient.from('users').update({
+          'alcohol_streak': newStreak,
+          'highest_alcohol_streak': highestStreak,
+          'last_drink_consumed_at': now.toIso8601String(),
+        }).eq('id', user.id);
+      }
+
+      // Return the updated user data
+      return getUserById(user.id);
     } catch (e) {
       rethrow;
     }
@@ -92,33 +119,16 @@ class UserService {
     }
   }
 
-  /// Fetches whether notifications are enabled for the user
-  Future<bool> areNotificationsEnabled(String userId) async {
-    try {
-      final response = await _supabaseClient
-          .from('users')
-          .select('notifications_enabled')
-          .eq('id', userId)
-          .single();
+  // Fetch alcohol logs for the user
+  Future<List<AlcoholTrackingModel>> getAlcoholLogs(String userId) async {
+    final response = await _supabaseClient
+        .from('alcohol_tracking')
+        .select('*')
+        .eq('user_id', userId)
+        .order('consumed_at', ascending: false);
 
-      return response['notifications_enabled'] as bool;
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  /// Fetches whether streak notifications are enabled for the user
-  Future<bool> areStreakNotificationsEnabled(String userId) async {
-    try {
-      final response = await _supabaseClient
-          .from('users')
-          .select('streak_notification_enabled')
-          .eq('id', userId)
-          .single();
-
-      return response['streak_notification_enabled'] as bool;
-    } catch (e) {
-      rethrow;
-    }
+    return response.map<AlcoholTrackingModel>((data) {
+      return AlcoholTrackingModel.fromMap(data);
+    }).toList();
   }
 }

@@ -67,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return Scaffold(
           appBar: _buildAppBar(context, state),
           body: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.only(top: 16, left: 16, right: 16),
             child: RefreshIndicator(
               color: AppColors.lightSecondary,
               onRefresh: () async => _fetchLeaderboard(),
