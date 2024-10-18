@@ -80,7 +80,8 @@ class AccountDeletionScreen extends StatelessWidget {
       if (res.status == 200) {
         _showSnackBar(context, 'Account successfully deleted.');
         // Sign out the user after account deletion
-        context.read<AuthenticationBloc>().signOut();
+
+        await context.read<AuthenticationBloc>().signOut();
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const LoginScreen()),
           (route) => false,

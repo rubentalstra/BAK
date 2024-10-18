@@ -84,6 +84,7 @@ class LoginScreen extends StatelessWidget {
                     webClientId: Env.webClientId,
                     iosClientId: Env.iosClientId,
                   ),
+                  showSuccessSnackBar: true,
                   enableNativeAppleAuth: Platform.isIOS ? true : false,
                   socialProviders: Platform.isIOS
                       ? const [OAuthProvider.apple, OAuthProvider.google]
