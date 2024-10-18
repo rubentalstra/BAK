@@ -79,17 +79,6 @@ class PermissionsModel {
         permissions[permission] == true;
   }
 
-  bool canAccessSettings() {
-    return hasPermission(PermissionEnum.canManagePermissions) ||
-        hasPermission(PermissionEnum.canInviteMembers) ||
-        hasPermission(PermissionEnum.canRemoveMembers) ||
-        hasPermission(PermissionEnum.canManageRoles) ||
-        hasPermission(PermissionEnum.canManageBaks) ||
-        hasPermission(PermissionEnum.canApproveBaks) ||
-        hasPermission(PermissionEnum.canManageAchievements) ||
-        hasPermission(PermissionEnum.canManageRegulations);
-  }
-
   void updatePermission(PermissionEnum permission, bool value) {
     if (permission == PermissionEnum.hasAllPermissions) {
       // When setting hasAllPermissions, reset all others to false

@@ -140,12 +140,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSettingsIcon(AssociationLoaded state) {
     final memberData = state.memberData;
-    final canAccessSettings = memberData.permissions.canAccessSettings();
-
-    if (!canAccessSettings) return const SizedBox();
 
     return badges.Badge(
-      position: badges.BadgePosition.topEnd(top: 0, end: 3),
+      position: badges.BadgePosition.topEnd(top: 0, end: 35),
       showBadge: state.pendingApproveBaksCount > 0,
       badgeContent: Text(
         state.pendingApproveBaksCount.toString(),
@@ -153,7 +150,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       badgeStyle: const badges.BadgeStyle(badgeColor: Colors.red),
       child: IconButton(
-        icon: const Icon(FontAwesomeIcons.gear),
+        tooltip: 'Association Options',
+        icon: Icon(FontAwesomeIcons.usersGear),
         onPressed: () {
           Navigator.of(context)
               .push(
