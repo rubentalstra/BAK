@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:bak_tracker/bloc/user/user_bloc.dart';
 import 'package:bak_tracker/services/association_service.dart';
@@ -16,6 +18,7 @@ import 'package:bak_tracker/ui/no_association/no_association_screen.dart';
 import 'package:bak_tracker/ui/login/login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:home_widget/home_widget.dart';
@@ -25,6 +28,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:bak_tracker/env/env.dart';
+import 'package:upgrader/upgrader.dart';
 import 'firebase_options.dart';
 
 // Initialize the AppInfoService globally
@@ -99,7 +103,18 @@ class BakTrackerApp extends StatelessWidget {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            home: const AppStartup(),
+            home: UpgradeAlert(
+              dialogStyle: Platform.isIOS
+                  ? UpgradeDialogStyle.cupertino
+                  : UpgradeDialogStyle.material,
+              showReleaseNotes: true,
+              showIgnore: false,
+              upgrader: Upgrader(
+                // Enable logging for better debugging
+                debugLogging: kDebugMode ? true : false,
+              ),
+              child: const AppStartup(),
+            ),
           );
         },
       ),

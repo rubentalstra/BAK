@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'colors.dart';
 
@@ -71,6 +72,41 @@ class AppThemes {
             color: AppColors.lightSecondary,
             width: 2.0,
           ),
+        ),
+      ),
+    ),
+
+    textButtonTheme: TextButtonThemeData(
+      style: ButtonStyle(
+        // backgroundColor: WidgetStatePropertyAll(Colors.yellow),
+        foregroundColor: WidgetStatePropertyAll(AppColors.lightOnPrimary),
+      ),
+    ),
+
+    cupertinoOverrideTheme: CupertinoThemeData(
+      brightness: Brightness.dark, // Dark mode
+      primaryColor: AppColors.lightAccentVariant, // Primary color
+      primaryContrastingColor: AppColors.lightSecondary, // Secondary color
+      barBackgroundColor: AppColors.lightPrimary, // Background for bars
+      scaffoldBackgroundColor: AppColors.lightPrimary, // Scaffold background
+      textTheme: CupertinoTextThemeData(
+        primaryColor: AppColors.lightOnPrimary, // Text color
+        navLargeTitleTextStyle: TextStyle(
+          color: AppColors.lightSecondary,
+          fontSize: 24.0,
+          fontWeight: FontWeight.bold,
+        ),
+        navTitleTextStyle: TextStyle(
+          color: AppColors.lightOnPrimary,
+          fontSize: 20.0,
+        ),
+        textStyle: TextStyle(
+          color: AppColors.lightOnPrimary,
+          fontSize: 16.0,
+        ),
+        actionTextStyle: TextStyle(
+          color: AppColors.lightAccent, // Custom action button color
+          fontSize: 16.0,
         ),
       ),
     ),

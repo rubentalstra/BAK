@@ -11,10 +11,10 @@ class DrinkHistoryScreen extends StatefulWidget {
   const DrinkHistoryScreen({super.key, required this.userId});
 
   @override
-  _DrinkHistoryScreenState createState() => _DrinkHistoryScreenState();
+  DrinkHistoryScreenState createState() => DrinkHistoryScreenState();
 }
 
-class _DrinkHistoryScreenState extends State<DrinkHistoryScreen> {
+class DrinkHistoryScreenState extends State<DrinkHistoryScreen> {
   late Future<List<AlcoholTrackingModel>> _drinkLogs;
 
   @override

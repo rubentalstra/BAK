@@ -52,7 +52,69 @@ extension DrinkTypeExtension on DrinkType {
       case DrinkType.other:
         return 'Other';
       default:
-        return '';
+        return 'Other';
+    }
+  }
+
+  // Convert database string to DrinkType enum
+  static DrinkType fromString(String drinkType) {
+    switch (drinkType.toLowerCase()) {
+      case 'beer':
+        return DrinkType.beer;
+      case 'wine':
+        return DrinkType.wine;
+      case 'whiskey':
+        return DrinkType.whiskey;
+      case 'vodka':
+        return DrinkType.vodka;
+      case 'gin':
+        return DrinkType.gin;
+      case 'rum':
+        return DrinkType.rum;
+      case 'tequila':
+        return DrinkType.tequila;
+      case 'cocktail':
+        return DrinkType.cocktail;
+      case 'cider':
+        return DrinkType.cider;
+      case '0.0% beer':
+        return DrinkType.zeroBeer;
+      case 'water':
+        return DrinkType.water;
+      default:
+        return DrinkType.other;
+    }
+  }
+
+  // Convert DrinkType enum to database string
+  String toDatabaseString() {
+    switch (this) {
+      case DrinkType.beer:
+        return 'Beer';
+      case DrinkType.wine:
+        return 'Wine';
+      case DrinkType.whiskey:
+        return 'Whiskey';
+      case DrinkType.vodka:
+        return 'Vodka';
+      case DrinkType.gin:
+        return 'Gin';
+      case DrinkType.rum:
+        return 'Rum';
+      case DrinkType.tequila:
+        return 'Tequila';
+      case DrinkType.cocktail:
+        return 'Cocktail';
+      case DrinkType.cider:
+        return 'Cider';
+      case DrinkType.zeroBeer:
+        return '0.0% Beer';
+      case DrinkType.water:
+        return 'Water';
+      case DrinkType.other:
+        return 'Other';
+      default:
+        return 'Other';
     }
   }
 

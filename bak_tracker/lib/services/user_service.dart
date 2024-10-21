@@ -1,3 +1,4 @@
+import 'package:bak_tracker/core/const/drink_types.dart';
 import 'package:bak_tracker/models/alcohol_tracking_model.dart';
 import 'package:bak_tracker/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -133,5 +134,37 @@ class UserService {
     return response.map<AlcoholTrackingModel>((data) {
       return AlcoholTrackingModel.fromMap(data);
     }).toList();
+  }
+
+// Fetch the total consumption per drink type for the user
+  Future<Map<DrinkType, int>> getTotalConsumption(String userId) async {
+    try {
+      final response = await _supabaseClient
+          .rpc('sum_drink_amounts', params: {'user_id_input': userId});
+
+      if (response == null || response.isEmpty) {
+        return {};
+      }
+
+      // Using a for-loop instead of fold to handle non-nullable types safely
+      Map<DrinkType, int> consumptionMap = {};
+
+      for (var record in response) {
+        final drinkTypeString = record['drink_type'] as String?;
+        final totalAmount = record['total_amount'] as int? ?? 0;
+
+        if (drinkTypeString != null && totalAmount > 0) {
+          // Convert the string to the appropriate DrinkType enum
+          final drinkType = DrinkTypeExtension.fromString(drinkTypeString);
+          consumptionMap[drinkType] = totalAmount;
+        }
+      }
+
+      print('Consumption map: $consumptionMap');
+
+      return consumptionMap;
+    } catch (e) {
+      throw Exception('Failed to fetch total consumption: $e');
+    }
   }
 }

@@ -10,10 +10,10 @@ class LogDrinkScreen extends StatefulWidget {
   const LogDrinkScreen({super.key});
 
   @override
-  _LogDrinkScreenState createState() => _LogDrinkScreenState();
+  LogDrinkScreenState createState() => LogDrinkScreenState();
 }
 
-class _LogDrinkScreenState extends State<LogDrinkScreen> {
+class LogDrinkScreenState extends State<LogDrinkScreen> {
   DrinkType? selectedDrinkType;
 
   void _logDrink(BuildContext context, DrinkType drinkType) {
