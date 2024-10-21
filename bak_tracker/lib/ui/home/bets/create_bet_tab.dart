@@ -19,8 +19,8 @@ class CreateBetTab extends StatefulWidget {
 }
 
 class _CreateBetTabState extends State<CreateBetTab> {
-  final _descriptionController = TextEditingController();
-  final _amountController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _amountController = TextEditingController();
   String? _selectedReceiverId;
 
   final int _maxDescriptionLength = 255;

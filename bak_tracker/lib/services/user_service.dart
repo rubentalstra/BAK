@@ -37,8 +37,10 @@ class UserService {
 
   // Log alcohol consumption and update streaks
   Future<UserModel> logAlcoholConsumption(
-      UserModel user, String alcoholType) async {
-    final now = DateTime.now();
+    UserModel user,
+    String alcoholType,
+  ) async {
+    final DateTime now = DateTime.now();
 
     // Initialize streak update variables
     int newStreak = user.alcoholStreak;
@@ -69,6 +71,7 @@ class UserService {
     } else {
       // First time logging alcohol consumption starts a new streak
       newStreak = 1;
+      highestStreak = 1;
       streakUpdated = true;
     }
 

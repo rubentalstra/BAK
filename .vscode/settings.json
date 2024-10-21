@@ -30,4 +30,5 @@
   "editor.bracketPairColorization.enabled": true,
   "dart.previewFlutterUiGuides": true,
   "editor.stickyScroll.enabled": true,
+  "editor.inlayHints.enabled": "on",
 }
