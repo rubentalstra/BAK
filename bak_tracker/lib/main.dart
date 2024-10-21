@@ -71,6 +71,10 @@ class BakTrackerApp extends StatelessWidget {
     final supabaseClient = Supabase.instance.client;
     final associationService = AssociationService(supabaseClient);
     final userService = UserService(supabaseClient);
+    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+        FlutterLocalNotificationsPlugin();
+    final notificationsService =
+        NotificationsService(flutterLocalNotificationsPlugin);
 
     return MultiBlocProvider(
       providers: [
@@ -78,7 +82,8 @@ class BakTrackerApp extends StatelessWidget {
             create: (_) => AssociationBloc(associationService)),
         BlocProvider<AuthenticationBloc>(create: (_) => AuthenticationBloc()),
         BlocProvider<LocaleBloc>(create: (_) => LocaleBloc()),
-        BlocProvider<UserBloc>(create: (_) => UserBloc(userService)),
+        BlocProvider<UserBloc>(
+            create: (_) => UserBloc(userService, notificationsService)),
       ],
       child: BlocBuilder<LocaleBloc, LocaleState>(
         builder: (context, localeState) {

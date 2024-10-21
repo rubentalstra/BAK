@@ -1,3 +1,4 @@
+import 'package:bak_tracker/services/notifications_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bak_tracker/services/user_service.dart';
 import 'user_event.dart';
@@ -5,8 +6,9 @@ import 'user_state.dart';
 
 class UserBloc extends Bloc<UserEvent, UserState> {
   final UserService userService;
+  final NotificationsService notificationsService;
 
-  UserBloc(this.userService) : super(UserInitial()) {
+  UserBloc(this.userService, this.notificationsService) : super(UserInitial()) {
     on<LoadUser>(_onLoadUser);
     on<UpdateUserProfile>(_onUpdateUserProfile);
     on<LogAlcoholConsumption>(_onLogAlcoholConsumption);
@@ -18,6 +20,14 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     emit(UserLoading());
     try {
       final user = await userService.getUserById(event.userId);
+
+      if (user.streakNotificationsEnabled) {
+        await notificationsService.scheduleStreakReminder(user);
+      }
+
+      // // Example of triggering achievement notification
+      // await notificationsService.checkAndNotifyAchievements(user);
+
       emit(UserLoaded(user));
     } catch (error) {
       emit(UserError(error.toString()));
@@ -28,6 +38,14 @@ class UserBloc extends Bloc<UserEvent, UserState> {
       UpdateUserProfile event, Emitter<UserState> emit) async {
     try {
       await userService.updateUser(event.updatedUser);
+
+      // Reschedule streak notifications if streaks are enabled
+      if (event.updatedUser.streakNotificationsEnabled) {
+        await notificationsService.scheduleStreakReminder(event.updatedUser);
+      } else {
+        await notificationsService.cancelStreakReminder();
+      }
+
       emit(UserLoaded(event.updatedUser));
     } catch (error) {
       emit(UserError(error.toString()));
@@ -41,6 +59,14 @@ class UserBloc extends Bloc<UserEvent, UserState> {
       try {
         final updatedUser = await userService.logAlcoholConsumption(
             currentState.user, event.alcoholType);
+
+        if (updatedUser.streakNotificationsEnabled) {
+          await notificationsService.scheduleStreakReminder(updatedUser);
+        }
+
+        // // Check for achievements and notify
+        // await notificationsService.checkAndNotifyAchievements(updatedUser);
+
         emit(UserLoaded(updatedUser));
       } catch (error) {
         emit(UserError(error.toString()));
@@ -53,7 +79,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     final currentState = state;
     if (currentState is UserLoaded) {
       try {
-        // Toggle notifications and update the user model
+        // Toggle general notifications and update the user model
         await userService.toggleNotifications(
             currentState.user.id, event.isEnabled);
         final updatedUser = currentState.user.copyWith(
@@ -71,12 +97,18 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     final currentState = state;
     if (currentState is UserLoaded) {
       try {
-        // Toggle streak notifications and update the user model
         await userService.toggleStreakNotifications(
             currentState.user.id, event.isEnabled);
         final updatedUser = currentState.user.copyWith(
           streakNotificationsEnabled: event.isEnabled,
         );
+
+        if (updatedUser.streakNotificationsEnabled) {
+          await notificationsService.scheduleStreakReminder(updatedUser);
+        } else {
+          await notificationsService.cancelStreakReminder();
+        }
+
         emit(UserLoaded(updatedUser));
       } catch (error) {
         emit(UserError(

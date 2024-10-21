@@ -1,27 +1,26 @@
 import 'package:app_badge_plus/app_badge_plus.dart';
+import 'package:bak_tracker/core/const/notification_messages.dart';
+import 'package:bak_tracker/models/user_model.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 class NotificationsService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   final Set<String> _shownNotificationIds = {}; // Store notification IDs
 
-  NotificationsService(this.flutterLocalNotificationsPlugin);
+  NotificationsService(this.flutterLocalNotificationsPlugin) {
+    tz.initializeTimeZones();
+  }
 
   Future<void> initializeNotifications() async {
-    // Request notification permissions for both local and FCM
     await _requestNotificationPermissions();
-
-    // Initialize local notification platform settings
     await _initializePlatformSettings();
-
-    // Create the notification channel for Android
     await _createNotificationChannel();
-
-    // Reset badge count at startup
     await _resetBadgeCount();
   }
 
@@ -46,7 +45,6 @@ class NotificationsService {
         _resetBadgeCount(); // Reset badge when notification is tapped
       },
     );
-    print('Local Notifications initialized successfully');
   }
 
   // Creating a notification channel for Android 8.0+
@@ -81,14 +79,12 @@ class NotificationsService {
   Future<void> setupFirebaseMessaging() async {
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-    // Request notification permissions for Firebase
     final settings = await messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
 
-    // Ensure Firebase notifications are not handled by default in the foreground
     await messaging.setForegroundNotificationPresentationOptions(
       alert: false,
       badge: false,
@@ -99,11 +95,9 @@ class NotificationsService {
       await handleFCMToken(messaging);
     }
 
-    // Handle foreground messages
     FirebaseMessaging.onMessage
         .listen((message) => _handleForegroundMessage(message));
 
-    // Handle notification taps (opened via notification)
     FirebaseMessaging.onMessageOpenedApp
         .listen((message) => _resetBadgeCount());
   }
@@ -118,9 +112,6 @@ class NotificationsService {
         await Supabase.instance.client
             .from('users')
             .update({'fcm_token': token}).eq('id', userId);
-        print('FCM token updated successfully.');
-      } else {
-        print('FCM token or user ID is null.');
       }
     } catch (e) {
       print('Error updating FCM token: $e');
@@ -137,8 +128,6 @@ class NotificationsService {
         final title = message.notification?.title ?? 'No title';
         final body = message.notification?.body ?? 'No body';
         await _showNotification(title, body);
-
-        // Increment badge count when a new notification is shown
         await _incrementBadgeCount();
       }
     }
@@ -166,15 +155,104 @@ class NotificationsService {
       platformChannelSpecifics,
       payload: body,
     );
+  }
 
-    // Increment the badge count after showing the notification
-    await _incrementBadgeCount();
+// Scheduling a streak reminder notification dynamically
+  Future<void> scheduleStreakReminder(UserModel user) async {
+    final now = DateTime.now();
+    DateTime reminderTime =
+        DateTime(now.year, now.month, now.day, 20, 0); // 8 PM today
+
+    // If the current time is already past 8 PM, schedule for tomorrow
+    if (now.isAfter(reminderTime)) {
+      reminderTime = reminderTime.add(const Duration(days: 1));
+    }
+
+    String title;
+    String body;
+
+    if (user.alcoholStreak > 0) {
+      final hoursRemaining = reminderTime.difference(now).inHours;
+      if (hoursRemaining <= 2) {
+        // Last chance
+        title = NotificationMessages.streakLastChanceTitle;
+        body = NotificationMessages.streakLastChanceBody;
+      } else if (hoursRemaining <= 6) {
+        // Streak is on fire
+        title = NotificationMessages.streakOnFireTitle;
+        body = NotificationMessages.streakOnFireBody;
+      } else {
+        // Default reminder
+        title = NotificationMessages.streakReminderTitle;
+        body = NotificationMessages.streakReminderBody;
+      }
+
+      await scheduleNotification(
+        title: title,
+        body: body,
+        scheduledTime: reminderTime,
+      );
+    }
+  }
+
+  // Cancel scheduled streak reminders
+  Future<void> cancelStreakReminder() async {
+    await flutterLocalNotificationsPlugin.cancelAll();
+  }
+
+  // Schedule a local notification
+  Future<void> scheduleNotification({
+    required String title,
+    required String body,
+    required DateTime scheduledTime,
+  }) async {
+    final tz.TZDateTime localScheduledTime =
+        tz.TZDateTime.from(scheduledTime, tz.local);
+
+    const androidDetails = AndroidNotificationDetails(
+      'your_channel_id',
+      'your_channel_name',
+      channelDescription: 'your_channel_description',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@drawable/ic_notification',
+    );
+    const platformChannelSpecifics = NotificationDetails(
+      android: androidDetails,
+      iOS: DarwinNotificationDetails(),
+    );
+
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      localScheduledTime.hashCode,
+      title,
+      body,
+      localScheduledTime,
+      platformChannelSpecifics,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
+  // Increment the badge count and store it persistently
+  Future<void> _incrementBadgeCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    int currentBadgeCount = prefs.getInt('badge_count') ?? 0;
+    currentBadgeCount++;
+    await prefs.setInt('badge_count', currentBadgeCount);
+    AppBadgePlus.updateBadge(currentBadgeCount);
+  }
+
+  // Reset the badge count and update storage
+  Future<void> _resetBadgeCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('badge_count', 0);
+    AppBadgePlus.updateBadge(0);
   }
 
   // Background message handler
   static Future<void> firebaseMessagingBackgroundHandler(
       RemoteMessage message) async {
-    print('Handling background message: ${message.messageId}');
     final title = message.data['title'] ?? 'No title';
     final body = message.data['body'] ?? 'No body';
 
@@ -200,31 +278,10 @@ class NotificationsService {
       payload: body,
     );
 
-    // Increment badge count in the background
     final prefs = await SharedPreferences.getInstance();
     int currentBadgeCount = prefs.getInt('badge_count') ?? 0;
     currentBadgeCount++;
     await prefs.setInt('badge_count', currentBadgeCount);
     AppBadgePlus.updateBadge(currentBadgeCount);
-  }
-
-  // Increment the badge count and store it persistently
-  Future<void> _incrementBadgeCount() async {
-    final prefs = await SharedPreferences.getInstance();
-    int currentBadgeCount = prefs.getInt('badge_count') ?? 0;
-    currentBadgeCount++;
-    await prefs.setInt('badge_count', currentBadgeCount);
-
-    // Update the badge using AppBadgePlus
-    AppBadgePlus.updateBadge(currentBadgeCount);
-  }
-
-  // Reset the badge count and update storage
-  Future<void> _resetBadgeCount() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('badge_count', 0);
-
-    // Reset the badge using AppBadgePlus
-    AppBadgePlus.updateBadge(0);
   }
 }
