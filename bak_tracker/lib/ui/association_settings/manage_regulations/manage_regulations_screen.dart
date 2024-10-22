@@ -38,10 +38,11 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
             return const Center(child: CircularProgressIndicator());
           } else if (state is AssociationLoaded) {
             return _buildContent(
-                state.selectedAssociation.bakRegulations,
-                state.selectedAssociation.id,
-                state.selectedAssociation.updatedAt
-                    .toLocal()); // Convert to local time
+              state.selectedAssociation.bakRegulations,
+              state.selectedAssociation.id,
+              state.selectedAssociation.updatedAt
+                  .toLocal(), // Convert to local time
+            );
           } else {
             return const Center(child: Text('Error loading association data.'));
           }
@@ -51,7 +52,10 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
   }
 
   Widget _buildContent(
-      String? bakRegulations, String associationId, DateTime? updatedAt) {
+    String? bakRegulations,
+    String associationId,
+    DateTime? updatedAt,
+  ) {
     final hasRegulations = bakRegulations?.isNotEmpty ?? false;
 
     // Format the last updated time in local time zone
@@ -150,9 +154,10 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
         label: Text(
           label,
           style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.lightOnPrimary), // Text color updated
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.lightOnPrimary, // Text color updated
+          ),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor:
@@ -169,7 +174,9 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
   }
 
   Future<void> _viewRegulations(
-      String bakRegulations, String associationId) async {
+    String bakRegulations,
+    String associationId,
+  ) async {
     try {
       final pdfFile =
           await pdfService.fetchOrDownloadPdf(bakRegulations, associationId);
@@ -189,7 +196,9 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
   }
 
   Future<void> _uploadRegulations(
-      String associationId, String? bakRegulations) async {
+    String associationId,
+    String? bakRegulations,
+  ) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
@@ -213,24 +222,34 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
   }
 
   Future<void> _deleteRegulations(
-      String bakRegulations, String associationId) async {
+    String bakRegulations,
+    String associationId,
+  ) async {
+    setState(() => _isUploading = true);
+
     try {
       await pdfService.deletePdf(bakRegulations, associationId);
       _refreshAssociationModel();
       _showSnackBar('Regulations deleted successfully.');
     } catch (e) {
       _showSnackBar('Failed to delete the PDF.', isError: true);
+    } finally {
+      setState(() => _isUploading = false);
     }
   }
 
-  void _confirmDeleteRegulations(String bakRegulations, String associationId) {
+  void _confirmDeleteRegulations(
+    String bakRegulations,
+    String associationId,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Delete Regulations'),
           content: const Text(
-              'Are you sure you want to delete the current regulations? This action cannot be undone.'),
+            'Are you sure you want to delete the current regulations? This action cannot be undone.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -251,10 +270,14 @@ class _ManageRegulationsScreenState extends State<ManageRegulationsScreen> {
 
   void _refreshAssociationModel() {
     final associationBloc = context.read<AssociationBloc>();
-    associationBloc.add(SelectAssociation(
-      selectedAssociation:
-          (associationBloc.state as AssociationLoaded).selectedAssociation,
-    ));
+    final currentState = associationBloc.state;
+
+    if (currentState is AssociationLoaded) {
+      // Dispatch SelectAssociation with the current selected association
+      associationBloc.add(SelectAssociation(
+        selectedAssociation: currentState.selectedAssociation,
+      ));
+    }
   }
 
   void _showSnackBar(String message, {bool isError = false}) {

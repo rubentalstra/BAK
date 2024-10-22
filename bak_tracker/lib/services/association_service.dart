@@ -8,28 +8,67 @@ import 'package:bak_tracker/models/association_member_model.dart';
 class AssociationService {
   final SupabaseClient _supabase;
 
-  // Constructor to initialize the Supabase client
   AssociationService(this._supabase);
 
-  // Fetches members for a given association ID and their achievements
+  Future<AssociationModel> fetchAssociationData(String associationId) async {
+    try {
+      final response = await _supabase
+          .from('associations')
+          .select('*')
+          .eq('id', associationId)
+          .single();
+
+      return AssociationModel.fromMap(response);
+    } catch (e) {
+      throw Exception('Failed to fetch association data: ${e.toString()}');
+    }
+  }
+
+  Future<AssociationMemberModel> fetchMemberData(
+      String associationId, String userId) async {
+    try {
+      final response = await _supabase
+          .from('association_members')
+          .select('''
+                id, 
+                user_id (id, name, profile_image, bio, fcm_token, alcohol_streak, user_achievements (id, assigned_at, achievement_id(id, name, description, created_at))), 
+                association_id, 
+                role, 
+                permissions, 
+                joined_at, 
+                baks_received, 
+                baks_consumed, 
+                bets_won, 
+                bets_lost,
+                association_member_achievements (id, assigned_at, achievement_id(id, name, description, created_at))
+                ''')
+          .eq('user_id', userId)
+          .eq('association_id', associationId)
+          .single();
+      return AssociationMemberModel.fromMap(response);
+    } catch (e) {
+      throw Exception('Failed to fetch member data: ${e.toString()}');
+    }
+  }
+
   Future<List<AssociationMemberModel>> fetchMembers(
       String associationId) async {
     try {
-      final List<dynamic> response = await _supabase
+      final response = await _supabase
           .from('association_members')
           .select('''
-            id, 
-            user_id (id, name, profile_image, bio, alcohol_streak, highest_alcohol_streak, last_drink_consumed_at, fcm_token, user_achievements (id, assigned_at, achievement_id(id, name, description, created_at))), 
-            association_id, 
-            role, 
-            permissions, 
-            joined_at, 
-            baks_received, 
-            baks_consumed, 
-            bets_won, 
-            bets_lost,
-            association_member_achievements (id, assigned_at, achievement_id(id, name, description, created_at))
-        ''')
+                id, 
+                user_id (id, name, profile_image, bio, alcohol_streak, highest_alcohol_streak, last_drink_consumed_at, fcm_token, user_achievements (id, assigned_at, achievement_id(id, name, description, created_at))), 
+                association_id, 
+                role, 
+                permissions, 
+                joined_at, 
+                baks_received, 
+                baks_consumed, 
+                bets_won, 
+                bets_lost,
+                association_member_achievements (id, assigned_at, achievement_id(id, name, description, created_at))
+            ''')
           .eq('association_id', associationId)
           .order('user_id(name)', ascending: true);
 
@@ -38,8 +77,110 @@ class AssociationService {
               (data) => AssociationMemberModel.fromMap(data))
           .toList();
     } catch (e) {
-      _handleError('fetchMembers', e);
-      return [];
+      throw Exception('Failed to fetch members: ${e.toString()}');
+    }
+  }
+
+  Future<int> fetchPendingBaksCount(String associationId, String userId) async {
+    try {
+      final response = await _supabase
+          .from('bak_send')
+          .select('id')
+          .eq('association_id', associationId)
+          .eq('receiver_id', userId)
+          .eq('status', 'pending');
+      return response.length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  Future<int> fetchPendingApproveBaksCount(
+      String associationId, String userId) async {
+    try {
+      // Check if user has permission to approve BAKs
+      final memberData = await fetchMemberData(associationId, userId);
+      if (!(memberData.permissions
+              .hasPermission(PermissionEnum.canApproveBaks) ||
+          memberData.permissions
+              .hasPermission(PermissionEnum.hasAllPermissions))) {
+        return 0;
+      }
+
+      final res = await _supabase
+          .from('bak_consumed')
+          .select('id')
+          .eq('association_id', associationId)
+          .eq('status', 'pending')
+          .count(CountOption.exact);
+
+      return res.count;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  Future<int> fetchPendingBetsCount(String associationId, String userId) async {
+    try {
+      final res = await _supabase
+          .from('bets')
+          .select('id')
+          .eq('association_id', associationId)
+          .or('bet_creator_id.eq.$userId,bet_receiver_id.eq.$userId')
+          .inFilter('status', ['pending', 'accepted']).count(CountOption.exact);
+
+      return res.count;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  Future<Map<String, int>> fetchAllPendingCounts(
+      String associationId, String userId) async {
+    try {
+      final response = await _supabase.rpc('fetch_pending_counts', params: {
+        'p_association_id': associationId,
+        'p_user_id': userId,
+      }).single();
+
+      return {
+        'pendingBaksCount': response['pending_baks_count'] ?? 0,
+        'pendingApproveBaksCount': response['pending_approve_baks_count'] ?? 0,
+        'pendingBetsCount': response['pending_bets_count'] ?? 0,
+      };
+    } catch (e) {
+      throw Exception('Failed to fetch pending counts: ${e.toString()}');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchAssociationDetails(
+      String associationId, String userId) async {
+    try {
+      // Run fetches in parallel
+      final results = await Future.wait([
+        fetchAssociationData(associationId),
+        fetchMemberData(associationId, userId),
+        fetchMembers(associationId),
+        fetchAllPendingCounts(associationId, userId),
+      ]);
+
+      // Extract results
+      final latestAssociation = results[0] as AssociationModel;
+      final memberData = results[1] as AssociationMemberModel;
+      final members = results[2] as List<AssociationMemberModel>;
+      final pendingCounts = results[3] as Map<String, int>;
+
+      return {
+        'association': latestAssociation,
+        'memberData': memberData,
+        'members': members,
+        'pendingBaksCount': pendingCounts['pendingBaksCount'] ?? 0,
+        'pendingApproveBaksCount':
+            pendingCounts['pendingApproveBaksCount'] ?? 0,
+        'pendingBetsCount': pendingCounts['pendingBetsCount'] ?? 0,
+      };
+    } catch (e) {
+      throw Exception('Failed to fetch association details: ${e.toString()}');
     }
   }
 
@@ -61,53 +202,6 @@ class AssociationService {
     } catch (e) {
       _handleError('fetchDrinkStats', e);
       return {'chuckedDrinks': 0, 'drinkDebt': 0};
-    }
-  }
-
-  // Fetches pending baks count for a specific user and association
-  Future<int> fetchPendingBaksCount(String associationId, String userId) async {
-    try {
-      final response = await _supabase
-          .from('bak_send')
-          .select()
-          .eq('association_id', associationId)
-          .eq('receiver_id', userId)
-          .eq('status', 'pending');
-      return response.length;
-    } catch (e) {
-      _handleError('fetchPendingBaksCount', e);
-      return 0;
-    }
-  }
-
-  // Fetches pending approval baks count for an association
-  Future<int> fetchPendingApproveBaksCount(String associationId) async {
-    try {
-      final response = await _supabase
-          .from('bak_consumed')
-          .select()
-          .eq('association_id', associationId)
-          .eq('status', 'pending');
-      return response.length;
-    } catch (e) {
-      _handleError('fetchPendingApproveBaksCount', e);
-      return 0;
-    }
-  }
-
-  // Fetches pending bets count for a specific user and association
-  Future<int> fetchPendingBetsCount(String associationId, String userId) async {
-    try {
-      final response = await _supabase
-          .from('bets')
-          .select()
-          .eq('association_id', associationId)
-          .or('bet_creator_id.eq.$userId,bet_receiver_id.eq.$userId')
-          .inFilter('status', ['pending', 'accepted']);
-      return response.length;
-    } catch (e) {
-      _handleError('fetchPendingBetsCount', e);
-      return 0;
     }
   }
 

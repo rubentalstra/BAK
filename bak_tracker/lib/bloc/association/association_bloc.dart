@@ -29,7 +29,6 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
     _initialize();
   }
 
-  // Initialize shared preferences and load selected association
   void _initialize() async {
     await _loadSelectedAssociation();
   }
@@ -56,28 +55,21 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       return;
     }
 
-    _saveSelectedAssociation(event.selectedAssociation);
-
     try {
-      final responses = await Future.wait([
-        _fetchMemberData(event.selectedAssociation.id, userId),
-        _associationService.fetchMembers(event.selectedAssociation.id),
-        _associationService.fetchPendingBaksCount(
-            event.selectedAssociation.id, userId),
-        _associationService
-            .fetchPendingApproveBaksCount(event.selectedAssociation.id),
-        _associationService.fetchPendingBetsCount(
-            event.selectedAssociation.id, userId),
-      ]);
+      final data = await _associationService.fetchAssociationDetails(
+          event.selectedAssociation.id, userId);
 
-      final memberData = responses[0] as AssociationMemberModel;
-      final members = responses[1] as List<AssociationMemberModel>;
-      final pendingBaksCount = responses[2] as int;
-      final pendingApproveBaksCount = responses[3] as int;
-      final pendingBetsCount = responses[4] as int;
+      final latestAssociation = data['association'] as AssociationModel;
+      final memberData = data['memberData'] as AssociationMemberModel;
+      final members = data['members'] as List<AssociationMemberModel>;
+      final pendingBaksCount = data['pendingBaksCount'] as int;
+      final pendingApproveBaksCount = data['pendingApproveBaksCount'] as int;
+      final pendingBetsCount = data['pendingBetsCount'] as int;
+
+      await _saveSelectedAssociation(latestAssociation);
 
       await WidgetService.updateDrinkInfo(
-        event.selectedAssociation.name,
+        latestAssociation.name,
         memberData.baksConsumed.toString(),
         memberData.baksReceived.toString(),
         memberData.betsWon.toString(),
@@ -85,7 +77,7 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
       );
 
       emit(AssociationLoaded(
-        selectedAssociation: event.selectedAssociation,
+        selectedAssociation: latestAssociation,
         memberData: memberData,
         members: members,
         pendingBaksCount: pendingBaksCount,
@@ -205,11 +197,27 @@ class AssociationBloc extends Bloc<AssociationEvent, AssociationState> {
   Future<void> _onRefreshPendingBaks(
       RefreshPendingApproveBaks event, Emitter<AssociationState> emit) async {
     if (state is AssociationLoaded) {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) {
+        emit(const AssociationError('User not authenticated'));
+        return;
+      }
+
       try {
-        final pendingApproveBaksCount = await _associationService
-            .fetchPendingApproveBaksCount(event.associationId);
-        emit((state as AssociationLoaded)
-            .copyWith(pendingApproveBaksCount: pendingApproveBaksCount));
+        final memberData = (state as AssociationLoaded).memberData;
+        if (memberData.permissions
+                .hasPermission(PermissionEnum.canApproveBaks) ||
+            memberData.permissions
+                .hasPermission(PermissionEnum.hasAllPermissions)) {
+          final pendingApproveBaksCount = await _associationService
+              .fetchPendingApproveBaksCount(event.associationId, userId);
+          emit((state as AssociationLoaded)
+              .copyWith(pendingApproveBaksCount: pendingApproveBaksCount));
+        } else {
+          // User doesn't have permission; set count to zero
+          emit((state as AssociationLoaded)
+              .copyWith(pendingApproveBaksCount: 0));
+        }
       } catch (e) {
         emit(AssociationError('Failed to refresh pending approve baks: $e'));
       }

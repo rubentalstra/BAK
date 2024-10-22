@@ -11,8 +11,11 @@ class LeaderboardProfileScreen extends StatefulWidget {
   final AssociationMemberModel member;
   final File? localImageFile;
 
-  const LeaderboardProfileScreen(
-      {super.key, required this.member, this.localImageFile});
+  const LeaderboardProfileScreen({
+    super.key,
+    required this.member,
+    this.localImageFile,
+  });
 
   @override
   _LeaderboardProfileScreenState createState() =>
@@ -21,46 +24,43 @@ class LeaderboardProfileScreen extends StatefulWidget {
 
 class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late ValueNotifier<IconData> _hourglassIconNotifier;
+  AnimationController? _controller;
+  IconData? _hourglassIcon;
 
   @override
   void initState() {
     super.initState();
+    if (widget.member.user.shouldShowHourglass()) {
+      _controller = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 3),
+      )..repeat();
 
-    // Initialize the animation controller for the hourglass icon
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(
-          seconds: 3), // Total duration of the hourglass animation cycle
-    )..repeat(); // Repeat the animation infinitely
+      _controller!.addListener(_updateHourglassIcon);
+      _updateHourglassIcon();
+    }
+  }
 
-    // Set initial hourglass icon
-    _hourglassIconNotifier =
-        ValueNotifier<IconData>(FontAwesomeIcons.hourglassStart);
-
-    // Update the icon based on animation progress
-    _controller.addListener(() {
-      final progress = _controller.value;
-
+  void _updateHourglassIcon() {
+    final progress = _controller!.value;
+    setState(() {
       if (progress < 0.33) {
-        _hourglassIconNotifier.value = FontAwesomeIcons.hourglassStart;
+        _hourglassIcon = FontAwesomeIcons.hourglassStart;
       } else if (progress < 0.66) {
-        _hourglassIconNotifier.value = FontAwesomeIcons.hourglassHalf;
-      } else if (progress < 1.0) {
-        _hourglassIconNotifier.value = FontAwesomeIcons.hourglassEnd;
+        _hourglassIcon = FontAwesomeIcons.hourglassHalf;
+      } else {
+        _hourglassIcon = FontAwesomeIcons.hourglassEnd;
       }
     });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
-    _hourglassIconNotifier.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
-  void _showFullScreenImage(BuildContext context) {
+  void _showFullScreenImage() {
     if (widget.localImageFile != null) {
       Navigator.push(
         context,
@@ -74,22 +74,25 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
 
   @override
   Widget build(BuildContext context) {
+    final member = widget.member;
+    final user = member.user;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.member.user.name),
+        title: Text(user.name),
         centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.only(top: 16, left: 16, right: 16),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildProfileImage(context),
+              _buildProfileImage(),
               const SizedBox(height: 20),
               _buildStreakAndHourglass(),
               const SizedBox(height: 20),
-              _buildAchievementsSection(context),
+              _buildAchievementsSection(),
               const SizedBox(height: 20),
               _buildProfileCard(),
               const SizedBox(height: 20),
@@ -101,33 +104,33 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
     );
   }
 
-  // Profile image display logic with reusable method
-  Widget _buildProfileImage(BuildContext context) {
+  Widget _buildProfileImage() {
+    final user = widget.member.user;
     return Center(
-      child: GestureDetector(
-        onTap: () => _showFullScreenImage(context),
-        child: CircleAvatar(
-          radius: 80,
-          backgroundColor: Color.fromRGBO(158, 158, 158, 1),
-          backgroundImage: widget.localImageFile != null
-              ? FileImage(widget.localImageFile!)
-              : null,
-          child: widget.localImageFile == null
-              ? Text(
-                  widget.member.user.name[0].toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 70,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                )
-              : null,
-        ),
+        child: GestureDetector(
+      onTap: _showFullScreenImage,
+      child: CircleAvatar(
+        radius: 80,
+        backgroundColor: Colors.grey[400],
+        backgroundImage: widget.localImageFile != null
+            ? FileImage(widget.localImageFile!)
+            : null,
+        child: widget.localImageFile == null
+            ? Text(
+                user.name[0].toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 70,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              )
+            : null,
       ),
-    );
+    ));
   }
 
-  Widget _buildAchievementsSection(BuildContext context) {
+  Widget _buildAchievementsSection() {
+    final achievements = widget.member.achievements;
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Column(
@@ -142,15 +145,14 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
             ),
           ),
           const SizedBox(height: 12),
-          widget.member.achievements.isEmpty
+          achievements.isEmpty
               ? const Text('No achievements earned yet.')
               : Wrap(
                   spacing: 10,
                   runSpacing: 8,
-                  children: widget.member.achievements
+                  children: achievements
                       .map((achievement) => GestureDetector(
-                            onTap: () =>
-                                _showAchievementDetails(context, achievement),
+                            onTap: () => _showAchievementDetails(achievement),
                             child: _buildAchievementBadge(achievement),
                           ))
                       .toList(),
@@ -160,12 +162,12 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
     );
   }
 
-// Build the streak and hourglass widgets, and include the highest streak
   Widget _buildStreakAndHourglass() {
+    final user = widget.member.user;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Display the highest streak
+        // Highest Streak
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -175,10 +177,8 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
               size: 24,
             ),
             const SizedBox(width: 8),
-
-            // Highest Streak text
             Text(
-              'Highest Streak: ${widget.member.user.highestAlcoholStreak} ${widget.member.user.highestAlcoholStreak == 1 ? 'day' : 'days'}',
+              'Highest Streak: ${user.highestAlcoholStreak} ${user.highestAlcoholStreak == 1 ? 'day' : 'days'}',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -187,44 +187,35 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
             ),
           ],
         ),
-
         const SizedBox(height: 8),
-
+        // Current Streak and Hourglass
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Flame icon for streaks
-            Icon(
+            const Icon(
               FontAwesomeIcons.fire,
               color: Colors.deepOrangeAccent,
               size: 24,
             ),
             const SizedBox(width: 8),
-
-            // Current Adje Streak text
             Text(
-              '${widget.member.user.alcoholStreak} ${widget.member.user.alcoholStreak == 1 ? 'day' : 'days'}',
+              '${user.alcoholStreak} ${user.alcoholStreak == 1 ? 'day' : 'days'}',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.deepOrangeAccent,
               ),
             ),
-
-            // Animated hourglass if streak is about to expire
             if (widget.member.user.shouldShowHourglass())
               Padding(
                 padding: const EdgeInsets.only(left: 12.0),
-                child: ValueListenableBuilder<IconData>(
-                  valueListenable: _hourglassIconNotifier,
-                  builder: (context, icon, _) {
-                    return Icon(
-                      icon,
-                      color: Colors.orangeAccent,
-                      size: 28,
-                    );
-                  },
-                ),
+                child: _hourglassIcon != null
+                    ? Icon(
+                        _hourglassIcon,
+                        color: Colors.orangeAccent,
+                        size: 28,
+                      )
+                    : const SizedBox(),
               ),
           ],
         ),
@@ -232,7 +223,6 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
     );
   }
 
-  // Reusable method for achievement badge
   Widget _buildAchievementBadge(AssociationMemberAchievementModel achievement) {
     return Chip(
       avatar: const Icon(Icons.star, color: Colors.white),
@@ -246,23 +236,24 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
   }
 
   Widget _buildProfileCard() {
+    final member = widget.member;
+    final user = member.user;
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 4,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildInfoRow(
               'Role',
-              widget.member.role ?? 'No role available',
+              member.role ?? 'No role available',
               Icons.person,
             ),
             const SizedBox(height: 16),
             _buildInfoRow(
               'Bio',
-              widget.member.user.bio ?? 'No bio available',
+              user.bio ?? 'No bio available',
               Icons.info_outline,
             ),
           ],
@@ -272,6 +263,7 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
   }
 
   Widget _buildStatsCard() {
+    final member = widget.member;
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 4,
@@ -282,12 +274,12 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
             _buildStatsRow([
               _buildStatColumn(
                 'Chucked',
-                widget.member.baksConsumed,
+                member.baksConsumed,
                 FontAwesomeIcons.wineBottle,
               ),
               _buildStatColumn(
                 'BAK Debt',
-                widget.member.baksReceived,
+                member.baksReceived,
                 FontAwesomeIcons.beerMugEmpty,
               ),
             ]),
@@ -295,12 +287,12 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
             _buildStatsRow([
               _buildStatColumn(
                 'Bets Won',
-                widget.member.betsWon,
+                member.betsWon,
                 Icons.emoji_events,
               ),
               _buildStatColumn(
                 'Bets Lost',
-                widget.member.betsLost,
+                member.betsLost,
                 FontAwesomeIcons.dice,
               ),
             ]),
@@ -310,7 +302,6 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
     );
   }
 
-  // Reusable method for info row
   Widget _buildInfoRow(String label, String value, IconData icon) {
     return Row(
       children: [
@@ -343,7 +334,6 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
     );
   }
 
-  // Reusable method for stats row
   Widget _buildStatsRow(List<Widget> columns) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -351,7 +341,6 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
     );
   }
 
-  // Reusable method for stat column
   Widget _buildStatColumn(String label, int value, IconData icon) {
     return Column(
       children: [
@@ -376,11 +365,7 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
     );
   }
 
-  // Method to show achievement details in a modal bottom sheet
-  void _showAchievementDetails(
-    BuildContext context,
-    AssociationMemberAchievementModel achievement,
-  ) {
+  void _showAchievementDetails(AssociationMemberAchievementModel achievement) {
     final localDate = achievement.assignedAt.toLocal();
     final formattedDate = DateFormat('HH:mm dd-MM-yyyy').format(localDate);
 
@@ -388,10 +373,9 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
       backgroundColor: AppColors.cardBackground,
       context: context,
       builder: (BuildContext context) {
-        return Padding(
+        return SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildAchievementHeader(achievement),
@@ -418,7 +402,6 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
     );
   }
 
-  // Reusable method for achievement header
   Widget _buildAchievementHeader(
       AssociationMemberAchievementModel achievement) {
     return Row(
@@ -437,7 +420,6 @@ class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
     );
   }
 
-  // Reusable method for achievement details
   Widget _buildAchievementDetail(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),

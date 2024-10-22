@@ -1,12 +1,10 @@
+// main_screen.dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:bak_tracker/bloc/association/association_bloc.dart';
 import 'package:bak_tracker/bloc/association/association_event.dart';
-import 'package:bak_tracker/bloc/association/association_state.dart';
 import 'package:bak_tracker/bloc/user/user_bloc.dart';
 import 'package:bak_tracker/bloc/user/user_event.dart';
-import 'package:bak_tracker/bloc/user/user_state.dart';
-import 'package:bak_tracker/core/const/permissions_constants.dart';
 import 'package:bak_tracker/ui/home/bak/bak_screen.dart';
 import 'package:bak_tracker/ui/home/bets/bets_screen.dart';
 import 'package:bak_tracker/ui/home/chucked/chucked_screen.dart';
@@ -26,31 +24,28 @@ class MainScreen extends StatefulWidget {
   MainScreenState createState() => MainScreenState();
 }
 
-class MainScreenState extends State<MainScreen> {
+class MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   List<AssociationModel> _associations = [];
   AssociationModel? _selectedAssociation;
-  Timer? _approveBaksTimer;
-  Timer? _pendingBaksAndBetsTimer;
-
-  int pendingBaksCount = 0;
-  int pendingBetsCount = 0;
+  Timer? _pendingCountersTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initialize();
+    _startPendingCountersTimer();
   }
 
   @override
   void dispose() {
-    _approveBaksTimer?.cancel();
-    _pendingBaksAndBetsTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _pendingCountersTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _initialize() async {
-    // Load user details at initialization via UserBloc
     final currentUser = Supabase.instance.client.auth.currentUser;
     if (currentUser != null) {
       context.read<UserBloc>().add(LoadUser(currentUser.id));
@@ -58,8 +53,6 @@ class MainScreenState extends State<MainScreen> {
 
     await _fetchAssociations();
     await _loadSavedAssociation();
-    _startPollingApproveBaks();
-    _startPollingPendingBaksAndBets();
   }
 
   Future<void> _fetchAssociations() async {
@@ -80,8 +73,11 @@ class MainScreenState extends State<MainScreen> {
           .select()
           .inFilter('id', associationIds);
 
-      _associations =
-          response.map((data) => AssociationModel.fromMap(data)).toList();
+      setState(() {
+        _associations = response
+            .map<AssociationModel>((data) => AssociationModel.fromMap(data))
+            .toList();
+      });
     }
   }
 
@@ -92,80 +88,65 @@ class MainScreenState extends State<MainScreen> {
     if (savedAssociationJson != null) {
       final savedAssociation =
           AssociationModel.fromMap(jsonDecode(savedAssociationJson));
-      _selectedAssociation = _associations.firstWhere(
+      final association = _associations.firstWhere(
           (a) => a.id == savedAssociation.id,
           orElse: () => _associations.first);
-    } else {
-      _selectedAssociation = _associations.first;
+      _updateSelectedAssociation(association);
+    } else if (_associations.isNotEmpty) {
+      _updateSelectedAssociation(_associations.first);
     }
-
-    _updateSelectedAssociation(_selectedAssociation);
   }
 
   void _updateSelectedAssociation(AssociationModel? association) {
     if (association != null) {
+      setState(() {
+        _selectedAssociation = association;
+      });
       context
           .read<AssociationBloc>()
           .add(SelectAssociation(selectedAssociation: association));
+      // Also refresh pending counters when association changes
+      _refreshPendingCounters();
     }
   }
 
   void _onAssociationChanged(AssociationModel? newAssociation) {
     if (_selectedAssociation?.id != newAssociation?.id) {
-      setState(() {
-        _selectedAssociation = newAssociation;
-      });
       _updateSelectedAssociation(newAssociation);
     }
   }
 
-  void _startPollingApproveBaks() {
-    _approveBaksTimer?.cancel();
+  void _startPendingCountersTimer() {
+    _pendingCountersTimer?.cancel();
+    // Fetch counts every 5 minutes
+    _pendingCountersTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      _refreshPendingCounters();
+    });
+  }
 
-    // Ensure polling starts if there is an association
+  void _refreshPendingCounters() {
     if (_selectedAssociation != null) {
-      _approveBaksTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-        _triggerApproveBaksRefresh();
-      });
+      final associationId = _selectedAssociation!.id;
+      context.read<AssociationBloc>().add(
+            RefreshBaksAndBets(associationId),
+          );
+      context.read<AssociationBloc>().add(
+            RefreshPendingApproveBaks(associationId),
+          );
     }
   }
 
-  void _triggerApproveBaksRefresh() {
-    if (_selectedAssociation != null) {
-      context
-          .read<AssociationBloc>()
-          .add(RefreshPendingApproveBaks(_selectedAssociation!.id));
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_selectedAssociation != null) {
+        context
+            .read<AssociationBloc>()
+            .add(SelectAssociation(selectedAssociation: _selectedAssociation!));
+        // Also refresh pending counters when app resumes
+        _refreshPendingCounters();
+      }
     }
-  }
-
-  void _startPollingPendingBaksAndBets() {
-    _pendingBaksAndBetsTimer?.cancel();
-
-    if (_selectedAssociation != null) {
-      _pendingBaksAndBetsTimer =
-          Timer.periodic(const Duration(seconds: 30), (_) {
-        _triggerBaksAndBetsRefresh();
-      });
-    }
-  }
-
-  void _triggerBaksAndBetsRefresh() {
-    if (_selectedAssociation != null) {
-      context
-          .read<AssociationBloc>()
-          .add(RefreshBaksAndBets(_selectedAssociation!.id));
-    }
-  }
-
-  bool _hasApproveBaksPermission(AssociationState state) {
-    if (state is AssociationLoaded) {
-      final memberData = state.memberData;
-      return memberData.permissions
-              .hasPermission(PermissionEnum.canApproveBaks) ||
-          memberData.permissions
-              .hasPermission(PermissionEnum.hasAllPermissions);
-    }
-    return false;
   }
 
   List<Widget> _buildPages() {
@@ -184,47 +165,18 @@ class MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocListener(
-      listeners: [
-        BlocListener<AssociationBloc, AssociationState>(
-          listener: (context, state) {
-            if (state is AssociationLoaded) {
-              // Update pending counts
-              setState(() {
-                pendingBaksCount = state.pendingBaksCount;
-                pendingBetsCount = state.pendingBetsCount;
-              });
-
-              // Check if user has permission to approve BAKs and start polling if true
-              if (_hasApproveBaksPermission(state)) {
-                _startPollingApproveBaks();
-              }
-
-              // Start polling for pending Baks and Bets
-              _startPollingPendingBaksAndBets();
-            }
-          },
-        ),
-        BlocListener<UserBloc, UserState>(
-          listener: (context, state) {
-            if (state is UserLoaded) {
-              // Handle user data (e.g., FCM token registration or profile updates)
-              print('User Loaded: ${state.user.name}');
-            } else if (state is UserError) {
-              // Handle error
-              print('Error loading user: ${state.errorMessage}');
-            }
-          },
-        ),
-      ],
-      child: Scaffold(
-        body: _buildPages()[_selectedIndex],
-        bottomNavigationBar: BottomNavBar(
-          selectedIndex: _selectedIndex,
-          onTap: (index) => setState(() => _selectedIndex = index),
-          pendingBaksCount: pendingBaksCount,
-          pendingBetsCount: pendingBetsCount,
-        ),
+    return Scaffold(
+      body: _buildPages()[_selectedIndex],
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() => _selectedIndex = index);
+          // Optionally refresh counters when navigating to certain tabs
+          if (index == 1 || index == 3) {
+            // BAKs and Bets tabs
+            _refreshPendingCounters();
+          }
+        },
       ),
     );
   }

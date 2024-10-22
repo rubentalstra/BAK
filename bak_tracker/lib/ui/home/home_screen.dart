@@ -13,7 +13,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   final List<AssociationModel> associations;
   final AssociationModel? selectedAssociation;
   final ValueChanged<AssociationModel?> onAssociationChanged;
@@ -26,55 +26,57 @@ class HomeScreen extends StatefulWidget {
   });
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  List<LeaderboardEntry> _leaderboardEntries = [];
-  late ImageUploadService _imageUploadService;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _imageUploadService = ImageUploadService(Supabase.instance.client);
-    _fetchLeaderboard();
-  }
-
-  @override
-  void didUpdateWidget(covariant HomeScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedAssociation?.id != widget.selectedAssociation?.id) {
-      _fetchLeaderboard();
-    }
-  }
-
-  void _fetchLeaderboard() {
-    final selectedAssociation = widget.selectedAssociation;
-    if (selectedAssociation == null) return;
-
-    setState(() => _isLoading = true);
-    context.read<AssociationBloc>().add(
-          SelectAssociation(selectedAssociation: selectedAssociation),
-        );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AssociationBloc, AssociationState>(
-      listener: _blocListener,
+    final ImageUploadService imageUploadService =
+        ImageUploadService(Supabase.instance.client);
+
+    return BlocBuilder<AssociationBloc, AssociationState>(
       builder: (context, state) {
+        List<LeaderboardEntry> entries = [];
+        bool isLoading = true;
+
+        if (state is AssociationLoaded &&
+            state.selectedAssociation.id == selectedAssociation?.id) {
+          // Process entries
+          entries = state.members
+              .map((member) => LeaderboardEntry(rank: 0, member: member))
+              .toList();
+
+          entries.sort(
+              (a, b) => b.member.baksConsumed.compareTo(a.member.baksConsumed));
+
+          for (int i = 0; i < entries.length; i++) {
+            entries[i] = entries[i].copyWith(rank: i + 1);
+          }
+
+          isLoading = false;
+        } else if (state is AssociationError) {
+          // Handle error state
+          return Scaffold(
+            appBar: _buildAppBar(context, null),
+            body: Center(child: Text('Error: ${state.message}')),
+          );
+        } else if (state is AssociationLoading) {
+          isLoading = true;
+        }
+
         return Scaffold(
-          appBar: _buildAppBar(context, state),
+          appBar:
+              _buildAppBar(context, state is AssociationLoaded ? state : null),
           body: Padding(
             padding: const EdgeInsets.only(top: 16, left: 16, right: 16),
             child: RefreshIndicator(
               color: AppColors.lightSecondary,
-              onRefresh: () async => _fetchLeaderboard(),
+              onRefresh: () async {
+                if (selectedAssociation != null) {
+                  context.read<AssociationBloc>().add(SelectAssociation(
+                      selectedAssociation: selectedAssociation!));
+                }
+              },
               child: LeaderboardWidget(
-                entries: _leaderboardEntries,
-                imageUploadService: _imageUploadService,
-                isLoading: _isLoading,
+                entries: entries,
+                imageUploadService: imageUploadService,
+                isLoading: isLoading,
               ),
             ),
           ),
@@ -83,34 +85,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _blocListener(BuildContext context, AssociationState state) {
-    if (state is AssociationLoaded &&
-        state.selectedAssociation.id == widget.selectedAssociation?.id) {
-      final newEntries = state.members
-          .map((member) => LeaderboardEntry(rank: 0, member: member))
-          .toList();
-
-      newEntries.sort(
-          (a, b) => b.member.baksConsumed.compareTo(a.member.baksConsumed));
-
-      for (int i = 0; i < newEntries.length; i++) {
-        newEntries[i] = newEntries[i].copyWith(rank: i + 1);
-      }
-
-      setState(() {
-        _leaderboardEntries = newEntries;
-        _isLoading = false;
-      });
-    }
-  }
-
-  AppBar _buildAppBar(BuildContext context, AssociationState state) {
+  AppBar _buildAppBar(BuildContext context, AssociationLoaded? state) {
     return AppBar(
-      title: widget.associations.length > 1
+      title: associations.length > 1
           ? _buildAssociationDropdown(context)
-          : Text(widget.selectedAssociation?.name ?? 'Loading...'),
+          : Text(selectedAssociation?.name ?? 'Loading...'),
       actions: [
-        if (state is AssociationLoaded) _buildSettingsIcon(state),
+        if (state != null) _buildSettingsIcon(context, state),
       ],
     );
   }
@@ -118,14 +99,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildAssociationDropdown(BuildContext context) {
     return DropdownButtonHideUnderline(
       child: DropdownButton<AssociationModel>(
-        value: widget.selectedAssociation,
-        onChanged: widget.onAssociationChanged,
+        value: selectedAssociation,
+        onChanged: onAssociationChanged,
         dropdownColor: AppColors.lightPrimaryVariant,
         icon: Icon(
           Icons.keyboard_arrow_down,
           color: Theme.of(context).iconTheme.color,
         ),
-        items: widget.associations.map((association) {
+        items: associations.map((association) {
           return DropdownMenuItem(
             value: association,
             child: Text(
@@ -138,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSettingsIcon(AssociationLoaded state) {
+  Widget _buildSettingsIcon(BuildContext context, AssociationLoaded state) {
     final memberData = state.memberData;
 
     return badges.Badge(
@@ -151,20 +132,27 @@ class _HomeScreenState extends State<HomeScreen> {
       badgeStyle: const badges.BadgeStyle(badgeColor: Colors.red),
       child: IconButton(
         tooltip: 'Association Options',
-        icon: Icon(FontAwesomeIcons.usersGear),
+        icon: const Icon(FontAwesomeIcons.usersGear),
         onPressed: () {
           Navigator.of(context)
               .push(
-                MaterialPageRoute(
-                  builder: (context) => AssociationSettingsScreen(
-                    memberData: memberData,
-                    association: state.selectedAssociation,
-                    pendingApproveBaksCount: state.pendingApproveBaksCount,
-                    imageUploadService: _imageUploadService,
-                  ),
-                ),
-              )
-              .then((_) => _fetchLeaderboard());
+            MaterialPageRoute(
+              builder: (context) => AssociationSettingsScreen(
+                memberData: memberData,
+                association: state.selectedAssociation,
+                pendingApproveBaksCount: state.pendingApproveBaksCount,
+                imageUploadService:
+                    ImageUploadService(Supabase.instance.client),
+              ),
+            ),
+          )
+              .then((_) {
+            // Refresh data when returning from settings
+            if (selectedAssociation != null) {
+              context.read<AssociationBloc>().add(
+                  SelectAssociation(selectedAssociation: selectedAssociation!));
+            }
+          });
         },
       ),
     );

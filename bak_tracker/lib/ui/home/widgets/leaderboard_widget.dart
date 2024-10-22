@@ -22,28 +22,28 @@ class LeaderboardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 500),
-      switchInCurve: Curves.easeIn,
-      switchOutCurve: Curves.easeOut,
-      child:
-          isLoading ? _buildLoadingSkeleton() : _buildLeaderboardList(context),
-    );
-  }
-
-  Widget _buildLeaderboardList(BuildContext context) {
-    return ListView.builder(
-      itemCount: entries.length,
-      itemBuilder: (context, index) {
-        final entry = entries[index];
-        final member = entry.member;
-
-        return GestureDetector(
-          onTap: () => _navigateToProfileScreen(context, member),
-          child: _buildEntry(context, entry),
+    if (isLoading) {
+      return _buildLoadingSkeleton();
+    } else {
+      if (entries.isEmpty) {
+        return const Center(
+          child: Text('No data available'),
         );
-      },
-    );
+      }
+
+      return ListView.builder(
+        itemCount: entries.length,
+        itemBuilder: (context, index) {
+          final entry = entries[index];
+          final member = entry.member;
+
+          return GestureDetector(
+            onTap: () => _navigateToProfileScreen(context, member),
+            child: _buildEntry(context, entry),
+          );
+        },
+      );
+    }
   }
 
   void _navigateToProfileScreen(
@@ -86,7 +86,7 @@ class LeaderboardWidget extends StatelessWidget {
             userName: member.user.name,
             fetchProfileImage: imageUploadService.fetchOrDownloadProfileImage,
             radius: 24.0,
-            backgroundColor: Colors.grey, // You can customize the background
+            backgroundColor: Colors.grey,
           ),
           const SizedBox(width: 16.0),
           Expanded(
@@ -143,7 +143,7 @@ class LeaderboardWidget extends StatelessWidget {
       children: [
         Icon(
           icon,
-          color: Colors.deepOrangeAccent,
+          color: color,
           size: 18,
         ),
         const SizedBox(width: 2.0),
@@ -176,7 +176,7 @@ class LeaderboardWidget extends StatelessWidget {
               // Profile image skeleton
               const CircleAvatar(
                 radius: 24.0,
-                backgroundColor: Color.fromRGBO(158, 158, 158, 1),
+                backgroundColor: Colors.grey,
               ),
               const SizedBox(width: 16.0),
               Expanded(
@@ -186,18 +186,14 @@ class LeaderboardWidget extends StatelessWidget {
                     // Name skeleton
                     _buildSkeletonBox(100.0, 16.0),
                     const SizedBox(height: 8.0),
-
-                    // Row for streak, baks consumed, and bak received
                     Row(
                       children: [
                         // Streak skeleton
                         _buildSkeletonIconAndText(60.0),
                         const SizedBox(width: 16.0),
-
                         // Baks Consumed skeleton
                         _buildSkeletonBox(50.0, 14.0),
                         const SizedBox(width: 16.0),
-
                         // Bak Received skeleton
                         _buildSkeletonBox(50.0, 14.0),
                       ],
@@ -214,7 +210,7 @@ class LeaderboardWidget extends StatelessWidget {
     );
   }
 
-// Helper function for skeleton with icon and text
+  // Helper function for skeleton with icon and text
   Widget _buildSkeletonIconAndText(double width) {
     return Row(
       children: [
@@ -224,6 +220,15 @@ class LeaderboardWidget extends StatelessWidget {
           decoration: const BoxDecoration(
             color: Colors.grey,
             shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 2.0),
+        Container(
+          height: 14.0,
+          width: width - 20.0, // Adjust width to account for icon and spacing
+          decoration: BoxDecoration(
+            color: AppColors.lightPrimaryVariant,
+            borderRadius: BorderRadius.circular(4.0),
           ),
         ),
       ],

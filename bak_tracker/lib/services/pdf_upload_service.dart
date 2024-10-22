@@ -82,7 +82,6 @@ class PDFUploadService {
     }
   }
 
-  // Upload a PDF, compress it, and save with hash.extension format
   Future<String?> uploadPdf(
       File pdfFile, String? existingPdf, String associationId) async {
     try {
@@ -116,6 +115,11 @@ class PDFUploadService {
       await supabase.storage
           .from('association-pdfs')
           .upload(newFilePath, compressedFile);
+
+      // Update the associations table with the new PDF file name
+      await supabase.from('associations').update(
+              {'bak_regulations': newFileName}) // Update with the new file name
+          .eq('id', associationId);
 
       // Return the new PDF file name if successful
       return newFileName;
@@ -177,7 +181,6 @@ class PDFUploadService {
     }
   }
 
-// Delete PDF from both Supabase and local storage
   Future<void> deletePdf(String pdfFileName, String associationId) async {
     if (!pdfFileName.contains('.')) {
       print('Invalid PDF file format');
@@ -195,8 +198,7 @@ class PDFUploadService {
       await supabase.storage.from('association-pdfs').remove([filePath]);
 
       // Delete the compressed PDF locally
-      final localGzPath =
-          '${await _getLocalPath()}/$fileHash.$fileExtension'; // Use the correct extension here
+      final localGzPath = '${await _getLocalPath()}/$fileHash.$fileExtension';
       final localGzFile = File(localGzPath);
       if (await localGzFile.exists()) {
         await localGzFile.delete();
@@ -210,8 +212,20 @@ class PDFUploadService {
         await localPdfFile.delete();
         print('Deleted local decompressed PDF: $localPdfPath');
       }
+
+      // Update the associations table to remove the bak_regulations field
+      await supabase
+          .from('associations')
+          .update({'bak_regulations': null}) // Set bak_regulations to null
+          .eq('id', associationId);
+
+      print('Bak regulations removed from the association.');
     } catch (e) {
       print('Error during PDF deletion: $e');
+
+      // Throw a more specific message without the "Exception" prefix
+      throw Exception(
+          'Failed to Delete PDF: ${e.toString().replaceAll('Exception:', '').trim()}');
     }
   }
 
