@@ -18,11 +18,11 @@ class LeaderboardProfileScreen extends StatefulWidget {
   });
 
   @override
-  _LeaderboardProfileScreenState createState() =>
-      _LeaderboardProfileScreenState();
+  LeaderboardProfileScreenState createState() =>
+      LeaderboardProfileScreenState();
 }
 
-class _LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
+class LeaderboardProfileScreenState extends State<LeaderboardProfileScreen>
     with SingleTickerProviderStateMixin {
   AnimationController? _controller;
   IconData? _hourglassIcon;
