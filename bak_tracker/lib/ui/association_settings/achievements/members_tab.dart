@@ -86,6 +86,7 @@ class _MembersTabState extends State<MembersTab> {
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         leading: ProfileImageWidget(
           profileImageUrl: member.user.profileImage,
           userName: member.user.name,

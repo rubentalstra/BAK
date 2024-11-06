@@ -276,6 +276,7 @@ class _ApproveBaksScreenState extends State<ApproveBaksScreen> {
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding: const EdgeInsets.all(16),
         title: Text(
           'Requested by: ${bak.taker.name}',

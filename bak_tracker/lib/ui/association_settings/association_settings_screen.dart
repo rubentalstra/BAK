@@ -305,6 +305,7 @@ class AssociationSettingsScreen extends StatelessWidget {
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         leading: Icon(icon, color: AppColors.lightSecondary),
         title: Text(
           title,

@@ -62,6 +62,8 @@ class ActiveInvitesTab extends StatelessWidget {
               borderRadius: BorderRadius.circular(10), // Match radius
             ),
             child: ListTile(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
               contentPadding:
                   const EdgeInsets.all(12), // Match padding inside card
               leading: CircleAvatar(

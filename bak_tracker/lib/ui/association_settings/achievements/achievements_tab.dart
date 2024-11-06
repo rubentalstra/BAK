@@ -177,6 +177,8 @@ class _AchievementsTabState extends State<AchievementsTab> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: ListTile(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                   contentPadding:
                       const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                   leading: const Icon(Icons.emoji_events,

@@ -61,7 +61,9 @@ class DrinkHistoryScreenState extends State<DrinkHistoryScreen> {
 
   Widget _buildDrinkLogCard(AlcoholTrackingModel log) {
     final drinkType = log.drinkType.name;
-    final dateFormatted = DateFormat.yMMMd().format(log.consumedAt);
+    final consumedAt = log.consumedAt.toLocal();
+
+    final dateTimeFormatted = DateFormat.yMMMd().add_jm().format(consumedAt);
 
     return Card(
       elevation: 4,
@@ -70,7 +72,7 @@ class DrinkHistoryScreenState extends State<DrinkHistoryScreen> {
       child: ListTile(
         leading: Icon(log.drinkType.icon, color: Colors.orangeAccent),
         title: Text('$drinkType - ${log.amount} drink'),
-        subtitle: Text('Consumed on: $dateFormatted'),
+        subtitle: Text('Consumed on: $dateTimeFormatted'),
       ),
     );
   }
